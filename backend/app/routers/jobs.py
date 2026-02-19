@@ -1,8 +1,10 @@
 import os
 import uuid
+from pathlib import Path
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -97,3 +99,24 @@ async def get_job_logs(
     if current_user.role.value != "admin" and job.client_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied")
     return {"job_id": job.id, "logs": job.logs or ""}
+
+
+@router.get("/{job_id}/download/{filename}")
+async def download_job_file(job_id: str, filename: str):
+    """Download a job file (script or requirements).
+
+    Used by GPU agents to fetch job files over HTTP.
+    No auth required — job UUID is unguessable.
+    """
+    # Sanitise filename to prevent path traversal
+    safe_name = Path(filename).name
+    file_path = Path(settings.UPLOAD_DIR) / job_id / safe_name
+
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+
+    return FileResponse(
+        path=str(file_path),
+        filename=safe_name,
+        media_type="application/octet-stream",
+    )

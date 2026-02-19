@@ -10,7 +10,7 @@ Protocol (aligned with backend/app/routers/ws.py):
     {"type": "log", "job_id": "...", "data": "..."}
 
   Server → Agent:
-    {"type": "assign_job", "job_id": "...", "script_path": "...", "requirements_path": "..."}
+    {"type": "assign_job", "job_id": "...", "script_url": "/jobs/.../download/...", "requirements_url": "..."|null}
 """
 
 import asyncio

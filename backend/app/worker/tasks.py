@@ -1,5 +1,6 @@
 import asyncio
 from datetime import datetime, timezone, timedelta
+from pathlib import Path
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
@@ -61,11 +62,19 @@ async def _process_job_async(job_id: str):
 
         # Dispatch to agent via WebSocket
         if manager.is_connected(gpu.id):
+            # Build download URLs for the agent
+            script_name = Path(job.script_path).name
+            script_url = f"/jobs/{job.id}/download/{script_name}"
+            req_url = None
+            if job.requirements_path:
+                req_name = Path(job.requirements_path).name
+                req_url = f"/jobs/{job.id}/download/{req_name}"
+
             await manager.send_to_gpu(gpu.id, {
                 "type": "assign_job",
                 "job_id": job.id,
-                "script_path": job.script_path,
-                "requirements_path": job.requirements_path,
+                "script_url": script_url,
+                "requirements_url": req_url,
             })
 
 

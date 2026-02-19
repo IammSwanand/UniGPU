@@ -24,7 +24,7 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str):
         {"type": "log", "job_id": "...", "data": "..."}
 
       Server → Agent:
-        {"type": "assign_job", "job_id": "...", "script_path": "...", "requirements_path": "..."}
+        {"type": "assign_job", "job_id": "...", "script_url": "/jobs/.../download/...", "requirements_url": "..."|null}
     """
     # Optional: validate token via query param (token = websocket.query_params.get("token"))
     await manager.connect(gpu_id, websocket)

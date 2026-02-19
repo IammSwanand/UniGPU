@@ -76,6 +76,7 @@ class UniGPUAgent:
         self.executor = JobExecutor(
             work_dir=self.config.work_dir,
             docker_base_image=self.config.docker_base_image,
+            backend_http_url=self.config.backend_http_url,
             cpu_limit=self.config.cpu_limit,
             memory_limit=self.config.memory_limit,
             max_timeout=self.config.max_job_timeout,

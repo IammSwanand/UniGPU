@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import docker
+import httpx
 from docker.errors import (
     ContainerError,
     DockerException,
@@ -61,12 +62,14 @@ class JobExecutor:
         self,
         work_dir: str,
         docker_base_image: str,
+        backend_http_url: str = "http://localhost:8000",
         cpu_limit: float = 4.0,
         memory_limit: str = "8g",
         max_timeout: int = 3600,
     ):
         self.work_dir = Path(work_dir)
         self.docker_base_image = docker_base_image
+        self.backend_http_url = backend_http_url.rstrip("/")
         self.cpu_limit = cpu_limit
         self.memory_limit = memory_limit
         self.max_timeout = max_timeout
@@ -85,12 +88,12 @@ class JobExecutor:
           {
             "type": "assign_job",
             "job_id": "uuid",
-            "script_path": "uploads/<job_id>/train.py",
-            "requirements_path": "uploads/<job_id>/requirements.txt" | null,
+            "script_url": "/jobs/<job_id>/download/train.py",
+            "requirements_url": "/jobs/<job_id>/download/requirements.txt" | null,
           }
         """
         job_id = job["job_id"]
-        logger.info("▶ Starting job %s", job_id)
+        logger.info("Starting job %s", job_id)
 
         try:
             # Step 1: Prepare directories
@@ -100,8 +103,8 @@ class JobExecutor:
             input_dir.mkdir(exist_ok=True)
             output_dir.mkdir(exist_ok=True)
 
-            # Step 2: Copy training script from backend's upload dir
-            self._copy_script(job, input_dir)
+            # Step 2: Download files from backend via HTTP
+            await self._download_files(job, input_dir)
 
             # Step 3: Run Docker container (blocking, run in executor)
             result = await asyncio.get_event_loop().run_in_executor(
@@ -141,38 +144,33 @@ class JobExecutor:
         job_dir.mkdir(parents=True)
         return job_dir
 
-    def _copy_script(self, job: Dict[str, Any], dest: Path) -> None:
+    async def _download_files(self, job: Dict[str, Any], dest: Path) -> None:
         """
-        Copy the training script (and optional requirements) from the backend's
-        upload directory into the job's input directory.
-
-        The backend stores uploaded files at paths like:
-          uploads/<job_id>/train.py
-          uploads/<job_id>/requirements.txt
-
-        These paths are relative to the backend's working directory.
-        When running on the same machine or with shared volumes (Docker),
-        we can read them directly.
+        Download job files (script + optional requirements) from the backend
+        via HTTP. The backend serves them at /jobs/{id}/download/{filename}.
         """
-        script_path = Path(job["script_path"])
-        if not script_path.exists():
-            raise FileNotFoundError(
-                f"Script not found at {script_path}. "
-                f"Ensure the agent can access the backend's upload directory."
-            )
+        async with httpx.AsyncClient(base_url=self.backend_http_url, timeout=60) as client:
+            # Download script (required)
+            script_url = job["script_url"]
+            script_name = Path(script_url).name
+            resp = await client.get(script_url)
+            if resp.status_code != 200:
+                raise RuntimeError(
+                    f"Failed to download script from {script_url}: HTTP {resp.status_code}"
+                )
+            (dest / script_name).write_bytes(resp.content)
+            logger.info("Downloaded script %s (%d bytes)", script_name, len(resp.content))
 
-        # Copy script
-        script_name = script_path.name
-        shutil.copy2(str(script_path), str(dest / script_name))
-        logger.info("Copied script %s (%d bytes)", script_name, script_path.stat().st_size)
-
-        # Copy requirements if provided
-        req_path = job.get("requirements_path")
-        if req_path:
-            req_path = Path(req_path)
-            if req_path.exists():
-                shutil.copy2(str(req_path), str(dest / req_path.name))
-                logger.info("Copied requirements %s", req_path.name)
+            # Download requirements (optional)
+            req_url = job.get("requirements_url")
+            if req_url:
+                req_name = Path(req_url).name
+                resp = await client.get(req_url)
+                if resp.status_code == 200:
+                    (dest / req_name).write_bytes(resp.content)
+                    logger.info("Downloaded requirements %s (%d bytes)", req_name, len(resp.content))
+                else:
+                    logger.warning("Requirements download returned HTTP %d — skipping", resp.status_code)
 
     # ──────────────────────────────────────────────
     # Internal — Docker execution
@@ -198,8 +196,8 @@ class JobExecutor:
         image = self.docker_base_image
         timeout = self.max_timeout
 
-        # Determine script name from the path
-        script_name = Path(job["script_path"]).name
+        # Determine script name from the URL
+        script_name = Path(job["script_url"]).name
 
         client = self._get_docker_client()
 
@@ -208,9 +206,9 @@ class JobExecutor:
 
         # Build command: install deps then run script
         cmd_parts = []
-        req_path = job.get("requirements_path")
-        if req_path:
-            req_name = Path(req_path).name
+        req_url = job.get("requirements_url")
+        if req_url:
+            req_name = Path(req_url).name
             if (input_dir / req_name).exists():
                 cmd_parts.append(f"pip install -q -r /workspace/input/{req_name} &&")
         cmd_parts.append(f"python /workspace/input/{script_name}")
