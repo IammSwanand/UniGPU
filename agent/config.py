@@ -17,6 +17,11 @@ load_dotenv(Path(__file__).parent / ".env")
 class AgentConfig:
     """Immutable agent configuration loaded from environment."""
 
+    # GPU identity (must match the GPU id registered in backend)
+    gpu_id: str = field(
+        default_factory=lambda: os.getenv("GPU_ID", "")
+    )
+
     # Backend endpoints
     backend_ws_url: str = field(
         default_factory=lambda: os.getenv("BACKEND_WS_URL", "ws://localhost:8000/ws/agent")
@@ -25,9 +30,9 @@ class AgentConfig:
         default_factory=lambda: os.getenv("BACKEND_HTTP_URL", "http://localhost:8000")
     )
 
-    # Authentication
+    # Authentication (optional — used as query param on WS connect)
     agent_token: str = field(
-        default_factory=lambda: os.getenv("AGENT_TOKEN", "dev-agent-token")
+        default_factory=lambda: os.getenv("AGENT_TOKEN", "")
     )
 
     # Heartbeat
@@ -63,16 +68,34 @@ class AgentConfig:
         default_factory=lambda: float(os.getenv("LOG_BATCH_INTERVAL", "0.2"))
     )
 
+    @property
+    def ws_connect_url(self) -> str:
+        """Full WebSocket URL including gpu_id path segment."""
+        base = self.backend_ws_url.rstrip("/")
+        url = f"{base}/{self.gpu_id}"
+        if self.agent_token:
+            url += f"?token={self.agent_token}"
+        return url
+
     def ensure_work_dir(self) -> Path:
         """Create and return the work directory path."""
         path = Path(self.work_dir)
         path.mkdir(parents=True, exist_ok=True)
         return path
 
+    def validate(self) -> None:
+        """Validate required configuration."""
+        if not self.gpu_id:
+            raise ValueError(
+                "GPU_ID is required. Register your GPU via the backend "
+                "(POST /gpus/register) and set GPU_ID in your .env file."
+            )
+
     def __str__(self) -> str:
         return (
             f"AgentConfig(\n"
-            f"  backend_ws_url={self.backend_ws_url}\n"
+            f"  gpu_id={self.gpu_id}\n"
+            f"  ws_connect_url={self.ws_connect_url}\n"
             f"  backend_http_url={self.backend_http_url}\n"
             f"  heartbeat_interval={self.heartbeat_interval}s\n"
             f"  work_dir={self.work_dir}\n"

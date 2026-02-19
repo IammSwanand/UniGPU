@@ -1,7 +1,10 @@
 """
 UniGPU Agent — Log Streamer
-Attaches to a running Docker container and streams log lines
+Attaches to a running Docker container and streams log data
 to the backend via WebSocket in batches.
+
+Backend protocol: {"type": "log", "job_id": "...", "data": "..."}
+The "data" field is a single string (lines joined with newlines).
 """
 
 import asyncio
@@ -24,8 +27,8 @@ class LogStreamer:
     def __init__(self, ws_client: Any, batch_interval: float = 0.2):
         """
         Args:
-            ws_client: AgentWebSocket instance with send_log() method.
-            batch_interval: Seconds between sending batched log lines.
+            ws_client: AgentWebSocket instance with send_log(job_id, data) method.
+            batch_interval: Seconds between sending batched log data.
         """
         self.ws_client = ws_client
         self.batch_interval = batch_interval
@@ -89,11 +92,13 @@ class LogStreamer:
             logger.info("Log stream ended for job %s", job_id)
 
     async def _flush(self, job_id: str, lines: list[str]) -> None:
-        """Send buffered lines to backend."""
+        """Send buffered lines to backend as a single string."""
         if not lines:
             return
         try:
-            await self.ws_client.send_log(job_id, list(lines))
+            # Backend expects {"type": "log", "data": "..."} — join lines into one string
+            data = "\n".join(lines)
+            await self.ws_client.send_log(job_id, data)
             logger.debug("Flushed %d log lines for job %s", len(lines), job_id)
         except Exception as exc:
             logger.warning("Failed to send logs for job %s: %s", job_id, exc)

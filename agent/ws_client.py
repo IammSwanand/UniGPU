@@ -1,7 +1,16 @@
 """
 UniGPU Agent — WebSocket Client
 Persistent async WebSocket connection to the UniGPU backend.
-Handles registration, heartbeats, job dispatch, log streaming, and auto-reconnect.
+Handles heartbeats, job dispatch, log streaming, and auto-reconnect.
+
+Protocol (aligned with backend/app/routers/ws.py):
+  Agent → Server:
+    {"type": "heartbeat"}
+    {"type": "job_status", "job_id": "...", "status": "running|completed|failed"}
+    {"type": "log", "job_id": "...", "data": "..."}
+
+  Server → Agent:
+    {"type": "assign_job", "job_id": "...", "script_path": "...", "requirements_path": "..."}
 """
 
 import asyncio
@@ -28,23 +37,24 @@ class AgentWebSocket:
     Manages the persistent WebSocket connection between the GPU agent and the backend.
 
     Features:
-      - Register with GPU specs on connect
+      - Connect at /ws/agent/{gpu_id} (backend identifies agent by URL)
       - Periodic heartbeat
       - Dispatch incoming messages to registered handlers
       - Auto-reconnect with exponential backoff
-      - Send log lines, status updates, and job results
+      - Send log data, status updates, and job results
     """
 
     def __init__(
         self,
         ws_url: str,
-        agent_token: str,
-        gpu_specs: List[Dict[str, Any]],
         heartbeat_interval: int = 10,
     ):
+        """
+        Args:
+            ws_url: Full WebSocket URL including gpu_id, e.g. ws://host/ws/agent/{gpu_id}
+            heartbeat_interval: Seconds between heartbeats.
+        """
         self.ws_url = ws_url
-        self.agent_token = agent_token
-        self.gpu_specs = gpu_specs
         self.heartbeat_interval = heartbeat_interval
 
         self._ws: Optional[websockets.WebSocketClientProtocol] = None
@@ -69,7 +79,7 @@ class AgentWebSocket:
             except (ConnectionClosed, ConnectionClosedError, OSError) as exc:
                 logger.warning("WebSocket disconnected: %s", exc)
             except InvalidStatusCode as exc:
-                logger.error("WebSocket rejected (HTTP %s) — check token/URL", exc.status_code)
+                logger.error("WebSocket rejected (HTTP %s) — check GPU_ID/token", exc.status_code)
             except Exception as exc:
                 logger.error("Unexpected WS error: %s", exc, exc_info=True)
 
@@ -91,34 +101,26 @@ class AgentWebSocket:
         if self._ws:
             await self._ws.send(json.dumps(message))
 
-    async def send_log(self, job_id: str, lines: List[str]) -> None:
-        """Send a batch of log lines for a running job."""
+    async def send_log(self, job_id: str, data: str) -> None:
+        """
+        Send log data for a running job.
+        Backend expects: {"type": "log", "job_id": "...", "data": "..."}
+        """
         await self.send({
-            "type": "log_lines",
+            "type": "log",
             "job_id": job_id,
-            "lines": lines,
-            "timestamp": time.time(),
+            "data": data,
         })
 
-    async def send_job_result(self, job_id: str, status: str, runtime_seconds: float, exit_code: int, error: Optional[str] = None) -> None:
-        """Report job completion or failure."""
+    async def send_job_status(self, job_id: str, status: str) -> None:
+        """
+        Report job status change.
+        Backend expects: {"type": "job_status", "job_id": "...", "status": "running|completed|failed"}
+        """
         await self.send({
-            "type": "job_result",
+            "type": "job_status",
             "job_id": job_id,
             "status": status,
-            "runtime_seconds": runtime_seconds,
-            "exit_code": exit_code,
-            "error": error,
-            "timestamp": time.time(),
-        })
-
-    async def send_status_update(self, status: str, metadata: Optional[Dict[str, Any]] = None) -> None:
-        """Send an agent status update (e.g. 'idle', 'busy', 'error')."""
-        await self.send({
-            "type": "agent_status",
-            "status": status,
-            "metadata": metadata or {},
-            "timestamp": time.time(),
         })
 
     # ──────────────────────────────────────────────
@@ -126,11 +128,9 @@ class AgentWebSocket:
     # ──────────────────────────────────────────────
 
     async def _connect_and_listen(self) -> None:
-        """Establish connection, register, then run heartbeat + listener concurrently."""
-        extra_headers = {"Authorization": f"Bearer {self.agent_token}"}
+        """Establish connection, then run heartbeat + listener concurrently."""
         async with websockets.connect(
             self.ws_url,
-            extra_headers=extra_headers,
             ping_interval=20,
             ping_timeout=10,
             close_timeout=5,
@@ -139,9 +139,6 @@ class AgentWebSocket:
             self._connected.set()
             self._reconnect_delay = 1  # reset on successful connect
             logger.info("Connected to backend at %s", self.ws_url)
-
-            # Register
-            await self._register()
 
             # Run heartbeat and listener concurrently
             heartbeat_task = asyncio.create_task(self._heartbeat_loop())
@@ -159,24 +156,12 @@ class AgentWebSocket:
                 listener_task.cancel()
                 self._connected.clear()
 
-    async def _register(self) -> None:
-        """Send registration payload with GPU specs."""
-        payload = {
-            "type": "register",
-            "agent_token": self.agent_token,
-            "gpus": self.gpu_specs,
-            "timestamp": time.time(),
-        }
-        await self._ws.send(json.dumps(payload))
-        logger.info("Registered with backend (%d GPU(s))", len(self.gpu_specs))
-
     async def _heartbeat_loop(self) -> None:
         """Send periodic heartbeat messages."""
         while self._should_run:
             try:
                 await self._ws.send(json.dumps({
                     "type": "heartbeat",
-                    "timestamp": time.time(),
                 }))
                 logger.debug("♥ heartbeat sent")
             except ConnectionClosed:
@@ -194,9 +179,6 @@ class AgentWebSocket:
 
             msg_type = msg.get("type", "unknown")
             logger.debug("Received message type=%s", msg_type)
-
-            if msg_type == "pong":
-                continue  # heartbeat ack, no action needed
 
             handler = self._handlers.get(msg_type)
             if handler:

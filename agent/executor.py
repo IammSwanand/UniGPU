@@ -1,6 +1,7 @@
 """
 UniGPU Agent — Docker Job Executor
-Downloads training scripts, builds/runs containers with NVIDIA runtime,
+Reads training scripts from local paths (as stored by the backend),
+builds/runs containers with NVIDIA runtime,
 enforces resource limits & timeouts, and collects results.
 """
 
@@ -14,7 +15,6 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 import docker
-import httpx
 from docker.errors import (
     ContainerError,
     DockerException,
@@ -51,25 +51,20 @@ class JobExecutor:
     Executes training jobs inside Docker containers using NVIDIA runtime.
 
     Lifecycle:
-      1. Download training script from backend
-      2. Prepare job work directory
-      3. Create and start a container with resource limits
-      4. Monitor for completion or timeout
-      5. Collect exit code and output
+      1. Copy training script from backend's upload dir into job work directory
+      2. Create and start a container with resource limits
+      3. Monitor for completion or timeout
+      4. Collect exit code and output
     """
 
     def __init__(
         self,
-        backend_http_url: str,
-        agent_token: str,
         work_dir: str,
         docker_base_image: str,
         cpu_limit: float = 4.0,
         memory_limit: str = "8g",
         max_timeout: int = 3600,
     ):
-        self.backend_http_url = backend_http_url.rstrip("/")
-        self.agent_token = agent_token
         self.work_dir = Path(work_dir)
         self.docker_base_image = docker_base_image
         self.cpu_limit = cpu_limit
@@ -86,15 +81,12 @@ class JobExecutor:
         """
         Run a job end-to-end.
 
-        Expected job payload:
+        Expected job payload (from backend assign_job):
           {
+            "type": "assign_job",
             "job_id": "uuid",
-            "script_url": "/api/jobs/<id>/script",
-            "script_name": "train.py",
-            "requirements": "torch\\nnumpy\\n...",   # optional
-            "args": ["--epochs", "10"],               # optional
-            "timeout": 1800,                          # optional override
-            "image": "pytorch/pytorch:latest",        # optional override
+            "script_path": "uploads/<job_id>/train.py",
+            "requirements_path": "uploads/<job_id>/requirements.txt" | null,
           }
         """
         job_id = job["job_id"]
@@ -108,14 +100,10 @@ class JobExecutor:
             input_dir.mkdir(exist_ok=True)
             output_dir.mkdir(exist_ok=True)
 
-            # Step 2: Download training script
-            await self._download_script(job, input_dir)
+            # Step 2: Copy training script from backend's upload dir
+            self._copy_script(job, input_dir)
 
-            # Step 3: Write requirements if provided
-            if job.get("requirements"):
-                (input_dir / "requirements.txt").write_text(job["requirements"])
-
-            # Step 4: Run Docker container (blocking, run in executor)
+            # Step 3: Run Docker container (blocking, run in executor)
             result = await asyncio.get_event_loop().run_in_executor(
                 None,
                 self._run_container,
@@ -153,18 +141,38 @@ class JobExecutor:
         job_dir.mkdir(parents=True)
         return job_dir
 
-    async def _download_script(self, job: Dict[str, Any], dest: Path) -> None:
-        """Download the training script from the backend."""
-        script_url = f"{self.backend_http_url}{job['script_url']}"
-        script_name = job.get("script_name", "train.py")
+    def _copy_script(self, job: Dict[str, Any], dest: Path) -> None:
+        """
+        Copy the training script (and optional requirements) from the backend's
+        upload directory into the job's input directory.
 
-        async with httpx.AsyncClient(timeout=60) as client:
-            headers = {"Authorization": f"Bearer {self.agent_token}"}
-            resp = await client.get(script_url, headers=headers)
-            resp.raise_for_status()
-            (dest / script_name).write_bytes(resp.content)
+        The backend stores uploaded files at paths like:
+          uploads/<job_id>/train.py
+          uploads/<job_id>/requirements.txt
 
-        logger.info("Downloaded %s (%d bytes)", script_name, len(resp.content))
+        These paths are relative to the backend's working directory.
+        When running on the same machine or with shared volumes (Docker),
+        we can read them directly.
+        """
+        script_path = Path(job["script_path"])
+        if not script_path.exists():
+            raise FileNotFoundError(
+                f"Script not found at {script_path}. "
+                f"Ensure the agent can access the backend's upload directory."
+            )
+
+        # Copy script
+        script_name = script_path.name
+        shutil.copy2(str(script_path), str(dest / script_name))
+        logger.info("Copied script %s (%d bytes)", script_name, script_path.stat().st_size)
+
+        # Copy requirements if provided
+        req_path = job.get("requirements_path")
+        if req_path:
+            req_path = Path(req_path)
+            if req_path.exists():
+                shutil.copy2(str(req_path), str(dest / req_path.name))
+                logger.info("Copied requirements %s", req_path.name)
 
     # ──────────────────────────────────────────────
     # Internal — Docker execution
@@ -187,10 +195,11 @@ class JobExecutor:
         This is a BLOCKING call — should be run via run_in_executor.
         """
         job_id = job["job_id"]
-        image = job.get("image", self.docker_base_image)
-        script_name = job.get("script_name", "train.py")
-        args = job.get("args", [])
-        timeout = min(job.get("timeout", self.max_timeout), self.max_timeout)
+        image = self.docker_base_image
+        timeout = self.max_timeout
+
+        # Determine script name from the path
+        script_name = Path(job["script_path"]).name
 
         client = self._get_docker_client()
 
@@ -199,11 +208,12 @@ class JobExecutor:
 
         # Build command: install deps then run script
         cmd_parts = []
-        if (input_dir / "requirements.txt").exists():
-            cmd_parts.append("pip install -q -r /workspace/input/requirements.txt &&")
+        req_path = job.get("requirements_path")
+        if req_path:
+            req_name = Path(req_path).name
+            if (input_dir / req_name).exists():
+                cmd_parts.append(f"pip install -q -r /workspace/input/{req_name} &&")
         cmd_parts.append(f"python /workspace/input/{script_name}")
-        if args:
-            cmd_parts.append(" ".join(args))
         full_cmd = " ".join(cmd_parts)
 
         start_time = time.time()
