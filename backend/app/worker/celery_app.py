@@ -7,6 +7,7 @@ celery_app = Celery(
     "unigpu_worker",
     broker=settings.REDIS_URL,
     backend=settings.REDIS_URL,
+    include=["app.worker.tasks"],
 )
 
 celery_app.conf.update(

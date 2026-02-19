@@ -6,6 +6,10 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, Asyn
 
 from app.worker.celery_app import celery_app
 from app.config import get_settings
+
+# Import ALL models so SQLAlchemy relationships resolve properly
+from app.models.user import User  # noqa: F401
+from app.models.wallet import Wallet, Transaction  # noqa: F401
 from app.models.gpu import GPU, GPUStatus
 from app.models.job import Job, JobStatus
 from app.services.connection_manager import manager
@@ -77,12 +81,13 @@ async def _check_heartbeats_async():
         result = await db.execute(
             select(GPU).where(
                 GPU.status != GPUStatus.offline,
+                GPU.last_heartbeat.isnot(None),
                 GPU.last_heartbeat < cutoff,
             )
         )
         stale_gpus = result.scalars().all()
         for gpu in stale_gpus:
             gpu.status = GPUStatus.offline
-            print(f"⏰ GPU {gpu.id} ({gpu.name}) marked offline — stale heartbeat")
+            print(f"GPU {gpu.id} ({gpu.name}) marked offline -- stale heartbeat")
         if stale_gpus:
             await db.commit()
