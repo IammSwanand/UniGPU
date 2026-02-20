@@ -4,7 +4,7 @@ dbeaver is used to monitor the databases -
 cred for same -
 host = localhost
 port = 5432
-database = unigpu_db
+database = unigpu
 username = unigpu
 password = [unigpu_secret]
 
