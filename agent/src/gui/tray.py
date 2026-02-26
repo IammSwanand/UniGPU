@@ -1,0 +1,253 @@
+"""
+UniGPU Agent — System Tray Application
+Provides a Windows system-tray icon with status indication, right-click menu,
+and bridges to the agent's asyncio event loop running in a background thread.
+"""
+
+import asyncio
+import logging
+import sys
+import threading
+import time
+from pathlib import Path
+from typing import Optional
+
+from PIL import Image, ImageDraw, ImageFont
+
+logger = logging.getLogger("unigpu.agent.tray")
+
+# Try to import pystray — fail gracefully for headless/CI
+try:
+    import pystray
+    from pystray import MenuItem, Menu
+    HAS_TRAY = True
+except ImportError:
+    HAS_TRAY = False
+    logger.warning("pystray not installed — system tray unavailable")
+
+
+# ─── Status colors ───────────────────────────────
+STATUS_COLORS = {
+    "connected":    "#22c55e",  # green
+    "connecting":   "#facc15",  # yellow
+    "disconnected": "#ef4444",  # red
+    "idle":         "#6366f1",  # indigo (no job)
+    "running_job":  "#22c55e",  # green (job active)
+}
+
+# ─── Icon generation ─────────────────────────────
+
+def _create_icon_image(color: str = "#6366f1", size: int = 64) -> "Image.Image":
+    """
+    Generate a simple tray icon: a filled circle with 'U' letter on it.
+    Color indicates status.
+    """
+    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    draw = ImageDraw.Draw(img)
+
+    # Background circle
+    padding = 4
+    draw.ellipse(
+        [padding, padding, size - padding, size - padding],
+        fill=color,
+    )
+
+    # 'U' letter in center
+    try:
+        font = ImageFont.truetype("segoeui.ttf", size // 2)
+    except (IOError, OSError):
+        try:
+            font = ImageFont.truetype("arial.ttf", size // 2)
+        except (IOError, OSError):
+            font = ImageFont.load_default()
+
+    bbox = draw.textbbox((0, 0), "U", font=font)
+    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
+    tx = (size - tw) // 2
+    ty = (size - th) // 2 - 2
+    draw.text((tx, ty), "U", fill="white", font=font)
+
+    return img
+
+
+class TrayApp:
+    """
+    System tray application for the UniGPU agent.
+
+    Usage:
+        tray = TrayApp(config, agent_class)
+        tray.run()   # blocks — runs pystray in main thread
+    """
+
+    def __init__(self, config, agent_factory):
+        """
+        Args:
+            config: AgentConfig instance
+            agent_factory: callable that returns a UniGPUAgent given a config
+        """
+        if not HAS_TRAY:
+            raise RuntimeError("pystray is not installed. Install it: pip install pystray")
+
+        self.config = config
+        self._agent_factory = agent_factory
+        self._agent = None
+        self._agent_thread: Optional[threading.Thread] = None
+        self._agent_loop: Optional[asyncio.AbstractEventLoop] = None
+        self._running = False
+        self._status = "disconnected"
+        self._current_job: Optional[str] = None
+        self._icon: Optional[pystray.Icon] = None
+
+        # Hidden root for tkinter dialogs (settings, etc.)
+        self._tk_root = None
+
+    @property
+    def status_text(self) -> str:
+        if self._current_job:
+            return f"Running job: {self._current_job[:8]}…"
+        return self._status.replace("_", " ").title()
+
+    # ──────────────────────────────────────────────
+    # Public API
+    # ──────────────────────────────────────────────
+
+    def run(self):
+        """Start the tray icon and agent. Blocks until Exit is chosen."""
+        self._icon = pystray.Icon(
+            name="UniGPU Agent",
+            icon=_create_icon_image(STATUS_COLORS.get(self._status, "#6366f1")),
+            title=f"UniGPU Agent — {self.status_text}",
+            menu=self._build_menu(),
+        )
+
+        # Start agent in background on tray setup
+        self._icon.visible = True
+        self._start_agent()
+        self._icon.run(setup=lambda icon: None)
+
+    def update_status(self, status: str, job_id: Optional[str] = None):
+        """Update the tray icon color and tooltip."""
+        self._status = status
+        self._current_job = job_id
+
+        if self._icon:
+            color = STATUS_COLORS.get(status, "#6366f1")
+            self._icon.icon = _create_icon_image(color)
+            self._icon.title = f"UniGPU Agent — {self.status_text}"
+
+    # ──────────────────────────────────────────────
+    # Menu
+    # ──────────────────────────────────────────────
+
+    def _build_menu(self) -> "Menu":
+        return Menu(
+            MenuItem(lambda item: f"Status: {self.status_text}", None, enabled=False),
+            Menu.SEPARATOR,
+            MenuItem("Open Settings", self._on_open_settings),
+            MenuItem("Open Log Folder", self._on_open_logs),
+            Menu.SEPARATOR,
+            MenuItem("Start Agent", self._on_start, visible=lambda item: not self._running),
+            MenuItem("Stop Agent", self._on_stop, visible=lambda item: self._running),
+            Menu.SEPARATOR,
+            MenuItem("Exit", self._on_exit),
+        )
+
+    # ──────────────────────────────────────────────
+    # Agent lifecycle (background thread)
+    # ──────────────────────────────────────────────
+
+    def _start_agent(self):
+        if self._running:
+            return
+
+        self._running = True
+        self.update_status("connecting")
+
+        def _run_in_thread():
+            self._agent_loop = asyncio.new_event_loop()
+            asyncio.set_event_loop(self._agent_loop)
+
+            self._agent = self._agent_factory(self.config)
+
+            # Monkey-patch the agent to update tray status
+            original_handle = self._agent._handle_assign_job
+
+            async def _patched_handle(msg):
+                job_id = msg.get("job_id", "?")
+                self.update_status("running_job", job_id)
+                try:
+                    await original_handle(msg)
+                finally:
+                    self.update_status("connected")
+
+            self._agent._handle_assign_job = _patched_handle
+
+            try:
+                self.update_status("connected")
+                self._agent_loop.run_until_complete(self._agent.start())
+            except Exception as e:
+                logger.error("Agent thread error: %s", e)
+                self.update_status("disconnected")
+            finally:
+                self._running = False
+                self.update_status("disconnected")
+
+        self._agent_thread = threading.Thread(target=_run_in_thread, daemon=True)
+        self._agent_thread.start()
+
+    def _stop_agent(self):
+        if not self._running or not self._agent:
+            return
+
+        self._running = False
+        self.update_status("disconnected")
+
+        if self._agent_loop and self._agent:
+            asyncio.run_coroutine_threadsafe(self._agent.stop(), self._agent_loop)
+
+    # ──────────────────────────────────────────────
+    # Menu handlers
+    # ──────────────────────────────────────────────
+
+    def _on_open_settings(self, icon=None, item=None):
+        """Open the settings window."""
+        def _open():
+            import tkinter as tk
+            if self._tk_root is None:
+                self._tk_root = tk.Tk()
+                self._tk_root.withdraw()
+
+            from src.gui.settings import SettingsWindow
+            SettingsWindow(self.config, on_save=self._on_settings_saved)
+            self._tk_root.mainloop()
+
+        # Run in a new thread to avoid blocking the tray
+        threading.Thread(target=_open, daemon=True).start()
+
+    def _on_settings_saved(self, new_config: "AgentConfig"):
+        """Callback when settings are saved — update internal config."""
+        self.config = new_config
+        logger.info("Settings updated — restart agent for changes to take effect")
+
+    def _on_open_logs(self, icon=None, item=None):
+        """Open the log directory in Explorer."""
+        import subprocess
+        log_dir = self.config.log_dir()
+        subprocess.Popen(["explorer", str(log_dir)])
+
+    def _on_start(self, icon=None, item=None):
+        self._start_agent()
+
+    def _on_stop(self, icon=None, item=None):
+        self._stop_agent()
+
+    def _on_exit(self, icon=None, item=None):
+        self._stop_agent()
+        if self._icon:
+            self._icon.stop()
+        # Clean up tk root if it exists
+        if self._tk_root:
+            try:
+                self._tk_root.destroy()
+            except Exception:
+                pass

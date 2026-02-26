@@ -3,18 +3,20 @@ UniGPU GPU Agent — Main Entry Point
 ===================================
 A lightweight compute agent that runs on provider (student) machines.
 
-Responsibilities:
-  • Detect GPU hardware (name, VRAM, CUDA version)
-  • Connect to the UniGPU backend via WebSocket at /ws/agent/{gpu_id}
-  • Send periodic heartbeats
-  • Receive job assignments (assign_job)
-  • Execute jobs inside Docker containers with NVIDIA runtime
-  • Stream logs in real time (log)
-  • Report job status (job_status: running → completed/failed)
-  • Handle reconnects and fault recovery
+Launch modes:
+  - Default (GUI):     Double-click or run without args → system tray app
+  - Headless (CLI):    python -m src.agent --headless   → original CLI mode
+  - First run:         No config.json exists            → setup wizard first
 
-Usage:
-    python agent.py
+Responsibilities:
+  - Detect GPU hardware (name, VRAM, CUDA version)
+  - Connect to the UniGPU backend via WebSocket at /ws/agent/{gpu_id}
+  - Send periodic heartbeats
+  - Receive job assignments (assign_job)
+  - Execute jobs inside Docker containers with NVIDIA runtime
+  - Stream logs in real time (log)
+  - Report job status (job_status: running -> completed/failed)
+  - Handle reconnects and fault recovery
 """
 
 import asyncio
@@ -24,11 +26,11 @@ import sys
 from typing import Any, Dict
 
 # ── Agent modules ─────────────────────────────────
-from config import AgentConfig
-from gpu_detector import detect_gpus
-from ws_client import AgentWebSocket
-from executor import JobExecutor
-from log_streamer import LogStreamer
+from src.core.config import AgentConfig
+from src.core.gpu_detector import detect_gpus
+from src.core.ws_client import AgentWebSocket
+from src.core.executor import JobExecutor
+from src.core.log_streamer import LogStreamer
 
 # ── Logging ───────────────────────────────────────
 LOG_FORMAT = "%(asctime)s │ %(levelname)-7s │ %(name)s │ %(message)s"
@@ -99,7 +101,7 @@ class UniGPUAgent:
         self._setup_signals()
 
         # 6. Run WebSocket (blocks until shutdown)
-        logger.info("🚀 Agent is starting — connecting to %s", self.config.ws_connect_url)
+        logger.info("Agent is starting — connecting to %s", self.config.ws_connect_url)
         try:
             await self.ws.start()
         except asyncio.CancelledError:
@@ -225,7 +227,7 @@ class UniGPUAgent:
     ║         ╚██████╔╝██║ ╚████║██║╚██████╗██████╔╝  ║
     ║          ╚═════╝ ╚═╝  ╚═══╝╚═╝ ╚═════╝╚═════╝  ║
     ║                                                  ║
-    ║              GPU Agent  •  v0.2.0                ║
+    ║              GPU Agent  •  v1.0.0                ║
     ║         Peer-to-Peer GPU Marketplace             ║
     ║                                                  ║
     ╚══════════════════════════════════════════════════╝
@@ -237,8 +239,9 @@ class UniGPUAgent:
 # CLI Entry Point
 # ──────────────────────────────────────────────────
 
-def main():
-    config = AgentConfig()
+def _run_headless():
+    """Original CLI mode — no GUI, just run the agent."""
+    config = AgentConfig.load()
     agent = UniGPUAgent(config)
 
     try:
@@ -246,6 +249,36 @@ def main():
     except KeyboardInterrupt:
         logger.info("Interrupted — shutting down.")
         asyncio.run(agent.stop())
+
+
+def _run_gui():
+    """GUI mode — system tray app with optional first-run wizard."""
+    config = AgentConfig.load()
+
+    # First-run: launch setup wizard
+    if AgentConfig.is_first_run() or not config.gpu_id:
+        logger.info("First run detected — launching setup wizard")
+        from src.gui.setup_wizard import run_setup_wizard
+        config = run_setup_wizard()
+        if config is None:
+            logger.info("Setup cancelled — exiting")
+            sys.exit(0)
+
+    # Launch system tray
+    from src.gui.tray import TrayApp
+    tray = TrayApp(config, agent_factory=UniGPUAgent)
+    tray.run()
+
+
+def main():
+    headless = "--headless" in sys.argv or "--cli" in sys.argv
+
+    if headless:
+        logger.info("Starting in headless (CLI) mode")
+        _run_headless()
+    else:
+        logger.info("Starting in GUI mode")
+        _run_gui()
 
 
 if __name__ == "__main__":
