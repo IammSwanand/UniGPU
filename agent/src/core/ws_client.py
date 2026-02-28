@@ -112,16 +112,34 @@ class AgentWebSocket:
             "data": data,
         })
 
-    async def send_job_status(self, job_id: str, status: str) -> None:
+    async def send_job_status(self, job_id: str, status: str, retries: int = 3) -> None:
         """
-        Report job status change.
+        Report job status change with retry logic.
         Backend expects: {"type": "job_status", "job_id": "...", "status": "running|completed|failed"}
+        Retries on disconnect so status is never lost.
         """
-        await self.send({
+        msg = {
             "type": "job_status",
             "job_id": job_id,
             "status": status,
-        })
+        }
+        for attempt in range(1, retries + 1):
+            try:
+                await self.send(msg)
+                logger.info("Sent job_status=%s for %s (attempt %d)", status, job_id, attempt)
+                return
+            except Exception as exc:
+                logger.warning(
+                    "Failed to send job_status=%s for %s (attempt %d/%d): %s",
+                    status, job_id, attempt, retries, exc,
+                )
+                if attempt < retries:
+                    # Wait for reconnection before retrying
+                    self._connected.clear()
+                    await asyncio.sleep(2)
+                    await self._connected.wait()
+                else:
+                    logger.error("Gave up sending job_status=%s for %s after %d attempts", status, job_id, retries)
 
     # ──────────────────────────────────────────────
     # Internal

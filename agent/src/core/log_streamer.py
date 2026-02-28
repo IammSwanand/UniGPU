@@ -9,7 +9,7 @@ The "data" field is a single string (lines joined with newlines).
 
 import asyncio
 import logging
-import time
+import threading
 from typing import Any, Optional
 
 logger = logging.getLogger("unigpu.agent.log_streamer")
@@ -19,103 +19,92 @@ class LogStreamer:
     """
     Streams container logs to the backend in near-real-time batches.
 
-    Usage:
-        streamer = LogStreamer(ws_client, batch_interval=0.2)
-        await streamer.stream(job_id, container)
+    Uses a dedicated thread for the blocking Docker log generator
+    and an asyncio queue to safely pass data to the async sender.
     """
 
-    def __init__(self, ws_client: Any, batch_interval: float = 0.2):
-        """
-        Args:
-            ws_client: AgentWebSocket instance with send_log(job_id, data) method.
-            batch_interval: Seconds between sending batched log data.
-        """
+    def __init__(self, ws_client: Any, batch_interval: float = 0.5):
         self.ws_client = ws_client
         self.batch_interval = batch_interval
 
     async def stream(self, job_id: str, container: Any) -> None:
-        """
-        Stream logs from a Docker container until it exits.
-
-        Args:
-            job_id: The job identifier for log association.
-            container: A docker.models.containers.Container instance.
-        """
+        """Stream logs from a Docker container until it exits."""
         logger.info("Starting log stream for job %s", job_id)
-        buffer: list[str] = []
-        last_flush = time.time()
+
+        queue: asyncio.Queue = asyncio.Queue()
+        loop = asyncio.get_event_loop()
+
+        # Run blocking Docker log reader in a dedicated thread
+        reader_thread = threading.Thread(
+            target=self._log_reader_thread,
+            args=(container, queue, loop),
+            daemon=True,
+        )
+        reader_thread.start()
 
         try:
-            # Get a streaming log generator (blocking I/O — run in thread)
-            log_gen = container.logs(stream=True, follow=True, timestamps=True)
-
-            loop = asyncio.get_event_loop()
-
             while True:
-                # Read next log chunk in a thread to avoid blocking the event loop
+                # Collect lines for a batch
+                lines: list[str] = []
+
                 try:
-                    chunk: Optional[bytes] = await asyncio.wait_for(
-                        loop.run_in_executor(None, self._next_chunk, log_gen),
-                        timeout=5.0,
-                    )
-                except asyncio.TimeoutError:
-                    # No output for 5s — flush buffer and check if container is still running
-                    await self._flush(job_id, buffer)
-                    buffer.clear()
-                    if not self._is_running(container):
+                    # Wait for first line (blocks until data or sentinel)
+                    line = await asyncio.wait_for(queue.get(), timeout=30.0)
+                    if line is None:  # Sentinel — stream ended
                         break
+                    lines.append(line)
+                except asyncio.TimeoutError:
+                    # No output for 30s — container might have exited
                     continue
 
-                if chunk is None:
-                    # Stream exhausted — container exited
-                    break
+                # Drain any additional lines that are already queued
+                while not queue.empty():
+                    try:
+                        line = queue.get_nowait()
+                        if line is None:
+                            # Sentinel found while draining
+                            if lines:
+                                await self._flush(job_id, lines)
+                            return
+                        lines.append(line)
+                    except asyncio.QueueEmpty:
+                        break
 
-                line = chunk.decode("utf-8", errors="replace").rstrip("\n")
-                if line:
-                    buffer.append(line)
+                # Flush the batch
+                if lines:
+                    await self._flush(job_id, lines)
 
-                # Flush if batch interval has elapsed
-                now = time.time()
-                if now - last_flush >= self.batch_interval and buffer:
-                    await self._flush(job_id, buffer)
-                    buffer.clear()
-                    last_flush = now
+                # Small delay to batch output
+                await asyncio.sleep(self.batch_interval)
 
+        except asyncio.CancelledError:
+            logger.debug("Log stream cancelled for job %s", job_id)
         except Exception as exc:
             logger.error("Log streaming error for job %s: %s", job_id, exc)
-            buffer.append(f"[AGENT ERROR] Log streaming interrupted: {exc}")
-
         finally:
-            # Final flush
-            if buffer:
-                await self._flush(job_id, buffer)
             logger.info("Log stream ended for job %s", job_id)
+
+    def _log_reader_thread(self, container, queue: asyncio.Queue, loop) -> None:
+        """Blocking thread that reads Docker logs and puts lines into the async queue."""
+        try:
+            log_gen = container.logs(stream=True, follow=True, timestamps=False)
+            for chunk in log_gen:
+                line = chunk.decode("utf-8", errors="replace").rstrip("\n")
+                if line:
+                    loop.call_soon_threadsafe(queue.put_nowait, line)
+        except Exception as exc:
+            logger.debug("Log reader thread ended: %s", exc)
+        finally:
+            # Send sentinel to signal end of stream
+            loop.call_soon_threadsafe(queue.put_nowait, None)
 
     async def _flush(self, job_id: str, lines: list[str]) -> None:
         """Send buffered lines to backend as a single string."""
         if not lines:
             return
         try:
-            # Backend expects {"type": "log", "data": "..."} — join lines into one string
             data = "\n".join(lines)
             await self.ws_client.send_log(job_id, data)
             logger.debug("Flushed %d log lines for job %s", len(lines), job_id)
         except Exception as exc:
             logger.warning("Failed to send logs for job %s: %s", job_id, exc)
-
-    @staticmethod
-    def _next_chunk(log_gen) -> Optional[bytes]:
-        """Read next chunk from Docker log generator (blocking)."""
-        try:
-            return next(log_gen)
-        except StopIteration:
-            return None
-
-    @staticmethod
-    def _is_running(container) -> bool:
-        """Check if the container is still running."""
-        try:
-            container.reload()
-            return container.status == "running"
-        except Exception:
-            return False

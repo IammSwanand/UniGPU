@@ -94,8 +94,9 @@ class UniGPUAgent:
             batch_interval=self.config.log_batch_interval,
         )
 
-        # 4. Register message handlers (backend sends "assign_job")
+        # 4. Register message handlers (backend sends "assign_job" / "cancel_job")
         self.ws.on("assign_job", self._handle_assign_job)
+        self.ws.on("cancel_job", self._handle_cancel_job)
 
         # 5. Setup signal handlers for graceful shutdown
         self._setup_signals()
@@ -119,6 +120,24 @@ class UniGPUAgent:
     # ──────────────────────────────────────────────
     # Message Handlers
     # ──────────────────────────────────────────────
+
+    async def _handle_cancel_job(self, msg: Dict[str, Any]) -> None:
+        """Handle a cancel_job message from the backend — kill the running container."""
+        job_id = msg.get("job_id", "unknown")
+        logger.info("Cancel requested for job %s", job_id)
+
+        if self._current_job_id == job_id:
+            # Kill the Docker container
+            container = self.executor.get_container_for_job(job_id)
+            if container:
+                try:
+                    container.kill()
+                    logger.info("Killed container for job %s", job_id)
+                except Exception as e:
+                    logger.warning("Could not kill container for job %s: %s", job_id, e)
+            self._current_job_id = None
+        else:
+            logger.warning("Cancel for job %s but current job is %s", job_id, self._current_job_id)
 
     async def _handle_assign_job(self, msg: Dict[str, Any]) -> None:
         """
@@ -177,11 +196,15 @@ class UniGPUAgent:
         # Start execution in background
         exec_task = asyncio.create_task(self.executor.execute(job))
 
-        # Give the container a moment to start
-        await asyncio.sleep(2)
+        # Wait for container to be created, retry a few times
+        container = None
+        for _ in range(5):
+            await asyncio.sleep(2)
+            container = self.executor.get_container_for_job(job_id)
+            if container:
+                break
 
         # Try to attach log streamer
-        container = self.executor.get_container_for_job(job_id)
         if container:
             stream_task = asyncio.create_task(
                 self.log_streamer.stream(job_id, container)

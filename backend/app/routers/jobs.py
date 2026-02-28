@@ -3,7 +3,7 @@ import uuid
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -35,7 +35,7 @@ async def _save_upload(file: UploadFile, job_id: str, filename: str) -> str:
 async def submit_job(
     script: UploadFile = File(...),
     requirements: UploadFile | None = File(None),
-    gpu_id: str | None = None,
+    gpu_id: str | None = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("client", "admin")),
 ):
@@ -65,15 +65,21 @@ async def submit_job(
     gpu = None
     if gpu_id:
         # Client selected a specific GPU
+        print(f"📌 Client requested GPU: {gpu_id}")
         result = await db.execute(
             select(GPU).where(GPU.id == gpu_id, GPU.status == GPUStatus.online)
         )
         gpu = result.scalar_one_or_none()
         if not gpu:
+            print(f"⚠️  Requested GPU {gpu_id} not available (offline or not found), falling back to auto-match")
             # Requested GPU isn't available — fall back to auto-match
             gpu = await find_available_gpu(db, min_vram=0)
     else:
+        print("🔄 No GPU selected, auto-matching...")
         gpu = await find_available_gpu(db, min_vram=0)
+
+    print(f"🎯 Matched GPU: {gpu.id if gpu else 'NONE'}")
+    print(f"🔌 Connected GPUs: {manager.get_active_gpu_ids()}")
 
     if gpu and manager.is_connected(gpu.id):
         # Assign GPU to job
@@ -92,6 +98,7 @@ async def submit_job(
         await db.commit()
 
         # Send assign_job via WebSocket
+        print(f"🚀 Dispatching job {job_id} to GPU {gpu.id}")
         await manager.send_to_gpu(gpu.id, {
             "type": "assign_job",
             "job_id": job_id,
@@ -99,6 +106,7 @@ async def submit_job(
             "requirements_url": req_url,
         })
     else:
+        print(f"❌ Cannot dispatch — GPU found: {gpu is not None}, Connected: {manager.is_connected(gpu.id) if gpu else 'N/A'}")
         await db.commit()
 
     return job
