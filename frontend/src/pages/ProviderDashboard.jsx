@@ -175,7 +175,7 @@ export default function ProviderDashboard() {
                     </div>
                     <div className="glass stat-card">
                         <span className="stat-label">Earnings</span>
-                        <span className="stat-value green">${wallet?.balance?.toFixed(2) || '0.00'}</span>
+                        <span className="stat-value green">₹ {wallet?.balance?.toFixed(2) || '0.00'}</span>
                     </div>
                 </div>
 
@@ -227,7 +227,7 @@ export default function ProviderDashboard() {
                                 </div>
                                 <div className="metric-bar-wrapper">
                                     <div className="metric-bar" style={{
-                                        width: `${liveMetrics.gpu_util_pct || 0}%`,
+                                        width: `{liveMetrics.gpu_util_pct || 0}%`,
                                         background: (liveMetrics.gpu_util_pct || 0) > 90 ? 'var(--red)' : (liveMetrics.gpu_util_pct || 0) > 60 ? 'var(--amber)' : 'var(--green)'
                                     }} />
                                 </div>
@@ -316,7 +316,7 @@ export default function ProviderDashboard() {
                         <div className="section-title">Earnings</div>
                         <div className="glass" style={{ padding: '24px' }}>
                             <div className="wallet-balance">
-                                <span className="currency">$ </span>
+                                <span className="currency">₹ </span>
                                 {wallet?.balance?.toFixed(2) || '0.00'}
                             </div>
                             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '8px' }}>
