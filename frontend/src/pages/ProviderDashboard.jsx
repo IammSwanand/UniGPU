@@ -133,8 +133,8 @@ export default function ProviderDashboard() {
                                                 {transactions.slice(0, 10).map(t => (
                                                     <tr key={t.id}>
                                                         <td>{t.type}</td>
-                                                        <td style={{ color: t.amount >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                                                            {t.amount >= 0 ? '+' : ''}{t.amount.toFixed(2)}
+                                                        <td style={{ color: t.type === 'credit' ? 'var(--green)' : 'var(--red)' }}>
+                                                            {t.type === 'credit' ? '+' : '-'}{t.amount.toFixed(2)}
                                                         </td>
                                                         <td>{new Date(t.created_at).toLocaleDateString()}</td>
                                                     </tr>

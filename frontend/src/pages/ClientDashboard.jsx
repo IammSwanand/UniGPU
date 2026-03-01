@@ -79,7 +79,7 @@ export default function ClientDashboard() {
                 <div className="grid-4 animate-in">
                     <div className="glass stat-card">
                         <span className="stat-label">Wallet Balance</span>
-                        <span className="stat-value green">${wallet?.balance?.toFixed(2) || '0.00'}</span>
+                        <span className="stat-value green">₹{wallet?.balance?.toFixed(2) || '0.00'}</span>
                     </div>
                     <div className="glass stat-card">
                         <span className="stat-label">Total Jobs</span>
@@ -186,7 +186,7 @@ export default function ClientDashboard() {
                         <div className="section-title">Wallet</div>
                         <div className="glass" style={{ padding: '24px' }}>
                             <div className="wallet-balance">
-                                <span className="currency">$ </span>
+                                <span className="currency">₹ </span>
                                 {wallet?.balance?.toFixed(2) || '0.00'}
                             </div>
                             <div className="topup-row" style={{ marginTop: '16px' }}>
@@ -205,8 +205,8 @@ export default function ClientDashboard() {
                                                 {transactions.slice(0, 5).map(t => (
                                                     <tr key={t.id}>
                                                         <td>{t.type}</td>
-                                                        <td style={{ color: t.amount >= 0 ? 'var(--green)' : 'var(--red)' }}>
-                                                            {t.amount >= 0 ? '+' : ''}{t.amount.toFixed(2)}
+                                                        <td style={{ color: t.type === 'credit' ? 'var(--green)' : 'var(--red)' }}>
+                                                            {t.type === 'credit' ? '+' : '-'}{t.amount.toFixed(2)}
                                                         </td>
                                                         <td>{new Date(t.created_at).toLocaleDateString()}</td>
                                                     </tr>
@@ -235,7 +235,7 @@ export default function ClientDashboard() {
                             </thead>
                             <tbody>
                                 {jobs.length === 0 ? (
-                                    <tr><td colSpan="4" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
+                                    <tr><td colSpan="5" style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
                                         No jobs yet. Submit your first training script above!
                                     </td></tr>
                                 ) : jobs.map(j => (
