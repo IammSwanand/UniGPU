@@ -8,3 +8,8 @@ websockets
 redis
 celery
 python-multipart
+pyinstaller
+dotenv
+docker
+httpx
+psutil

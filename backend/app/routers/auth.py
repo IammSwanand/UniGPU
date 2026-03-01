@@ -1,0 +1,71 @@
+from datetime import datetime, timedelta, timezone
+
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from jose import jwt
+import bcrypt
+
+from app.database import get_db
+from app.config import get_settings
+from app.models.user import User
+from app.models.wallet import Wallet
+from app.schemas.user import UserCreate, UserLogin, UserOut, Token
+
+router = APIRouter()
+settings = get_settings()
+
+
+def _hash_password(password: str) -> str:
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
+
+
+def _verify_password(plain: str, hashed: str) -> bool:
+    return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+
+
+def _create_token(user: User) -> str:
+    expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    payload = {"sub": user.id, "role": user.role.value, "exp": expire}
+    return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+
+@router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
+async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
+    # Check duplicates
+    existing = await db.execute(
+        select(User).where((User.email == data.email) | (User.username == data.username))
+    )
+    if existing.scalar_one_or_none():
+        raise HTTPException(status_code=400, detail="Email or username already registered")
+
+    user = User(
+        email=data.email,
+        username=data.username,
+        hashed_password=_hash_password(data.password),
+        role=data.role,
+    )
+    db.add(user)
+    await db.flush()
+
+    # Auto-create wallet
+    wallet = Wallet(user_id=user.id, balance=0.0)
+    db.add(wallet)
+    await db.flush()
+
+    return user
+
+
+@router.post("/login", response_model=Token)
+async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(User).where(User.username == data.username))
+    user = result.scalar_one_or_none()
+
+    if not user or not _verify_password(data.password, user.hashed_password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account disabled")
+
+    token = _create_token(user)
+    return Token(access_token=token, role=user.role, user_id=user.id)
