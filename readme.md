@@ -6,3 +6,5 @@ we provide a platform for users to share their GPU resources with others and ear
 what makes our solution so special? -->
 
 makes the gpu's available to the students who can't afford to buy a gpu for deep learning training.
+
+Platform built for students by students
