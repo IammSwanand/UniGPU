@@ -60,7 +60,7 @@ export default function ProviderDashboard() {
                     </div>
                     <div className="glass stat-card">
                         <span className="stat-label">Online</span>
-                        <span className="stat-value green">{gpus.filter(g => g.status === 'online').length}</span>
+                        <span className="stat-value green">{gpus.filter(g => g.status === 'online' || g.status === 'busy').length}</span>
                     </div>
                     <div className="glass stat-card">
                         <span className="stat-label">Busy</span>
