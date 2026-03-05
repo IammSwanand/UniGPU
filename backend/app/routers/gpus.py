@@ -19,6 +19,18 @@ async def register_gpu(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("provider", "admin")),
 ):
+    # Check if the same provider already has a GPU with identical specs
+    existing = await db.execute(
+        select(GPU).where(
+            GPU.provider_id == current_user.id,
+            GPU.name == data.name,
+            GPU.vram_mb == data.vram_mb,
+        )
+    )
+    existing_gpu = existing.scalar_one_or_none()
+    if existing_gpu:
+        return existing_gpu
+
     gpu = GPU(
         provider_id=current_user.id,
         name=data.name,
