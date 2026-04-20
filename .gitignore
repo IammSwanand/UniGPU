@@ -6,7 +6,6 @@ __pycache__/
 # ── Secret env files (never commit) ──
 .env
 backend/.env.prod
-backend/.env.prod.example
 backend/.env
 frontend/.env.development
 frontend/.env.production
