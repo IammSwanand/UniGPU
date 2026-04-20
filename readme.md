@@ -29,15 +29,15 @@ UniGPU is a **peer-to-peer GPU sharing platform** that connects students who nee
 
 ```
 ┌─────────────┐     REST API      ┌──────────────────────────────────┐
-│   Frontend   │ ◄──────────────► │         Backend (Docker)          │
-│  Vite+React  │   localhost:5173  │                                  │
-│  :5173       │                   │  FastAPI (:8000)                 │
+│   Frontend  │ ◄──────────────►  │         Backend (Docker)         │
+│  Vite+React │   localhost:5173  │                                  │
+│  :5173      │                   │  FastAPI (:8000)                 │
 └─────────────┘     WebSocket     │  PostgreSQL (:5432)              │
-                                   │  Redis (:6379)                   │
+                                  │  Redis (:6379)                   │
 ┌─────────────┐  ◄──────────────► │  Celery Worker (job matching)    │
-│  GPU Agent   │   ws://...:8000   └──────────────────────────────────┘
-│  (Python)    │
-│  Student PC  │
+│  GPU Agent  │   ws://...:8000   └──────────────────────────────────┘
+│  (Python)   │
+│  Student PC │
 └─────────────┘
 ```
 
