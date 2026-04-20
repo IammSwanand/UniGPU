@@ -29,6 +29,11 @@ class Settings(BaseSettings):
     # ── File Storage ──
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads")
 
+    # ── CORS ──
+    # In production, set to "https://yourdomain.com" via .env.prod
+    # Multiple origins: "https://domain1.com,https://domain2.com"
+    ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*")
+
     class Config:
         env_file = ".env"
 

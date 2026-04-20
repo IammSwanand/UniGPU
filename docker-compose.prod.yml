@@ -1,0 +1,88 @@
+
+services:
+
+  # ── PostgreSQL ──
+  postgres:
+    image: postgres:16-alpine
+    container_name: unigpu-postgres
+    restart: always
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB:       ${POSTGRES_DB}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # Not exposed externally — backend connects via Docker network
+
+  # ── Redis ──
+  redis:
+    image: redis:7-alpine
+    container_name: unigpu-redis
+    restart: always
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    # Not exposed externally
+
+  # ── FastAPI Backend ──
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: unigpu-backend
+    restart: always
+    env_file: ./backend/.env.prod
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    volumes:
+      - uploads:/app/uploads
+    # Port 8000 is NOT exposed to the host — only Nginx can reach it via Docker network
+
+  # ── Celery Worker + Beat Scheduler ──
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: unigpu-celery
+    command: celery -A app.worker.celery_app worker --loglevel=info --beat --concurrency=2
+    restart: always
+    env_file: ./backend/.env.prod
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis:    { condition: service_healthy }
+    volumes:
+      - uploads:/app/uploads
+
+  # ── Nginx (reverse proxy + static frontend) ──
+  nginx:
+    build:
+      context: .
+      dockerfile: nginx/Dockerfile
+    container_name: unigpu-nginx
+    restart: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # SSL certs from Certbot (mounted read-only)
+      - /etc/letsencrypt:/etc/letsencrypt:ro
+      # Certbot ACME challenge directory (for cert renewal via webroot)
+      - certbot-webroot:/var/www/certbot
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  redisdata:
+  uploads:
+  certbot-webroot:

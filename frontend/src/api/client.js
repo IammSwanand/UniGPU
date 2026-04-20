@@ -1,6 +1,8 @@
 /* UniGPU — API Client */
 
-const BASE = 'http://localhost:8000';
+// In production (.env.production): VITE_API_BASE_URL is empty → same-origin, Nginx routes to FastAPI
+// In development (.env.development): VITE_API_BASE_URL=http://localhost:8000
+const BASE = import.meta.env.VITE_API_BASE_URL ?? '';
 
 function getToken() {
     return localStorage.getItem('token');

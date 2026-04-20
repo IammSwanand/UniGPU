@@ -2,6 +2,21 @@
 venv
 __pycache__/
 *.pyc
+
+# ── Secret env files (never commit) ──
 .env
+backend/.env.prod
+backend/.env.prod.example
+backend/.env
+frontend/.env.development
+frontend/.env.production
+
+# ── Build artifacts ──
+frontend/dist/
+frontend/node_modules/
+
+# ── Celery ──
 celerybeat-schedule
+
+# ── Agent ──
 agent/

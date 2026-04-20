@@ -3,7 +3,11 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import init_db
 from app.routers import auth, gpus, jobs, wallet, admin, ws
+from app.config import get_settings
 import os
+
+settings = get_settings()
+
 
 
 @asynccontextmanager
@@ -25,9 +29,11 @@ app = FastAPI(
 )
 
 # ── CORS ──
+# In production, ALLOWED_ORIGINS is set to the actual frontend domain via .env.prod
+_origins = [o.strip() for o in settings.ALLOWED_ORIGINS.split(",") if o.strip()]
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

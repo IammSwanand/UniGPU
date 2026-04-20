@@ -8,7 +8,9 @@ import { faServer } from '@fortawesome/free-solid-svg-icons';
 import { faMicrochip } from '@fortawesome/free-solid-svg-icons';
 import { faMemory } from '@fortawesome/free-solid-svg-icons';
 
-const WS_BASE = 'ws://localhost:8000';
+// WebSocket URL: automatically uses wss:// in production (HTTPS) and ws:// in dev (HTTP)
+// Points to the same host/domain as the page — Nginx routes /ws/* to FastAPI
+const WS_BASE = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
 
 export default function ProviderDashboard() {
     const { user } = useAuth();
