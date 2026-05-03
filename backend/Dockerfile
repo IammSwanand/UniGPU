@@ -16,9 +16,4 @@ EXPOSE 8000
 
 # --proxy-headers: trust X-Forwarded-For / X-Forwarded-Proto from Nginx
 # --workers 2:     two async workers (safe for a 1-2 vCPU VPS)
-CMD ["uvicorn", "app.main:app", \
-     "--host", "0.0.0.0", \
-     "--port", "8000", \
-     "--workers", "2", \
-     "--proxy-headers", \
-     "--forwarded-allow-ips", "*"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2 --proxy-headers --forwarded-allow-ips '*'" ]

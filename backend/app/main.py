@@ -1,7 +1,6 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.database import init_db
 from app.routers import auth, gpus, jobs, wallet, admin, ws
 from app.config import get_settings
 import os
@@ -14,8 +13,7 @@ settings = get_settings()
 async def lifespan(app: FastAPI):
     # ── Startup ──
     os.makedirs("uploads", exist_ok=True)
-    await init_db()
-    print("✅ Database tables created & upload dir ready")
+    print("✅ Upload directory ready")
     yield
     # ── Shutdown ──
     print("👋 Shutting down UniGPU backend")

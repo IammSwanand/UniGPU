@@ -2,19 +2,46 @@ import json
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
+from jose import JWTError, jwt
 from sqlalchemy import select
 
+from app.config import get_settings
 from app.database import async_session
+from app.models.user import User
 from app.models.gpu import GPU, GPUStatus
 from app.models.job import Job, JobStatus
 from app.services.connection_manager import manager
 from app.services.billing import charge_client
 
 router = APIRouter()
+settings = get_settings()
+
+
+async def _authenticate_websocket_user(websocket: WebSocket, token: str | None) -> User | None:
+    if not token:
+        await websocket.close(code=1008)
+        return None
+
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id = payload.get("sub")
+        if user_id is None:
+            raise JWTError("Missing subject")
+    except JWTError:
+        await websocket.close(code=1008)
+        return None
+
+    async with async_session() as db:
+        result = await db.execute(select(User).where(User.id == user_id))
+        user = result.scalar_one_or_none()
+        if not user or not user.is_active:
+            await websocket.close(code=1008)
+            return None
+        return user
 
 
 @router.websocket("/ws/agent/{gpu_id}")
-async def agent_websocket(websocket: WebSocket, gpu_id: str):
+async def agent_websocket(websocket: WebSocket, gpu_id: str, token: str | None = Query(default=None)):
     """WebSocket endpoint for GPU agents.
 
     Protocol messages (JSON):
@@ -28,7 +55,20 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str):
       Server → Agent:
         {"type": "assign_job", "job_id": "...", "script_url": "/jobs/.../download/...", "requirements_url": "..."|null}
     """
-    # Optional: validate token via query param (token = websocket.query_params.get("token"))
+    user = await _authenticate_websocket_user(websocket, token)
+    if not user:
+        return
+
+    async with async_session() as db:
+        result = await db.execute(select(GPU).where(GPU.id == gpu_id))
+        gpu = result.scalar_one_or_none()
+        if not gpu:
+            await websocket.close(code=1008)
+            return
+        if user.role.value != "admin" and gpu.provider_id != user.id:
+            await websocket.close(code=1008)
+            return
+
     await manager.connect(gpu_id, websocket)
     print(f"🔌 GPU agent connected: {gpu_id}")
 
@@ -169,7 +209,7 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str):
 
 
 @router.websocket("/ws/provider/{provider_id}")
-async def provider_websocket(websocket: WebSocket, provider_id: str):
+async def provider_websocket(websocket: WebSocket, provider_id: str, token: str | None = Query(default=None)):
     """WebSocket endpoint for provider dashboards.
 
     The provider connects here to receive real-time updates about their GPUs:
@@ -179,6 +219,14 @@ async def provider_websocket(websocket: WebSocket, provider_id: str):
       - job_status:   {"type": "job_status", "gpu_id": "...", "job_id": "...", "status": "..."}
       - agent_status: {"type": "agent_status", "gpu_id": "...", "status": "disconnected"}
     """
+    user = await _authenticate_websocket_user(websocket, token)
+    if not user:
+        return
+
+    if user.role.value != "admin" and user.id != provider_id:
+        await websocket.close(code=1008)
+        return
+
     await manager.connect_provider(provider_id, websocket)
     print(f"📊 Provider dashboard connected: {provider_id}")
 

@@ -24,7 +24,8 @@ async def get_db():
 
 
 async def init_db():
-    """Create all tables (dev convenience — use Alembic in production)."""
+    """Import ORM models so metadata is registered.
+
+    Database schema management is handled by Alembic migrations at startup.
+    """
     from app.models import user, gpu, job, wallet  # noqa: F401 — register models
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)

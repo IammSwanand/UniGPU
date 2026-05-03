@@ -13,7 +13,7 @@ import { faMemory } from '@fortawesome/free-solid-svg-icons';
 const WS_BASE = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
 
 export default function ProviderDashboard() {
-    const { user } = useAuth();
+    const { user, token } = useAuth();
     const [gpus, setGPUs] = useState([]);
     const [wallet, setWallet] = useState(null);
     const [transactions, setTransactions] = useState([]);
@@ -43,13 +43,13 @@ export default function ProviderDashboard() {
 
     // WebSocket connection for real-time updates
     useEffect(() => {
-        if (!user?.id) return;
+        if (!user?.id || !token) return;
 
         let ws;
         let reconnectTimer;
 
         const connect = () => {
-            ws = new WebSocket(`${WS_BASE}/ws/provider/${user.id}`);
+            ws = new WebSocket(`${WS_BASE}/ws/provider/${user.id}?token=${encodeURIComponent(token)}`);
             wsRef.current = ws;
 
             ws.onopen = () => {
@@ -109,7 +109,7 @@ export default function ProviderDashboard() {
                 wsRef.current.close();
             }
         };
-    }, [user?.id]);
+    }, [user?.id, token]);
 
     // Auto-scroll logs
     useEffect(() => {
