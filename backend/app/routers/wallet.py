@@ -31,13 +31,41 @@ async def topup_wallet(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    if data.amount <= 0:
-        raise HTTPException(status_code=400, detail="Amount must be positive")
+    # ── Validation: Amount limits ──
+    MAX_TOPUP_AMOUNT = 10000  # Max ₹10,000 per transaction
+    MAX_DAILY_TOPUP = 50000   # Max ₹50,000 per 24 hours
+    
+    if not (0 < data.amount <= MAX_TOPUP_AMOUNT):
+        raise HTTPException(
+            status_code=400, 
+            detail=f"Amount must be between ₹1 and ₹{MAX_TOPUP_AMOUNT}"
+        )
 
     result = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id))
     wallet = result.scalar_one_or_none()
     if not wallet:
         raise HTTPException(status_code=404, detail="Wallet not found")
+
+    # Check daily limit: sum of credits in last 24 hours
+    from datetime import datetime, timezone, timedelta
+    from sqlalchemy import func
+    
+    last_24h = datetime.now(timezone.utc) - timedelta(hours=24)
+    daily_total = (
+        await db.execute(
+            select(func.sum(Transaction.amount)).where(
+                (Transaction.wallet_id == wallet.id) &
+                (Transaction.type == TransactionType.credit) &
+                (Transaction.created_at >= last_24h)
+            )
+        )
+    ).scalar() or 0
+    
+    if daily_total + data.amount > MAX_DAILY_TOPUP:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Daily limit exceeded. You can top up ₹{MAX_DAILY_TOPUP - daily_total:.0f} more today."
+        )
 
     wallet.balance += data.amount
 

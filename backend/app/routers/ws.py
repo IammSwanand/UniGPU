@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timezone
+from collections import defaultdict
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 from jose import JWTError, jwt
@@ -15,6 +16,32 @@ from app.services.billing import charge_client
 
 router = APIRouter()
 settings = get_settings()
+
+# ── Rate Limiting: Track message count per connection ──
+_message_counts: dict[str, list[float]] = defaultdict()  # gpu_id/provider_id -> list of message timestamps
+_max_messages_per_minute = 100
+_max_connections_per_gpu = 1
+_active_gpu_connections: dict[str, int] = defaultdict(int)  # gpu_id -> connection count
+_active_provider_connections: dict[str, int] = defaultdict(int)  # provider_id -> connection count
+_max_provider_connections = 5
+
+
+def _is_rate_limited(connection_id: str) -> bool:
+    """Check if a connection should be rate limited (>100 msg/min)."""
+    now = datetime.now(timezone.utc).timestamp()
+    if connection_id not in _message_counts:
+        _message_counts[connection_id] = []
+    
+    # Remove timestamps older than 1 minute
+    _message_counts[connection_id] = [ts for ts in _message_counts[connection_id] if now - ts < 60]
+    
+    # Check if exceeds limit
+    if len(_message_counts[connection_id]) >= _max_messages_per_minute:
+        return True
+    
+    # Add current message timestamp
+    _message_counts[connection_id].append(now)
+    return False
 
 
 async def _authenticate_websocket_user(websocket: WebSocket, token: str | None) -> User | None:
@@ -54,9 +81,18 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str, token: str | None =
 
       Server → Agent:
         {"type": "assign_job", "job_id": "...", "script_url": "/jobs/.../download/...", "requirements_url": "..."|null}
+    
+    Rate Limits:
+      - Max 100 messages per minute per connection
+      - Max 1 active connection per GPU
     """
     user = await _authenticate_websocket_user(websocket, token)
     if not user:
+        return
+
+    # ── Rate Limit: Check active connections per GPU ──
+    if _active_gpu_connections[gpu_id] >= _max_connections_per_gpu:
+        await websocket.close(code=1008, reason="Max connections per GPU exceeded")
         return
 
     async with async_session() as db:
@@ -69,8 +105,12 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str, token: str | None =
             await websocket.close(code=1008)
             return
 
+    # Track connection
+    _active_gpu_connections[gpu_id] += 1
+    connection_id = f"gpu-{gpu_id}"
+
     await manager.connect(gpu_id, websocket)
-    print(f"🔌 GPU agent connected: {gpu_id}")
+    print(f"🔌 GPU agent connected: {gpu_id} (active connections: {_active_gpu_connections[gpu_id]})")
 
     # Mark GPU as online and cache the provider mapping
     async with async_session() as db:
@@ -86,6 +126,15 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str, token: str | None =
     try:
         while True:
             raw = await websocket.receive_text()
+            
+            # ── Rate Limit Check ──
+            if _is_rate_limited(connection_id):
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "Rate limit exceeded. Max 100 messages per minute."
+                })
+                continue
+            
             msg = json.loads(raw)
             msg_type = msg.get("type")
 
@@ -189,7 +238,14 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str, token: str | None =
 
     except WebSocketDisconnect:
         manager.disconnect(gpu_id)
-        print(f"🔌 GPU agent disconnected: {gpu_id}")
+        
+        # ── Cleanup: Decrement connection count and clear rate limit tracking ──
+        _active_gpu_connections[gpu_id] = max(0, _active_gpu_connections[gpu_id] - 1)
+        if connection_id in _message_counts:
+            del _message_counts[connection_id]
+        
+        print(f"🔌 GPU agent disconnected: {gpu_id} (active connections: {_active_gpu_connections[gpu_id]})")
+        
         # Mark GPU as offline
         async with async_session() as db:
             result = await db.execute(select(GPU).where(GPU.id == gpu_id))
@@ -218,26 +274,54 @@ async def provider_websocket(websocket: WebSocket, provider_id: str, token: str 
       - job_log:      {"type": "job_log", "gpu_id": "...", "job_id": "...", "data": "..."}
       - job_status:   {"type": "job_status", "gpu_id": "...", "job_id": "...", "status": "..."}
       - agent_status: {"type": "agent_status", "gpu_id": "...", "status": "disconnected"}
+    
+    Rate Limits:
+      - Max 5 active connections per provider
+      - Max 100 messages per minute per connection
     """
     user = await _authenticate_websocket_user(websocket, token)
     if not user:
+        return
+
+    # ── Rate Limit: Check active connections per provider ──
+    if _active_provider_connections[provider_id] >= _max_provider_connections:
+        await websocket.close(code=1008, reason="Max dashboard connections exceeded")
         return
 
     if user.role.value != "admin" and user.id != provider_id:
         await websocket.close(code=1008)
         return
 
+    # Track connection
+    _active_provider_connections[provider_id] += 1
+    connection_id = f"provider-{provider_id}"
+
     await manager.connect_provider(provider_id, websocket)
-    print(f"📊 Provider dashboard connected: {provider_id}")
+    print(f"📊 Provider dashboard connected: {provider_id} (active connections: {_active_provider_connections[provider_id]})")
 
     try:
         # Keep the connection alive — the provider mostly listens
         while True:
             # Provider can send pings or control messages if needed
             raw = await websocket.receive_text()
+            
+            # ── Rate Limit Check ──
+            if _is_rate_limited(connection_id):
+                await websocket.send_json({
+                    "type": "error",
+                    "message": "Rate limit exceeded. Max 100 messages per minute."
+                })
+                continue
+            
             msg = json.loads(raw)
             # Currently no provider→server messages are expected
             # but we keep the loop to detect disconnects
     except WebSocketDisconnect:
         manager.disconnect_provider(provider_id, websocket)
-        print(f"📊 Provider dashboard disconnected: {provider_id}")
+        
+        # ── Cleanup: Decrement connection count and clear rate limit tracking ──
+        _active_provider_connections[provider_id] = max(0, _active_provider_connections[provider_id] - 1)
+        if connection_id in _message_counts:
+            del _message_counts[connection_id]
+        
+        print(f"📊 Provider dashboard disconnected: {provider_id} (active connections: {_active_provider_connections[provider_id]})")

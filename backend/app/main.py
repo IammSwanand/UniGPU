@@ -1,12 +1,18 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import Limiter
+from slowapi.util import get_remote_address
+from slowapi.errors import RateLimitExceeded
+from fastapi.responses import JSONResponse
 from app.routers import auth, gpus, jobs, wallet, admin, ws
 from app.config import get_settings
 import os
 
 settings = get_settings()
 
+# ── Rate Limiter Setup ──
+limiter = Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -36,6 +42,17 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Rate Limiter State ──
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": "Rate limit exceeded. Please try again later."}
+    )
 
 # ── REST Routers ──
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])

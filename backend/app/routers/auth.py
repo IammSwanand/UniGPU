@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from jose import jwt
@@ -31,7 +31,20 @@ def _create_token(user: User) -> str:
 
 
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
+async def register(
+    request: Request,
+    data: UserCreate,
+    db: AsyncSession = Depends(get_db),
+):
+    # Get limiter from app state (set in main.py)
+    limiter = request.app.state.limiter
+    
+    # Check rate limit: 5 registrations per minute per IP
+    try:
+        limiter.try_request("5/minute", request)
+    except Exception:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 registrations per minute.")
+    
     # Check duplicates
     existing = await db.execute(
         select(User).where((User.email == data.email) | (User.username == data.username))
@@ -57,7 +70,20 @@ async def register(data: UserCreate, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/login", response_model=Token)
-async def login(data: UserLogin, db: AsyncSession = Depends(get_db)):
+async def login(
+    request: Request,
+    data: UserLogin,
+    db: AsyncSession = Depends(get_db),
+):
+    # Get limiter from app state (set in main.py)
+    limiter = request.app.state.limiter
+    
+    # Check rate limit: 5 login attempts per minute per IP
+    try:
+        limiter.try_request("5/minute", request)
+    except Exception:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 login attempts per minute.")
+    
     result = await db.execute(select(User).where(User.username == data.username))
     user = result.scalar_one_or_none()
 

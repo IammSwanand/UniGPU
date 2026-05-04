@@ -157,11 +157,16 @@ async def get_job_logs(
 
 
 @router.get("/{job_id}/download/{filename}")
-async def download_job_file(job_id: str, filename: str):
+async def download_job_file(
+    job_id: str,
+    filename: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
     """Download a job file (script or requirements).
 
-    Used by GPU agents to fetch job files over HTTP.
-    No auth required — job UUID is unguessable.
+    Requires authentication to prevent unauthorized access.
+    Only job owner, GPU provider, or admin can download.
     """
     # Sanitise filename to prevent path traversal
     safe_name = Path(filename).name
@@ -169,6 +174,21 @@ async def download_job_file(job_id: str, filename: str):
 
     if not file_path.exists():
         raise HTTPException(status_code=404, detail="File not found")
+
+    # Verify access: must be job owner, GPU provider, or admin
+    result = await db.execute(select(Job).where(Job.id == job_id))
+    job = result.scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    is_owner = job.client_id == current_user.id
+    is_provider = job.gpu_id and (await db.execute(
+        select(GPU).where(GPU.id == job.gpu_id, GPU.provider_id == current_user.id)
+    )).scalar_one_or_none() is not None
+    is_admin = current_user.role.value == "admin"
+
+    if not (is_owner or is_provider or is_admin):
+        raise HTTPException(status_code=403, detail="Access denied")
 
     return FileResponse(
         path=str(file_path),
