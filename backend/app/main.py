@@ -36,6 +36,26 @@ async def lifespan(app: FastAPI):
     os.makedirs("uploads", exist_ok=True)
     print("✅ Upload directory ready")
     
+    # Auto-create database tables on startup
+    from app.database import engine, Base
+    from sqlalchemy import text
+    
+    async with engine.begin() as conn:
+        # Create tables with error handling for existing ENUMs
+        try:
+            await conn.run_sync(Base.metadata.create_all)
+        except Exception as e:
+            # Ignore if types already exist
+            if "already exists" not in str(e):
+                print(f"⚠️  Database creation warning: {e}")
+        
+        # Enable UUID extension if not exists
+        try:
+            await conn.execute(text("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"))
+        except:
+            pass  # Extension might already exist or be unavailable
+    print("✅ Database tables initialized")
+    
     # Start background cleanup task for expired GPU locks
     cleanup_task = asyncio.create_task(_cleanup_gpu_locks_background())
     app.state.cleanup_task = cleanup_task

@@ -6,7 +6,8 @@ Implements exponential backoff for brute-force protection.
 
 import asyncio
 import time
-from typing import Tuple, Optional
+from typing import Tuple, Optional, Dict
+from collections import defaultdict
 from app.redis_rate_limiter import get_rate_limiter
 
 
