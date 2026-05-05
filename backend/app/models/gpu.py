@@ -31,6 +31,13 @@ class GPU(Base):
     last_heartbeat: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    # GPU Locking (for pessimistic concurrency control)
+    locked_by_job_id: Mapped[str | None] = mapped_column(
+        String, nullable=True  # Which job has this GPU locked
+    )
+    locked_until: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True  # When the lock expires
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

@@ -8,6 +8,7 @@ from fastapi.responses import JSONResponse
 from app.routers import auth, gpus, jobs, wallet, admin, ws
 from app.config import get_settings
 import os
+import asyncio
 
 settings = get_settings()
 
@@ -34,9 +35,39 @@ async def lifespan(app: FastAPI):
     # ── Startup ──
     os.makedirs("uploads", exist_ok=True)
     print("✅ Upload directory ready")
+    
+    # Start background cleanup task for expired GPU locks
+    cleanup_task = asyncio.create_task(_cleanup_gpu_locks_background())
+    app.state.cleanup_task = cleanup_task
+    print("✅ GPU lock cleanup task started")
+    
     yield
+    
     # ── Shutdown ──
+    # Cancel the cleanup task
+    if hasattr(app.state, "cleanup_task"):
+        app.state.cleanup_task.cancel()
     print("👋 Shutting down UniGPU backend")
+
+
+async def _cleanup_gpu_locks_background():
+    """Periodically clean up expired GPU locks every 60 seconds."""
+    from app.database import AsyncSessionLocal
+    from app.services.matching import cleanup_expired_locks
+    
+    while True:
+        try:
+            await asyncio.sleep(60)  # Run every 60 seconds
+            async with AsyncSessionLocal() as session:
+                cleaned_count = await cleanup_expired_locks(session)
+                if cleaned_count > 0:
+                    print(f"🧹 Cleaned up {cleaned_count} expired GPU lock(s)")
+        except asyncio.CancelledError:
+            print("🧹 GPU lock cleanup task cancelled")
+            break
+        except Exception as e:
+            print(f"⚠️  Error in GPU lock cleanup: {e}")
+            # Continue running even if there's an error
 
 
 # ── Create FastAPI app with conditional docs ──

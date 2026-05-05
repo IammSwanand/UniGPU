@@ -1,7 +1,9 @@
 import os
 import uuid
+import asyncio
 from pathlib import Path
 from typing import List
+from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
 from fastapi.responses import FileResponse
@@ -79,7 +81,7 @@ async def submit_job(
     await record_job_submission(current_user.id, total_size)
 
     # Try to match with a GPU and dispatch
-    from app.services.matching import find_available_gpu
+    from app.services.matching import find_available_gpu_and_lock, unlock_gpu
     from app.services.connection_manager import manager
     from pathlib import Path
 
@@ -87,17 +89,37 @@ async def submit_job(
     if gpu_id:
         # Client selected a specific GPU
         print(f"📌 Client requested GPU: {gpu_id}")
+        # Try to lock the specific GPU
         result = await db.execute(
-            select(GPU).where(GPU.id == gpu_id, GPU.status == GPUStatus.online)
+            select(GPU)
+            .where(GPU.id == gpu_id)
+            .with_for_update()  # Lock the row
         )
         gpu = result.scalar_one_or_none()
+        
+        if gpu and gpu.status == GPUStatus.online:
+            # Check if it's available
+            now = datetime.now(timezone.utc)
+            if gpu.locked_until is None or gpu.locked_until <= now:
+                # Lock it for this job (30 second reservation)
+                gpu.locked_by_job_id = job_id
+                gpu.locked_until = now + timedelta(seconds=30)
+                print(f"🔒 Locked GPU {gpu_id} for job {job_id}")
+            else:
+                # Already locked
+                print(f"🔐 GPU {gpu_id} is already locked")
+                gpu = None
+        else:
+            print(f"⚠️  Requested GPU {gpu_id} not available (offline or not found)")
+            gpu = None
+        
+        # If specific GPU not available, fall back to auto-match
         if not gpu:
-            print(f"⚠️  Requested GPU {gpu_id} not available (offline or not found), falling back to auto-match")
-            # Requested GPU isn't available — fall back to auto-match
-            gpu = await find_available_gpu(db, min_vram=0)
+            print("🔄 Falling back to auto-match...")
+            gpu = await find_available_gpu_and_lock(db, job_id, min_vram=0)
     else:
         print("🔄 No GPU selected, auto-matching...")
-        gpu = await find_available_gpu(db, min_vram=0)
+        gpu = await find_available_gpu_and_lock(db, job_id, min_vram=0)
 
     print(f"🎯 Matched GPU: {gpu.id if gpu else 'NONE'}")
     print(f"🔌 Connected GPUs: {manager.get_active_gpu_ids()}")
