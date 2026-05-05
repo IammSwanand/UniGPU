@@ -9,6 +9,9 @@ from app.models.user import User
 from app.models.gpu import GPU, GPUStatus
 from app.schemas.gpu import GPUCreate, GPUOut, GPUStatusUpdate
 from app.services.connection_manager import manager
+from app.security_utils import (
+    check_gpu_registration_limit, record_gpu_registration
+)
 
 router = APIRouter()
 
@@ -20,14 +23,15 @@ async def register_gpu(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("provider", "admin")),
 ):
-    # Get limiter from app state and apply per-user rate limit
-    limiter = request.app.state.limiter
+    """Register a GPU with rate limiting"""
     
-    # Per-user limit: 10 GPU registrations per hour
-    try:
-        limiter.try_request("10/hour", request)
-    except Exception:
-        raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 10 GPU registrations per hour.")
+    # ── Rate Limiting: Check GPU registration quota ──
+    is_allowed, remaining = await check_gpu_registration_limit(current_user.id)
+    if not is_allowed:
+        raise HTTPException(
+            status_code=429,
+            detail=f"GPU registration limit exceeded. Remaining: {remaining} for this hour."
+        )
     
     # Check if the same provider already has a GPU with identical specs
     existing = await db.execute(
@@ -50,6 +54,10 @@ async def register_gpu(
     )
     db.add(gpu)
     await db.flush()
+    
+    # Record successful registration
+    await record_gpu_registration(current_user.id)
+    
     return gpu
 
 

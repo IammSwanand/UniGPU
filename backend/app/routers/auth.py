@@ -79,10 +79,15 @@ async def login(
     data: UserLogin,
     db: AsyncSession = Depends(get_db),
 ):
+    """
+    Login with exponential backoff and progressive delays.
+    Failed attempts trigger increasing delays: 1s → 2s → 4s → 8s → 16s
+    After 3 failures, account is locked for 15 minutes.
+    """
     # Get limiter from app state (set in main.py)
     limiter = request.app.state.limiter
     
-    # Check rate limit: 5 login attempts per minute per IP
+    # Check rate limit: 5 login attempts per minute per IP (application-level)
     try:
         limiter.try_request("5/minute", request)
     except Exception:
@@ -92,15 +97,21 @@ async def login(
     client_ip = request.client.host if request.client else "unknown"
     
     # Check for account lockout and get progressive delay
-    is_allowed, delay_or_reason = await check_login_attempt(data.username, client_ip)
+    is_allowed, delay_info = await check_login_attempt(data.username, client_ip)
     if not is_allowed:
-        raise HTTPException(status_code=429, detail=delay_or_reason)
+        raise HTTPException(status_code=429, detail=delay_info)
     
-    # Apply progressive delay if there were previous failures
-    if delay_or_reason:
-        delay = float(delay_or_reason)
-        await asyncio.sleep(delay)
+    # Apply progressive delay with exponential backoff if needed
+    if delay_info and "wait" in delay_info:
+        # Extract delay from message like "Progressive delay: wait 2.0s before retry"
+        try:
+            delay_str = delay_info.split("wait ")[1].split("s")[0]
+            delay = float(delay_str)
+            await asyncio.sleep(delay)
+        except (IndexError, ValueError):
+            pass
     
+    # Verify credentials
     result = await db.execute(select(User).where(User.username == data.username))
     user = result.scalar_one_or_none()
 
