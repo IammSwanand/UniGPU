@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import List
@@ -15,10 +15,20 @@ router = APIRouter()
 
 @router.post("/register", response_model=GPUOut, status_code=status.HTTP_201_CREATED)
 async def register_gpu(
+    request: Request,
     data: GPUCreate,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("provider", "admin")),
 ):
+    # Get limiter from app state and apply per-user rate limit
+    limiter = request.app.state.limiter
+    
+    # Per-user limit: 10 GPU registrations per hour
+    try:
+        limiter.try_request("10/hour", request)
+    except Exception:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 10 GPU registrations per hour.")
+    
     # Check if the same provider already has a GPU with identical specs
     existing = await db.execute(
         select(GPU).where(

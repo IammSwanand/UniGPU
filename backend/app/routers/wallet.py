@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -27,10 +27,19 @@ async def get_wallet(
 
 @router.post("/topup", response_model=WalletOut)
 async def topup_wallet(
+    request: Request,
     data: WalletTopUp,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    # Get limiter from app state and apply per-user rate limit
+    limiter = request.app.state.limiter
+    
+    # Per-user limit: 5 top-ups per hour (financial protection)
+    try:
+        limiter.try_request("5/hour", request)
+    except Exception:
+        raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 top-ups per hour.")
     # ── Validation: Amount limits ──
     MAX_TOPUP_AMOUNT = 10000  # Max ₹10,000 per transaction
     MAX_DAILY_TOPUP = 50000   # Max ₹50,000 per 24 hours

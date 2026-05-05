@@ -12,7 +12,21 @@ import os
 settings = get_settings()
 
 # ── Rate Limiter Setup ──
-limiter = Limiter(key_func=get_remote_address)
+def _get_rate_limit_key(request: Request) -> str:
+    """
+    Key function for rate limiting:
+    - If user is authenticated: use user_id (per-user limit)
+    - Otherwise: use IP address (per-IP limit)
+    """
+    # Try to get user from request (set by dependencies)
+    user_id = getattr(request.state, "user_id", None)
+    if user_id:
+        return f"user-{user_id}"
+    # Fallback to IP
+    return get_remote_address(request)
+
+
+limiter = Limiter(key_func=_get_rate_limit_key)
 
 
 @asynccontextmanager
@@ -25,11 +39,16 @@ async def lifespan(app: FastAPI):
     print("👋 Shutting down UniGPU backend")
 
 
+# ── Create FastAPI app with conditional docs ──
 app = FastAPI(
     title="UniGPU",
     description="Centralized peer-to-peer GPU sharing platform",
     version="0.1.0",
     lifespan=lifespan,
+    # Disable Swagger UI, ReDoc, and OpenAPI schema in production
+    docs_url=None if not settings.DEBUG else "/docs",
+    redoc_url=None if not settings.DEBUG else "/redoc",
+    openapi_url=None if not settings.DEBUG else "/openapi.json",
 )
 
 # ── CORS ──
@@ -45,6 +64,31 @@ app.add_middleware(
 
 # ── Rate Limiter State ──
 app.state.limiter = limiter
+
+
+# ── Middleware to extract user ID for per-user rate limiting ──
+@app.middleware("http")
+async def set_user_id_for_rate_limiting(request: Request, call_next):
+    """Extract user ID from JWT token if present, to enable per-user rate limiting."""
+    from jose import jwt as jwt_module
+    from jose.exceptions import JWTError
+    
+    request.state.user_id = None
+    
+    # Try to extract user ID from Authorization header
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        try:
+            token = auth_header[7:]  # Remove "Bearer "
+            payload = jwt_module.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+            user_id = payload.get("sub")
+            if user_id:
+                request.state.user_id = user_id
+        except JWTError:
+            pass  # Invalid token, will be caught by auth dependency
+    
+    response = await call_next(request)
+    return response
 
 
 @app.exception_handler(RateLimitExceeded)

@@ -4,6 +4,9 @@ from functools import lru_cache
 
 
 class Settings(BaseSettings):
+    # ── Environment ──
+    DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+
     # ── Database ──
     # Docker uses PostgreSQL. For local dev without Docker, use:
     # sqlite+aiosqlite:///./unigpu.db

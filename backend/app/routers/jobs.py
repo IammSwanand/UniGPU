@@ -15,6 +15,9 @@ from app.models.user import User
 from app.models.job import Job, JobStatus
 from app.models.gpu import GPU, GPUStatus
 from app.schemas.job import JobOut
+from app.security_utils import (
+    check_job_submission_limit, check_upload_limit, record_job_submission
+)
 
 router = APIRouter()
 settings = get_settings()
@@ -39,6 +42,21 @@ async def submit_job(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("client", "admin")),
 ):
+    # ── Rate Limiting: Check job submission quota ──
+    is_allowed, reason = await check_job_submission_limit(current_user.id)
+    if not is_allowed:
+        raise HTTPException(status_code=429, detail=reason)
+    
+    # Calculate total upload size
+    script_size = script.size or 0
+    req_size = requirements.size or 0 if requirements else 0
+    total_size = script_size + req_size
+    
+    # Check daily upload limit
+    is_allowed, reason = await check_upload_limit(current_user.id, total_size)
+    if not is_allowed:
+        raise HTTPException(status_code=429, detail=reason)
+    
     job_id = str(uuid.uuid4())
 
     # Save files
@@ -56,6 +74,9 @@ async def submit_job(
     )
     db.add(job)
     await db.flush()
+    
+    # Record successful submission
+    await record_job_submission(current_user.id, total_size)
 
     # Try to match with a GPU and dispatch
     from app.services.matching import find_available_gpu

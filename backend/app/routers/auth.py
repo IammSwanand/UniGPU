@@ -5,12 +5,16 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from jose import jwt
 import bcrypt
+import asyncio
 
 from app.database import get_db
 from app.config import get_settings
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.user import UserCreate, UserLogin, UserOut, Token
+from app.security_utils import (
+    check_login_attempt, record_failed_login, record_successful_login
+)
 
 router = APIRouter()
 settings = get_settings()
@@ -84,14 +88,32 @@ async def login(
     except Exception:
         raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 login attempts per minute.")
     
+    # Get client IP for progressive delay tracking
+    client_ip = request.client.host if request.client else "unknown"
+    
+    # Check for account lockout and get progressive delay
+    is_allowed, delay_or_reason = await check_login_attempt(data.username, client_ip)
+    if not is_allowed:
+        raise HTTPException(status_code=429, detail=delay_or_reason)
+    
+    # Apply progressive delay if there were previous failures
+    if delay_or_reason:
+        delay = float(delay_or_reason)
+        await asyncio.sleep(delay)
+    
     result = await db.execute(select(User).where(User.username == data.username))
     user = result.scalar_one_or_none()
 
     if not user or not _verify_password(data.password, user.hashed_password):
+        # Record failed attempt
+        await record_failed_login(data.username, client_ip)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabled")
+
+    # Reset failed attempts on successful login
+    await record_successful_login(data.username, client_ip)
 
     token = _create_token(user)
     return Token(access_token=token, role=user.role, user_id=user.id)
