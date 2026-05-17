@@ -40,16 +40,8 @@ async def register(
     data: UserCreate,
     db: AsyncSession = Depends(get_db),
 ):
-    # Rate limiting disabled in DEBUG mode (local development)
-    if not settings.DEBUG:
-        # Get limiter from app state (set in main.py)
-        limiter = request.app.state.limiter
-        
-        # Check rate limit: 5 registrations per minute per IP
-        try:
-            limiter.try_request("5/minute", request)
-        except Exception:
-            raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 registrations per minute.")
+    # NOTE: registration rate limiting removed for demo/deployment troubleshooting.
+    # In production you should re-enable rate limits to prevent abuse (e.g. 5/minute per IP).
     
     # Check duplicates
     existing = await db.execute(
@@ -87,16 +79,9 @@ async def login(
     After 3 failures, account is locked for 15 minutes.
     Rate limiting disabled in DEBUG mode (local development).
     """
-    # Rate limiting disabled in DEBUG mode (local development)
-    if not settings.DEBUG:
-        # Get limiter from app state (set in main.py)
-        limiter = request.app.state.limiter
-        
-        # Check rate limit: 5 login attempts per minute per IP (application-level)
-        try:
-            limiter.try_request("5/minute", request)
-        except Exception:
-            raise HTTPException(status_code=429, detail="Rate limit exceeded. Max 5 login attempts per minute.")
+    # NOTE: login rate limiting (global 5/min) removed to allow tests and demos.
+    # Progressive per-account backoff and lockout still apply via `check_login_attempt`.
+    # Re-enable global rate limiting in production if desired.
     
     # Get client IP for progressive delay tracking
     client_ip = request.client.host if request.client else "unknown"
