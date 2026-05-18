@@ -11,9 +11,10 @@ import { faMemory } from '@fortawesome/free-solid-svg-icons';
 // WebSocket URL: prefer Vite env `VITE_WS_BASE_URL` when provided (e.g. wss://api.example.com)
 // Otherwise default to same-origin (wss:// or ws:// based on page protocol)
 const WS_ENV = import.meta.env.VITE_WS_BASE_URL;
-const WS_BASE = WS_ENV && WS_ENV.length > 0
+const WS_BASE_RAW = WS_ENV && WS_ENV.length > 0
     ? WS_ENV
     : `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
+const WS_BASE = WS_BASE_RAW.replace(/\/+$/, '');
 
 export default function ProviderDashboard() {
     const { user, token } = useAuth();

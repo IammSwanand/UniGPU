@@ -25,15 +25,19 @@ router = APIRouter()
 settings = get_settings()
 
 
-async def _save_upload(file: UploadFile, job_id: str, filename: str) -> str:
-    """Save an uploaded file to uploads/<job_id>/<filename>."""
+async def _save_upload(file: UploadFile, job_id: str, filename: str) -> tuple[str, int]:
+    """Save an uploaded file to uploads/<job_id>/<filename>.
+
+    Returns the saved path and the number of bytes written so callers do not
+    depend on UploadFile.size, which may not be populated consistently.
+    """
     job_dir = os.path.join(settings.UPLOAD_DIR, job_id)
     os.makedirs(job_dir, exist_ok=True)
     path = os.path.join(job_dir, filename)
     content = await file.read()
     with open(path, "wb") as f:
         f.write(content)
-    return path
+    return path, len(content)
 
 
 @router.post("/submit", response_model=JobOut, status_code=status.HTTP_201_CREATED)
@@ -49,23 +53,21 @@ async def submit_job(
     if not is_allowed:
         raise HTTPException(status_code=429, detail=reason)
     
-    # Calculate total upload size
-    script_size = script.size or 0
-    req_size = requirements.size or 0 if requirements else 0
-    total_size = script_size + req_size
-    
-    # Check daily upload limit
-    is_allowed, reason = await check_upload_limit(current_user.id, total_size)
-    if not is_allowed:
-        raise HTTPException(status_code=429, detail=reason)
-    
     job_id = str(uuid.uuid4())
 
     # Save files
-    script_path = await _save_upload(script, job_id, script.filename)
+    script_path, script_size = await _save_upload(script, job_id, script.filename)
     req_path = None
+    req_size = 0
     if requirements:
-        req_path = await _save_upload(requirements, job_id, requirements.filename)
+        req_path, req_size = await _save_upload(requirements, job_id, requirements.filename)
+
+    total_size = script_size + req_size
+
+    # Check daily upload limit after reading the bytes so we use the actual size
+    is_allowed, reason = await check_upload_limit(current_user.id, total_size)
+    if not is_allowed:
+        raise HTTPException(status_code=429, detail=reason)
 
     job = Job(
         id=job_id,
