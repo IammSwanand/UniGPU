@@ -38,8 +38,8 @@ export default function Landing() {
                     All peer-to-peer.
                 </p>
                 <div className="hero-buttons">
-                    <Link to="/register" className="btn btn-primary">Start Sharing</Link>
-                    <Link to="/register" className="btn btn-secondary">Submit a Job</Link>
+                    <Link to="/register?role=provider" className="btn btn-primary">Start Sharing</Link>
+                    <Link to="/register?role=client" className="btn btn-secondary">Submit a Job</Link>
                 </div>
             </section>
 

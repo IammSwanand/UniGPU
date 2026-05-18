@@ -1,14 +1,17 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft, faRocket, faBolt } from '@fortawesome/free-solid-svg-icons';
 
 export default function Register() {
+    const location = useLocation();
     const [email, setEmail] = useState('');
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
-    const [role, setRole] = useState('client');
+    const searchParams = new URLSearchParams(location.search);
+    const initialRole = searchParams.get('role') === 'provider' ? 'provider' : 'client';
+    const [role, setRole] = useState(initialRole);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { register } = useAuth();
