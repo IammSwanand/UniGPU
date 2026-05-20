@@ -55,7 +55,7 @@ class Settings(BaseSettings):
             raise ValueError(
                 "⚠️  CRITICAL: SECRET_KEY must be set via environment variable in production. "
                 "Generate a new key with: python -c \"import secrets; print(secrets.token_urlsafe(32))\"\n"
-                "Then add to Railway: Settings → Variables → SECRET_KEY = <your-key>"
+                "Then add to Varaibles: SECRET_KEY=your_generated_key"
             )
 
 
