@@ -62,8 +62,19 @@ async def register_gpu(
 
 
 @router.get("/", response_model=List[GPUOut])
-async def list_gpus(db: AsyncSession = Depends(get_db)):
-    result = await db.execute(select(GPU))
+async def list_gpus(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    # ── Filter by role ──
+    # Providers see only their own GPUs
+    # Clients see all GPUs (to select for job submission)
+    # Admins see all GPUs
+    if current_user.role.value == "provider":
+        result = await db.execute(select(GPU).where(GPU.provider_id == current_user.id))
+    else:
+        # Clients and admins see all GPUs
+        result = await db.execute(select(GPU))
     return result.scalars().all()
 
 
