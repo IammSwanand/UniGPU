@@ -63,6 +63,20 @@ async def lifespan(app: FastAPI):
     get_rate_limiter(redis_url)  # Initialize the singleton with proper Redis URL
     print("✅ Redis rate limiter initialized")
     
+    # Initialize Oracle Cloud Object Storage
+    if settings.oci_storage_enabled:
+        from app.services.storage import init_storage
+        init_storage(
+            namespace=settings.OCI_NAMESPACE,
+            region=settings.OCI_REGION,
+            bucket=settings.OCI_BUCKET,
+            access_key=settings.OCI_ACCESS_KEY,
+            secret_key=settings.OCI_SECRET_KEY,
+        )
+        print("✅ Oracle Cloud Object Storage initialised")
+    else:
+        print("⚠️  OCI Object Storage not configured — using local filesystem for uploads")
+    
     # Start background cleanup task for expired GPU locks
     cleanup_task = asyncio.create_task(_cleanup_gpu_locks_background())
     app.state.cleanup_task = cleanup_task

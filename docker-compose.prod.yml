@@ -1,39 +1,9 @@
 
 services:
 
-  # ── PostgreSQL ──
-  postgres:
-    image: postgres:16-alpine
-    container_name: unigpu-postgres
-    restart: always
-    environment:
-      POSTGRES_USER:     ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
-      POSTGRES_DB:       ${POSTGRES_DB}
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER}"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    # Not exposed externally — backend connects via Docker network
-
-  # ── Redis ──
-  redis:
-    image: redis:7-alpine
-    container_name: unigpu-redis
-    restart: always
-    volumes:
-      - redisdata:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-    # Not exposed externally
-
   # ── FastAPI Backend ──
+  # PostgreSQL: Supabase (managed) — set DATABASE_URL in .env.prod
+  # Redis:      Upstash  (managed) — set REDIS_URL in .env.prod
   backend:
     build:
       context: ./backend
@@ -41,14 +11,14 @@ services:
     container_name: unigpu-backend
     restart: always
     env_file: ./backend/.env.prod
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis:    { condition: service_healthy }
-    volumes:
-      - uploads:/app/uploads
-    # Port 8000 is NOT exposed to the host — only Nginx can reach it via Docker network
+    # Port 8000 is NOT exposed to the host — only Nginx reaches it via Docker network
+    expose:
+      - "8000"
 
   # ── Celery Worker + Beat Scheduler ──
+  # Handles:
+  #   - check_heartbeats (every 30s): marks stale GPUs offline
+  #   - process_job (retry): re-matches pending jobs
   celery-worker:
     build:
       context: ./backend
@@ -56,14 +26,12 @@ services:
     container_name: unigpu-celery
     command: celery -A app.worker.celery_app worker --loglevel=info --beat --concurrency=2
     restart: always
+    user: "1000:1000"  # non-root security best practice
     env_file: ./backend/.env.prod
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis:    { condition: service_healthy }
-    volumes:
-      - uploads:/app/uploads
 
-  # ── Nginx (reverse proxy + static frontend) ──
+  # ── Nginx (SSL termination + WebSocket proxy + React SPA) ──
+  # Builds the React frontend and serves it alongside proxying the FastAPI backend.
+  # SSL certs are mounted from the host where Certbot runs.
   nginx:
     build:
       context: .
@@ -82,7 +50,4 @@ services:
       - backend
 
 volumes:
-  pgdata:
-  redisdata:
-  uploads:
   certbot-webroot:

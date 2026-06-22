@@ -40,6 +40,20 @@ class Settings(BaseSettings):
     # ── File Storage ──
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads")
 
+    # ── Oracle Cloud Object Storage (S3-compatible) ──
+    # Credentials: OCI Console → Profile → My Profile → Customer Secret Keys
+    # Namespace:   OCI Console → Object Storage → top of bucket list page
+    OCI_NAMESPACE: str = os.getenv("OCI_NAMESPACE", "")
+    OCI_REGION: str = os.getenv("OCI_REGION", "")        # e.g. "ap-mumbai-1"
+    OCI_BUCKET: str = os.getenv("OCI_BUCKET", "unigpu-jobs")
+    OCI_ACCESS_KEY: str = os.getenv("OCI_ACCESS_KEY", "")
+    OCI_SECRET_KEY: str = os.getenv("OCI_SECRET_KEY", "")
+
+    @property
+    def oci_storage_enabled(self) -> bool:
+        """True when all OCI credentials are configured."""
+        return bool(self.OCI_NAMESPACE and self.OCI_REGION and self.OCI_ACCESS_KEY and self.OCI_SECRET_KEY)
+
     # ── CORS ──
     # In production, set to your frontend domain via .env
     # Multiple origins: "https://domain1.com,https://domain2.com"

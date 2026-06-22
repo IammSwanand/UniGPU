@@ -6,7 +6,7 @@ from typing import List
 from datetime import datetime, timedelta, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -25,19 +25,33 @@ router = APIRouter()
 settings = get_settings()
 
 
-async def _save_upload(file: UploadFile, job_id: str, filename: str) -> tuple[str, int]:
-    """Save an uploaded file to uploads/<job_id>/<filename>.
-
-    Returns the saved path and the number of bytes written so callers do not
-    depend on UploadFile.size, which may not be populated consistently.
+async def _save_file(file: UploadFile, job_id: str, filename: str) -> tuple[str, int]:
     """
+    Save an uploaded file either to Oracle Cloud Object Storage (production)
+    or the local filesystem (development fallback).
+
+    Returns:
+        (path_or_key, bytes_written)
+        In OCI mode:   path_or_key is the object key  e.g. "jobs/<uuid>/train.py"
+        In local mode: path_or_key is the filesystem path e.g. "uploads/<uuid>/train.py"
+    """
+    content = await file.read()
+    size = len(content)
+
+    # ── Try Oracle Cloud Object Storage first ──
+    if settings.oci_storage_enabled:
+        from app.services.storage import get_storage
+        key = f"jobs/{job_id}/{filename}"
+        get_storage().upload(key, content, content_type="application/octet-stream")
+        return key, size
+
+    # ── Local filesystem fallback (dev / OCI not configured) ──
     job_dir = os.path.join(settings.UPLOAD_DIR, job_id)
     os.makedirs(job_dir, exist_ok=True)
     path = os.path.join(job_dir, filename)
-    content = await file.read()
     with open(path, "wb") as f:
         f.write(content)
-    return path, len(content)
+    return path, size
 
 
 @router.post("/submit", response_model=JobOut, status_code=status.HTTP_201_CREATED)
@@ -55,12 +69,12 @@ async def submit_job(
     
     job_id = str(uuid.uuid4())
 
-    # Save files
-    script_path, script_size = await _save_upload(script, job_id, script.filename)
+    # Save files (OCI Object Storage or local filesystem)
+    script_path, script_size = await _save_file(script, job_id, script.filename)
     req_path = None
     req_size = 0
     if requirements:
-        req_path, req_size = await _save_upload(requirements, job_id, requirements.filename)
+        req_path, req_size = await _save_file(requirements, job_id, requirements.filename)
 
     total_size = script_size + req_size
 
@@ -210,16 +224,13 @@ async def download_job_file(
 ):
     """Download a job file (script or requirements).
 
-    Requires authentication to prevent unauthorized access.
-    Only job owner, GPU provider, or admin can download.
+    In production (OCI enabled): generates a 15-minute pre-signed URL and
+    returns a 302 redirect. The agent's httpx client follows it automatically.
+
+    In development (local filesystem): streams the file directly.
+
+    Only the job owner, GPU provider, or admin can download.
     """
-    # Sanitise filename to prevent path traversal
-    safe_name = Path(filename).name
-    file_path = Path(settings.UPLOAD_DIR) / job_id / safe_name
-
-    if not file_path.exists():
-        raise HTTPException(status_code=404, detail="File not found")
-
     # Verify access: must be job owner, GPU provider, or admin
     result = await db.execute(select(Job).where(Job.id == job_id))
     job = result.scalar_one_or_none()
@@ -234,6 +245,31 @@ async def download_job_file(
 
     if not (is_owner or is_provider or is_admin):
         raise HTTPException(status_code=403, detail="Access denied")
+
+    safe_name = Path(filename).name
+
+    # ── OCI mode: redirect to presigned URL ──
+    if settings.oci_storage_enabled:
+        from app.services.storage import get_storage
+        # Determine the object key: stored in script_path / requirements_path
+        if job.script_path and job.script_path.endswith(safe_name):
+            key = job.script_path
+        elif job.requirements_path and job.requirements_path.endswith(safe_name):
+            key = job.requirements_path
+        else:
+            # Construct key as fallback
+            key = f"jobs/{job_id}/{safe_name}"
+
+        if not get_storage().key_exists(key):
+            raise HTTPException(status_code=404, detail="File not found in storage")
+
+        presigned_url = get_storage().get_presigned_url(key, expires_in=900)
+        return RedirectResponse(url=presigned_url, status_code=302)
+
+    # ── Local filesystem fallback ──
+    file_path = Path(settings.UPLOAD_DIR) / job_id / safe_name
+    if not file_path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
 
     return FileResponse(
         path=str(file_path),
@@ -298,11 +334,21 @@ async def delete_job(
     if job.status.value in ("queued", "running"):
         raise HTTPException(status_code=400, detail="Stop the job before deleting it")
 
-    # Clean up uploaded files
-    import shutil
-    job_dir = os.path.join(settings.UPLOAD_DIR, job_id)
-    if os.path.isdir(job_dir):
-        shutil.rmtree(job_dir, ignore_errors=True)
+    # ── Clean up stored files ──
+    if settings.oci_storage_enabled:
+        # Delete from Oracle Cloud Object Storage
+        from app.services.storage import get_storage
+        storage = get_storage()
+        if job.script_path:
+            storage.delete(job.script_path)
+        if job.requirements_path:
+            storage.delete(job.requirements_path)
+    else:
+        # Delete from local filesystem
+        import shutil
+        job_dir = os.path.join(settings.UPLOAD_DIR, job_id)
+        if os.path.isdir(job_dir):
+            shutil.rmtree(job_dir, ignore_errors=True)
 
     await db.delete(job)
     await db.commit()
