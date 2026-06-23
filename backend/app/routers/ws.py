@@ -180,6 +180,7 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str, token: str | None =
                             gpu = gpu_result.scalar_one_or_none()
                             if gpu:
                                 gpu.status = GPUStatus.online
+                            # NOTE: job files kept in OCI for 3 days to allow future retry
                         elif new_status == "failed":
                             job.status = JobStatus.failed
                             job.completed_at = datetime.now(timezone.utc)
@@ -187,6 +188,7 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str, token: str | None =
                             gpu = gpu_result.scalar_one_or_none()
                             if gpu:
                                 gpu.status = GPUStatus.online
+                            # NOTE: job files kept in OCI for 3 days to allow future retry
                         await db.commit()
 
                 # Relay job status to provider dashboard

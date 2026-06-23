@@ -114,3 +114,70 @@ async def _check_heartbeats_async():
                 await db.commit()
     finally:
         await engine.dispose()
+
+
+@celery_app.task(name="app.worker.tasks.cleanup_stale_job_files")
+def cleanup_stale_job_files():
+    """Delete OCI storage files for jobs that finished more than 3 days ago.
+
+    Runs daily via Celery Beat. The 3-day window gives users time to retry
+    failed jobs before their scripts are permanently removed.
+    """
+    _run_async(_cleanup_stale_job_files_async())
+
+
+async def _cleanup_stale_job_files_async():
+    engine, session_factory = _get_async_session()
+    try:
+        # Jobs completed/failed more than 3 days ago that still have files stored
+        cutoff = datetime.now(timezone.utc) - timedelta(days=3)
+        terminal_statuses = [JobStatus.completed, JobStatus.failed, JobStatus.cancelled]
+
+        async with session_factory() as db:
+            result = await db.execute(
+                select(Job).where(
+                    Job.status.in_(terminal_statuses),
+                    Job.completed_at < cutoff,
+                    Job.script_path.isnot(None),  # still has files to clean up
+                )
+            )
+            stale_jobs = result.scalars().all()
+
+            if not stale_jobs:
+                return
+
+            deleted_count = 0
+
+            if settings.oci_storage_enabled:
+                from app.services.storage import get_storage
+                storage = get_storage()
+                for job in stale_jobs:
+                    try:
+                        if job.script_path:
+                            storage.delete(job.script_path)
+                        if job.requirements_path:
+                            storage.delete(job.requirements_path)
+                        # Clear paths so this job isn't processed again
+                        job.script_path = None
+                        job.requirements_path = None
+                        deleted_count += 1
+                    except Exception as exc:
+                        print(f"[cleanup] Failed to delete files for job {job.id}: {exc}")
+            else:
+                import shutil, os
+                for job in stale_jobs:
+                    try:
+                        job_dir = os.path.join(settings.UPLOAD_DIR, job.id)
+                        if os.path.isdir(job_dir):
+                            shutil.rmtree(job_dir, ignore_errors=True)
+                        job.script_path = None
+                        job.requirements_path = None
+                        deleted_count += 1
+                    except Exception as exc:
+                        print(f"[cleanup] Failed to delete local files for job {job.id}: {exc}")
+
+            await db.commit()
+            print(f"[cleanup] Cleaned up files for {deleted_count} stale jobs")
+    finally:
+        await engine.dispose()
+

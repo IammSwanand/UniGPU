@@ -22,5 +22,12 @@ celery_app.conf.update(
             "task": "app.worker.tasks.check_heartbeats",
             "schedule": 30.0,
         },
+        # Runs at midnight UTC every day
+        # Deletes OCI storage files for jobs completed/failed > 3 days ago
+        # Gives users a 3-day window to retry failed jobs before files are gone
+        "cleanup-stale-job-files-daily": {
+            "task": "app.worker.tasks.cleanup_stale_job_files",
+            "schedule": 86400.0,  # 24 hours in seconds
+        },
     },
 )
