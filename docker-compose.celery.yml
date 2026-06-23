@@ -1,0 +1,18 @@
+
+services:
+
+  # ── Celery Worker + Beat Scheduler ──
+  # Runs on VM2 (second AMD Micro instance).
+  # No ports exposed — outbound only (connects to Upstash Redis + Supabase).
+  # Handles:
+  #   - check_heartbeats (every 30s): marks stale GPU agents offline
+  #   - process_job: retries pending job matching
+  celery-worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: unigpu-celery
+    command: celery -A app.worker.celery_app worker --loglevel=info --beat --concurrency=2
+    restart: always
+    user: "1000:1000"
+    env_file: ./backend/.env.prod

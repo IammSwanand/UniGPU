@@ -1,0 +1,16 @@
+
+services:
+
+  # ── FastAPI Backend ──
+  # Runs on port 80 — Cloudflare proxies HTTPS → HTTP:80 on this VM.
+  # No nginx needed: Cloudflare handles SSL termination.
+  # No Celery: runs on a separate VM (docker-compose.celery.yml).
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: unigpu-backend
+    restart: always
+    ports:
+      - "80:8000"       # host:container — Cloudflare hits port 80
+    env_file: ./backend/.env.prod
