@@ -9,8 +9,10 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy source
 COPY . .
 
-# Create uploads directory
-RUN mkdir -p uploads
+# Create uploads directory and celery beat schedule directory
+RUN mkdir -p uploads && \
+    mkdir -p /var/celery && \
+    chown -R 1000:1000 /var/celery
 
 EXPOSE 8000
 

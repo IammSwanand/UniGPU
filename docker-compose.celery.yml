@@ -12,7 +12,12 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: unigpu-celery
-    command: celery -A app.worker.celery_app worker --loglevel=info --beat --concurrency=2
+    command: celery -A app.worker.celery_app worker --loglevel=info --beat --concurrency=2 --schedule=/var/celery/celerybeat-schedule
     restart: always
     user: "1000:1000"
     env_file: ./backend/.env.prod
+    volumes:
+      - celery_beat_data:/var/celery
+
+volumes:
+  celery_beat_data:
