@@ -7,7 +7,7 @@ settings = get_settings()
 celery_app = Celery(
     "unigpu_worker",
     broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL,
+    # backend=settings.REDIS_URL, #temporary disabled to check how much does it affect r/w opeartions on redis cache.
     include=["app.worker.tasks"],
 )
 
@@ -34,7 +34,7 @@ celery_app.conf.update(
     task_store_errors_even_if_ignored = False, # doesn't store the errors either in redis cache
 
     broker_transport_options = {
-        "polling interval" : 5.0, # polls redis every 5 seconds reducing read operation quota
+        "polling_interval" : 5.0, # polls redis every 5 seconds reducing read operation quota
     }, #this redis cache can be replaced later with rabitmq for better queue management, but only for job polling.
 
 

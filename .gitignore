@@ -21,3 +21,7 @@ celerybeat-schedule
 agent/
 
 /scripts
+
+# ── Docs / Analysis (local) ──
+redis_scaling_analysis.md
+
