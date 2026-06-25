@@ -27,6 +27,17 @@ celery_app.conf.update(
     broker_connection_retry_on_startup=True,  # Celery 6.0+ compatibility
     broker_use_ssl=_ssl_config if _use_ssl else None,
     redis_backend_use_ssl=_ssl_config if _use_ssl else None,
+
+    # Upstash Optimization
+    task_ignore_result = True, #this prevents creation of key in redis cache
+
+    task_store_errors_even_if_ignored = False, # doesn't store the errors either in redis cache
+
+    broker_transport_options = {
+        "polling interval" : 5.0, # polls redis every 5 seconds reducing read operation quota
+    }, #this redis cache can be replaced later with rabitmq for better queue management, but only for job polling.
+
+
     beat_schedule={
         "check-heartbeats-every-30s": {
             "task": "app.worker.tasks.check_heartbeats",
