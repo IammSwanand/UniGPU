@@ -7,7 +7,7 @@ settings = get_settings()
 celery_app = Celery(
     "unigpu_worker",
     broker=settings.REDIS_URL,
-    # backend=settings.REDIS_URL, #temporary disabled to check how much does it affect r/w opeartions on redis cache.
+    backend=settings.REDIS_URL, #temporary disabled to check how much does it affect r/w opeartions on redis cache.
     include=["app.worker.tasks"],
 )
 
