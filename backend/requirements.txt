@@ -30,3 +30,6 @@ slowapi==0.1.9
 
 # ── Object Storage ──
 boto3==1.35.0
+
+# ── SQLAlchemy ──
+psycopg2-binary
