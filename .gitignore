@@ -18,7 +18,6 @@ frontend/node_modules/
 celerybeat-schedule
 
 # ── Agent ──
-agent/
 
 /scripts
 
