@@ -7,7 +7,7 @@ settings = get_settings()
 celery_app = Celery(
     "unigpu_worker",
     broker=settings.REDIS_URL,
-    backend=settings.REDIS_URL, #temporary disabled to check how much does it affect r/w opeartions on redis cache.
+    backend=None,  # Results disabled (task_ignore_result=True) — no backend connection needed
     include=["app.worker.tasks"],
 )
 
@@ -26,16 +26,29 @@ celery_app.conf.update(
     enable_utc=True,
     broker_connection_retry_on_startup=True,  # Celery 6.0+ compatibility
     broker_use_ssl=_ssl_config if _use_ssl else None,
-    redis_backend_use_ssl=_ssl_config if _use_ssl else None,
+    # redis_backend_use_ssl removed — backend=None (task_ignore_result=True)
 
-    # Upstash Optimization
-    task_ignore_result = True, #this prevents creation of key in redis cache
+    # ── Upstash Quota Optimization ──
+    task_ignore_result=True,             # Prevents result keys being written to Redis cache
+    task_store_errors_even_if_ignored=False,  # Don't store errors in Redis either
 
-    task_store_errors_even_if_ignored = False, # doesn't store the errors either in redis cache
+    # Disable Celery's internal event system.
+    # By default the worker broadcasts a heartbeat PUBLISH to /0.celeryev/worker.heartbeat
+    # at freq=2.0 (twice per second), which alone generates ~1.38M Redis ops/month at idle.
+    # We don't use Celery Flower or event monitoring, so this is pure waste.
+    worker_send_task_events=False,       # Kills PUBLISH /0.celeryev/worker.heartbeat spam
+    task_send_sent_event=False,          # Kills task-sent event PUBLISHes
 
-    broker_transport_options = {
-        "polling_interval" : 5.0, # polls redis every 5 seconds reducing read operation quota
-    }, #this redis cache can be replaced later with rabitmq for better queue management, but only for job polling.
+    # Use early ack so Celery does NOT write to the unacked_index/unacked hash on every task.
+    # The beat tasks (check_heartbeats, cleanup_stale_job_files) are safe to re-run if lost,
+    # so we don't need Celery's at-least-once re-delivery guarantee for them.
+    # This removes ~1.03M ZADD/HSET/MULTI/EXEC/ZREM/HDEL ops/month.
+    task_acks_late=False,
+    task_reject_on_worker_lost=False,
+
+    broker_transport_options={
+        "polling_interval": 5.0,  # Poll Redis every 5s — will be replaced by RabbitMQ (push-based)
+    },
 
 
     beat_schedule={
