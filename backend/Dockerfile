@@ -18,5 +18,7 @@ EXPOSE 8000
 
 # Start Uvicorn on Railway's dynamic PORT (fallback to 8000 for local/dev)
 # --proxy-headers: trust X-Forwarded-For / X-Forwarded-Proto from reverse proxies
-# --workers 2: two async workers (safe for a 1-2 vCPU VPS)
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2 --proxy-headers --forwarded-allow-ips '*'"]
+# --workers 1: MUST be 1 because WebSocket connections live in-memory (ConnectionManager)
+# Multiple workers means HTTP requests may hit a different process than the one
+# holding the WebSocket, causing job dispatch to fail (manager.is_connected → False)
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 1 --proxy-headers --forwarded-allow-ips '*'"]
