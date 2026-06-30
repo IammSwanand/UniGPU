@@ -168,7 +168,7 @@ class JobExecutor:
                 job.get("job_id", "unknown"),
             )
         
-        async with httpx.AsyncClient(base_url=self.backend_http_url, timeout=60, headers=headers) as client:
+        async with httpx.AsyncClient(base_url=self.backend_http_url, timeout=60, headers=headers, follow_redirects=True) as client:
             # Download script (required)
             script_url = job["script_url"]
             script_name = Path(script_url).name

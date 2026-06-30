@@ -149,28 +149,29 @@ class UniGPUAgent:
             logging.getLogger("unigpu").removeHandler(self._ws_log_handler)
             logger.info("Agent shut down cleanly.")
 
-        async def _validate_agent_token(self) -> None:
-            """Refresh an expired or invalid token before the first connection attempt."""
-            token = self.config.agent_token.strip()
-            if not token:
-                logger.warning("No agent token configured; WebSocket login will rely on reconnect handling")
-                return
 
-            if not is_token_expired(token):
-                return
+    async def _validate_agent_token(self) -> None:
+        """Refresh an expired or invalid token before the first connection attempt."""
+        token = self.config.agent_token.strip()
+        if not token:
+            logger.warning("No agent token configured; WebSocket login will rely on reconnect handling")
+            return
 
-            logger.info("Agent token expired or invalid on startup; refreshing before connect")
-            new_token = await asyncio.to_thread(cred_refresh_token, self.config.backend_http_url)
-            if not new_token:
-                logger.warning("Startup token refresh failed; continuing with existing token")
-                return
+        if not is_token_expired(token):
+            return
 
-            self.config.agent_token = new_token
-            try:
-                self.config.save()
-                logger.info("✅ Refreshed and saved agent token before startup")
-            except Exception as exc:
-                logger.warning("⚠️  Refreshed token but failed to save config: %s", exc)
+        logger.info("Agent token expired or invalid on startup; refreshing before connect")
+        new_token = await asyncio.to_thread(cred_refresh_token, self.config.backend_http_url)
+        if not new_token:
+            logger.warning("Startup token refresh failed; continuing with existing token")
+            return
+
+        self.config.agent_token = new_token
+        try:
+            self.config.save()
+            logger.info("✅ Refreshed and saved agent token before startup")
+        except Exception as exc:
+            logger.warning("⚠️  Refreshed token but failed to save config: %s", exc)
 
     async def stop(self) -> None:
         """Graceful shutdown."""
@@ -335,12 +336,12 @@ class UniGPUAgent:
         banner = r"""
     ╔══════════════════════════════════════════════════╗
     ║                                                  ║
-    ║         ██╗   ██╗███╗   ██╗██╗ ██████╗██████╗   ║
-    ║         ██║   ██║████╗  ██║██║██╔════╝██╔══██╗  ║
-    ║         ██║   ██║██╔██╗ ██║██║██║  ███████╗██║  ║
-    ║         ██║   ██║██║╚██╗██║██║██║   ██╔═══██║   ║
-    ║         ╚██████╔╝██║ ╚████║██║╚██████╗██████╔╝  ║
-    ║          ╚═════╝ ╚═╝  ╚═══╝╚═╝ ╚═════╝╚═════╝  ║
+    ║         ██╗   ██╗███╗   ██╗██╗ ██████╗██████╗    ║
+    ║         ██║   ██║████╗  ██║██║██╔════╝██╔══██╗   ║
+    ║         ██║   ██║██╔██╗ ██║██║██║     ███████╗██║   ║
+    ║         ██║   ██║██║╚██╗██║██║██║   ██╔═══ ██║    ║
+    ║         ╚██████╔╝██║ ╚████║██║╚██████╗     ██████╔╝   ║
+    ║          ╚═════╝ ╚═╝  ╚═══╝╚═╝ ╚═════╝╚═════╝    ║
     ║                                                  ║
     ║              GPU Agent  •  v1.0.0                ║
     ║         Peer-to-Peer GPU Marketplace             ║
