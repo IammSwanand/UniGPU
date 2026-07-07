@@ -126,6 +126,14 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str, token: str | None =
             # Cache gpu_id → provider_id for fast relay
             manager.set_gpu_provider(gpu_id, gpu.provider_id)
 
+            # Notify provider dashboard immediately so any open tab refreshes
+            # without needing a manual reload (mirrors the disconnect notice below)
+            await manager.send_to_provider(gpu.provider_id, {
+                "type": "agent_status",
+                "gpu_id": gpu_id,
+                "status": "connected",
+            })
+
     try:
         while True:
             raw = await websocket.receive_text()
@@ -278,7 +286,7 @@ async def provider_websocket(websocket: WebSocket, provider_id: str, token: str 
       - agent_log:    {"type": "agent_log", "gpu_id": "...", "data": "..."}
       - job_log:      {"type": "job_log", "gpu_id": "...", "job_id": "...", "data": "..."}
       - job_status:   {"type": "job_status", "gpu_id": "...", "job_id": "...", "status": "..."}
-      - agent_status: {"type": "agent_status", "gpu_id": "...", "status": "disconnected"}
+      - agent_status: {"type": "agent_status", "gpu_id": "...", "status": "connected"|"disconnected"}
     
     Rate Limits:
       - Max 5 active connections per provider

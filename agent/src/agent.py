@@ -149,7 +149,6 @@ class UniGPUAgent:
             logging.getLogger("unigpu").removeHandler(self._ws_log_handler)
             logger.info("Agent shut down cleanly.")
 
-
     async def _validate_agent_token(self) -> None:
         """Refresh an expired or invalid token before the first connection attempt."""
         token = self.config.agent_token.strip()
@@ -301,10 +300,9 @@ class UniGPUAgent:
         """Periodically collect and send system metrics."""
         while True:
             try:
-                await asyncio.sleep(3)
                 metrics = collect_metrics()
                 await self.ws.send_metrics(metrics)
-                logger.info(" Sent metrics: GPU=%d°C, Util=%d%%, CPU=%d%%, Mem=%d%%", 
+                logger.info(" Sent metrics: GPU=%d°C, Util=%d%%, CPU=%d%%, Mem=%d%%",
                            metrics.get("gpu_temp_c") or 0,
                            metrics.get("gpu_util_pct") or 0,
                            metrics.get("cpu_pct") or 0,
@@ -313,6 +311,7 @@ class UniGPUAgent:
                 break
             except Exception as exc:
                 logger.warning("  Metrics send failed: %s", exc)
+            await asyncio.sleep(3)
 
     # ──────────────────────────────────────────────
     # Utilities
@@ -375,7 +374,7 @@ def _run_headless():
         logger.info("Agent stopped — waiting for 'Go Online' from dashboard…")
         try:
             while True:
-                time.sleep(5)
+                time.sleep(2)
                 try:
                     resp = httpx.get(
                         f"{config.backend_http_url}/gpus/",

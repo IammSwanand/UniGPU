@@ -233,7 +233,7 @@ class TrayApp:
         logger.info("Agent stopped — watching for 'Go Online' from dashboard…")
         while not self._running and not self._exiting:
             try:
-                time.sleep(5)
+                time.sleep(2)
                 resp = httpx.get(
                     f"{self.config.backend_http_url}/gpus/",
                     timeout=5,
