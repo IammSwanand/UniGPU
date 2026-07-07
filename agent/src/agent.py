@@ -51,7 +51,15 @@ class WebSocketLogHandler(logging.Handler):
         self._buffer: list[str] = []
         self._formatter = logging.Formatter(LOG_FORMAT)
 
+    # Loggers whose output should NOT be forwarded to the provider dashboard
+    _EXCLUDED_LOGGERS = {
+        "unigpu.agent.ws_client",  # heartbeats, connect/disconnect noise
+    }
+
     def emit(self, record: logging.LogRecord) -> None:
+        # Skip internal WebSocket client logs (heartbeats, reconnects, etc.)
+        if record.name in self._EXCLUDED_LOGGERS:
+            return
         try:
             line = self._formatter.format(record)
             # Schedule send on the event loop (thread-safe)
