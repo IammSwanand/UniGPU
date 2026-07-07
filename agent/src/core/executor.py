@@ -77,6 +77,7 @@ class JobExecutor:
         self.max_timeout = max_timeout
 
         self._docker: Optional[docker.DockerClient] = None
+        self._health_docker: Optional[docker.DockerClient] = None
 
     # ──────────────────────────────────────────────
     # Public API
@@ -202,10 +203,19 @@ class JobExecutor:
         return self._docker
 
     def check_docker_running(self) -> bool:
-        """Ping the Docker daemon; False if unreachable or not installed."""
+        """
+        Ping the Docker daemon; False if unreachable or not installed.
+
+        Uses a dedicated client, kept separate from the one used to run jobs
+        (self._docker), so this health check never contends with an
+        in-progress container run over the same connection/transport.
+        """
         try:
-            return bool(self._get_docker_client().ping())
+            if self._health_docker is None:
+                self._health_docker = docker.from_env()
+            return bool(self._health_docker.ping())
         except Exception:
+            self._health_docker = None  # force re-init next time
             return False
 
     def _run_container(

@@ -300,17 +300,26 @@ class UniGPUAgent:
 
     async def _metrics_loop(self) -> None:
         """Periodically collect and send system metrics."""
+        DOCKER_CHECK_EVERY = 5  # ~15s at the 3s tick below — Docker's API is
+        # heavier than the other metrics and shouldn't add load while a job's
+        # container is actively running, so it's checked less often and off
+        # the event loop (a job's own container run shares the executor but
+        # not this dedicated health-check client — see check_docker_running).
+        tick = 0
         while True:
             try:
                 metrics = collect_metrics()
-                docker_ok = self.executor.check_docker_running() if self.executor else False
-                metrics["docker_running"] = docker_ok
-                await self.ws.send_metrics(metrics)
 
-                if docker_ok != self._last_docker_ok:
-                    self._last_docker_ok = docker_ok
-                    if self.on_docker_status_change:
-                        self.on_docker_status_change(docker_ok)
+                if self.executor and tick % DOCKER_CHECK_EVERY == 0:
+                    docker_ok = await asyncio.to_thread(self.executor.check_docker_running)
+                    if docker_ok != self._last_docker_ok:
+                        self._last_docker_ok = docker_ok
+                        if self.on_docker_status_change:
+                            self.on_docker_status_change(docker_ok)
+                tick += 1
+
+                metrics["docker_running"] = self._last_docker_ok
+                await self.ws.send_metrics(metrics)
             except asyncio.CancelledError:
                 break
             except Exception as exc:
