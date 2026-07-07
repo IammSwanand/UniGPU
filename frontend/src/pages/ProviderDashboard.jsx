@@ -68,10 +68,7 @@ export default function ProviderDashboard() {
                         setMetrics(prev => ({ ...prev, [msg.gpu_id]: msg.data }));
                         setAgentConnecting(false); // Agent is back — hide progress bar
                     } else if (msg.type === 'agent_log') {
-                        setAgentLogs(prev => {
-                            const next = [...prev, { time: new Date().toLocaleTimeString(), text: msg.data, gpu_id: msg.gpu_id }];
-                            return next.length > MAX_LOG_LINES ? next.slice(-MAX_LOG_LINES) : next;
-                        });
+                        // Agent infrastructure logs (heartbeats, reconnects, etc.) — not shown on dashboard
                     } else if (msg.type === 'job_log') {
                         setAgentLogs(prev => {
                             const next = [...prev, { time: new Date().toLocaleTimeString(), text: `[JOB ${msg.job_id?.slice(0, 8)}] ${msg.data}`, gpu_id: msg.gpu_id, isJob: true }];
@@ -283,8 +280,8 @@ export default function ProviderDashboard() {
                             {!wsConnected
                                 ? 'WebSocket disconnected. Metrics will appear once the backend is online.'
                                 : gpus.length === 0
-                                ? 'Register a GPU to see live metrics.'
-                                : 'Waiting for agent metrics… Make sure the GPU agent is running and connected.'}
+                                    ? 'Register a GPU to see live metrics.'
+                                    : 'Waiting for agent metrics… Make sure the GPU agent is running and connected.'}
                         </div>
                     )}
                 </div>
@@ -294,9 +291,6 @@ export default function ProviderDashboard() {
                     <div className="section animate-in">
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                             <div className="section-title" style={{ margin: 0 }}>My GPUs</div>
-                            <button className="btn btn-primary btn-small" onClick={() => setShowRegister(true)}>
-                                + Register GPU
-                            </button>
                         </div>
                         {gpus.length === 0 ? (
                             <div className="glass" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
