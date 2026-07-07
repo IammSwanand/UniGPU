@@ -250,15 +250,17 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str, token: str | None =
                     })
 
     except WebSocketDisconnect:
+        # Capture the provider mapping before disconnect() clears the cache below
+        provider_id = manager.get_provider_for_gpu(gpu_id)
         manager.disconnect(gpu_id)
-        
+
         # ── Cleanup: Decrement connection count and clear rate limit tracking ──
         _active_gpu_connections[gpu_id] = max(0, _active_gpu_connections[gpu_id] - 1)
         if connection_id in _message_counts:
             del _message_counts[connection_id]
-        
+
         print(f"🔌 GPU agent disconnected: {gpu_id} (active connections: {_active_gpu_connections[gpu_id]})")
-        
+
         # Mark GPU as offline
         async with async_session() as db:
             result = await db.execute(select(GPU).where(GPU.id == gpu_id))
@@ -268,7 +270,6 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str, token: str | None =
                 await db.commit()
 
         # Notify provider dashboard
-        provider_id = manager.get_provider_for_gpu(gpu_id)
         if provider_id:
             await manager.send_to_provider(provider_id, {
                 "type": "agent_status",

@@ -236,6 +236,7 @@ class TrayApp:
                 time.sleep(2)
                 resp = httpx.get(
                     f"{self.config.backend_http_url}/gpus/",
+                    headers={"Authorization": f"Bearer {self.config.agent_token}"},
                     timeout=5,
                 )
                 if resp.status_code == 200:

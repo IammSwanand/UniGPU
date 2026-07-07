@@ -302,11 +302,6 @@ class UniGPUAgent:
             try:
                 metrics = collect_metrics()
                 await self.ws.send_metrics(metrics)
-                logger.info(" Sent metrics: GPU=%d°C, Util=%d%%, CPU=%d%%, Mem=%d%%",
-                           metrics.get("gpu_temp_c") or 0,
-                           metrics.get("gpu_util_pct") or 0,
-                           metrics.get("cpu_pct") or 0,
-                           metrics.get("mem_pct") or 0)
             except asyncio.CancelledError:
                 break
             except Exception as exc:
@@ -378,6 +373,7 @@ def _run_headless():
                 try:
                     resp = httpx.get(
                         f"{config.backend_http_url}/gpus/",
+                        headers={"Authorization": f"Bearer {config.agent_token}"},
                         timeout=5,
                     )
                     if resp.status_code == 200:

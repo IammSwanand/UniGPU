@@ -24,3 +24,6 @@ celerybeat-schedule
 # ── Docs / Analysis (local) ──
 redis_scaling_analysis.md
 
+# testing
+docker-compose.prodtest.yml
+/backend/Dockerfile.prodtest

@@ -125,7 +125,6 @@ class LogWindow:
     def _append_line(self, line: str) -> None:
         self.text.configure(state="normal")
         self.text.insert("end", line + "\n")
-        self.text.see("end")
         self.text.configure(state="disabled")
 
     def clear(self) -> None:

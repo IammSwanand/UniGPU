@@ -30,7 +30,6 @@ export default function ProviderDashboard() {
     const [wsConnected, setWsConnected] = useState(false);
     const [agentConnecting, setAgentConnecting] = useState(false); // shows progress bar
 
-    const logEndRef = useRef(null);
     const wsRef = useRef(null);
     const MAX_LOG_LINES = 500;
 
@@ -85,6 +84,13 @@ export default function ProviderDashboard() {
                         });
                         load(); // Refresh data on job status changes
                     } else if (msg.type === 'agent_status') {
+                        if (msg.status === 'disconnected') {
+                            setMetrics(prev => {
+                                const next = { ...prev };
+                                delete next[msg.gpu_id];
+                                return next;
+                            });
+                        }
                         load(); // Refresh GPU list on status changes
                     }
                 } catch (err) {
@@ -114,11 +120,6 @@ export default function ProviderDashboard() {
             }
         };
     }, [user?.id, token]);
-
-    // Auto-scroll logs
-    useEffect(() => {
-        logEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-    }, [agentLogs]);
 
     const handleRegisterGPU = async () => {
         try {
@@ -389,7 +390,6 @@ export default function ProviderDashboard() {
                                 </div>
                             ))
                         )}
-                        <div ref={logEndRef} />
                     </div>
                 </div>
 
