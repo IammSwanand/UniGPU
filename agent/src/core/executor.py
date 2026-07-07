@@ -201,6 +201,13 @@ class JobExecutor:
             self._docker = docker.from_env()
         return self._docker
 
+    def check_docker_running(self) -> bool:
+        """Ping the Docker daemon; False if unreachable or not installed."""
+        try:
+            return bool(self._get_docker_client().ping())
+        except Exception:
+            return False
+
     def _run_container(
         self,
         job: Dict[str, Any],

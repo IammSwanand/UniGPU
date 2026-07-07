@@ -88,7 +88,9 @@ async def list_available_gpus(
         .where(GPU.status == GPUStatus.online, GPU.vram_mb >= min_vram)
         .order_by(GPU.vram_mb.asc())
     )
-    return result.scalars().all()
+    gpus = result.scalars().all()
+    # Skip GPUs whose agent reported Docker as down (in-memory only, no DB column)
+    return [gpu for gpu in gpus if manager.get_docker_status(gpu.id) is not False]
 
 
 @router.patch("/{gpu_id}/status", response_model=GPUOut)

@@ -9,6 +9,7 @@ class ConnectionManager:
         self._connections: Dict[str, WebSocket] = {}  # gpu_id → WebSocket
         self._provider_connections: Dict[str, Set[WebSocket]] = {}  # provider_id → set of WebSockets
         self._gpu_to_provider: Dict[str, str] = {}  # gpu_id → provider_id (cache)
+        self._gpu_docker_status: Dict[str, bool] = {}  # gpu_id → last-reported Docker reachability
 
     # ── Agent connections ──
 
@@ -19,6 +20,7 @@ class ConnectionManager:
     def disconnect(self, gpu_id: str):
         self._connections.pop(gpu_id, None)
         self._gpu_to_provider.pop(gpu_id, None)
+        self._gpu_docker_status.pop(gpu_id, None)
 
     def is_connected(self, gpu_id: str) -> bool:
         return gpu_id in self._connections
@@ -67,6 +69,16 @@ class ConnectionManager:
     def get_provider_for_gpu(self, gpu_id: str) -> str | None:
         """Get the provider_id that owns this gpu_id."""
         return self._gpu_to_provider.get(gpu_id)
+
+    # ── Docker daemon status (agent-reported, in-memory only) ──
+
+    def set_docker_status(self, gpu_id: str, running: bool) -> None:
+        """Cache the agent's last-reported Docker daemon reachability."""
+        self._gpu_docker_status[gpu_id] = running
+
+    def get_docker_status(self, gpu_id: str) -> bool | None:
+        """Docker reachability for this GPU, or None if never reported."""
+        return self._gpu_docker_status.get(gpu_id)
 
 
 # Singleton instance shared across the app

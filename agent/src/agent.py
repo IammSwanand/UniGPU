@@ -23,7 +23,7 @@ import asyncio
 import logging
 import signal
 import sys
-from typing import Any, Dict
+from typing import Any, Callable, Dict
 
 # ── Agent modules ─────────────────────────────────
 from src.core.config import AgentConfig
@@ -78,6 +78,8 @@ class UniGPUAgent:
         self.log_streamer: LogStreamer | None = None
         self._current_job_id: str | None = None
         self._shutdown_event = asyncio.Event()
+        self._last_docker_ok: bool | None = None
+        self.on_docker_status_change: Callable[[bool], None] | None = None
 
     # ──────────────────────────────────────────────
     # Bootstrap
@@ -301,7 +303,14 @@ class UniGPUAgent:
         while True:
             try:
                 metrics = collect_metrics()
+                docker_ok = self.executor.check_docker_running() if self.executor else False
+                metrics["docker_running"] = docker_ok
                 await self.ws.send_metrics(metrics)
+
+                if docker_ok != self._last_docker_ok:
+                    self._last_docker_ok = docker_ok
+                    if self.on_docker_status_change:
+                        self.on_docker_status_change(docker_ok)
             except asyncio.CancelledError:
                 break
             except Exception as exc:

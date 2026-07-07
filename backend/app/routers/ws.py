@@ -231,12 +231,17 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str, token: str | None =
 
             elif msg_type == "metrics":
                 # System metrics from agent (GPU temp, CPU, RAM, etc.)
+                data = msg.get("data", {})
+                docker_running = data.get("docker_running")
+                if docker_running is not None:
+                    manager.set_docker_status(gpu_id, docker_running)
+
                 provider_id = manager.get_provider_for_gpu(gpu_id)
                 if provider_id:
                     await manager.send_to_provider(provider_id, {
                         "type": "metrics",
                         "gpu_id": gpu_id,
-                        "data": msg.get("data", {}),
+                        "data": data,
                     })
 
             elif msg_type == "agent_log":

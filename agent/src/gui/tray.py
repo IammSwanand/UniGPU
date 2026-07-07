@@ -35,6 +35,7 @@ STATUS_COLORS = {
     "disconnected": "#ef4444",  # red
     "idle":         "#6366f1",  # indigo (no job)
     "running_job":  "#22c55e",  # green (job active)
+    "docker_error": "#f97316",  # amber (Docker not running)
 }
 
 # ─── Icon generation ─────────────────────────────
@@ -206,6 +207,7 @@ class TrayApp:
                     self.update_status("connected")
 
             self._agent._handle_assign_job = _patched_handle
+            self._agent.on_docker_status_change = self._on_docker_status_change
 
             try:
                 self.update_status("connected")
@@ -347,6 +349,33 @@ class TrayApp:
             self._tk_root.mainloop()
 
         threading.Thread(target=_open, daemon=True).start()
+
+    def _on_docker_status_change(self, docker_running: bool):
+        """Called from the agent thread whenever Docker's reachability changes."""
+        if not docker_running:
+            self.update_status("docker_error")
+        elif self._status == "docker_error":
+            self.update_status("connected")
+
+        if docker_running:
+            return  # Only pop up a warning when Docker goes down, not on recovery
+
+        def _show():
+            import tkinter as tk
+            from tkinter import messagebox
+
+            if self._tk_root is None:
+                self._tk_root = tk.Tk()
+                self._tk_root.withdraw()
+
+            messagebox.showwarning(
+                "UniGPU Agent — Docker Not Running",
+                "Docker isn't running, so this node can't execute jobs.\n\n"
+                "Start Docker Desktop (or the Docker service) — this will "
+                "clear automatically within a few seconds once it's back up.",
+            )
+
+        threading.Thread(target=_show, daemon=True).start()
 
     def _on_settings_saved(self, new_config: "AgentConfig"):
         """Callback when settings are saved — update internal config."""

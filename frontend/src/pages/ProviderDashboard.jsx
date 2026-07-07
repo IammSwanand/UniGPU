@@ -209,6 +209,11 @@ export default function ProviderDashboard() {
                         <span className={`ws-indicator ${liveMetrics ? 'ws-connected' : 'ws-disconnected'}`} title="GPU agent connection">
                             {liveMetrics ? '● Agent' : '○ Agent'}
                         </span>
+                        {liveMetrics && (
+                            <span className={`ws-indicator ${liveMetrics.docker_running === false ? 'ws-disconnected' : 'ws-connected'}`} title="Docker daemon on the provider's machine">
+                                {liveMetrics.docker_running === false ? '○ Docker' : '● Docker'}
+                            </span>
+                        )}
                     </div>
                     {liveMetrics ? (
                         <div className="grid-4">
@@ -309,7 +314,14 @@ export default function ProviderDashboard() {
                                                 <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                                                     {gpu.vram_mb} MB VRAM · CUDA {gpu.cuda_version || 'N/A'}
                                                 </div>
-                                                <div style={{ marginTop: '6px' }}>{statusBadge(gpu.status)}</div>
+                                                <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                                    {statusBadge(gpu.status)}
+                                                    {metrics[gpu.id]?.docker_running === false && (
+                                                        <span className="badge badge-busy" title="Docker isn't running on this provider's machine">
+                                                            ⚠ Docker not running
+                                                        </span>
+                                                    )}
+                                                </div>
                                             </div>
                                             <button
                                                 className={`btn btn-small ${gpu.status === 'online' ? 'btn-danger' : 'btn-primary'}`}
