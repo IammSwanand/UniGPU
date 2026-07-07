@@ -259,7 +259,7 @@ class AgentWebSocket:
                 await self._ws.send(json.dumps({
                     "type": "heartbeat",
                 }))
-                logger.info("♥ heartbeat sent")  # Changed to INFO so it shows in log window
+                logger.debug("♥ heartbeat sent")  # Change to INFO if logs need to be shown in provider dashboard
             except ConnectionClosed as exc:
                 logger.error("⚠️  HEARTBEAT LOOP: Connection closed: %s", exc)
                 break
@@ -279,7 +279,7 @@ class AgentWebSocket:
                     continue
 
                 msg_type = msg.get("type", "unknown")
-                logger.info("📨 Received message type=%s", msg_type)  # Changed to INFO
+                logger.debug("📨 Received message type=%s", msg_type)  # Change to INFO if logs need to be shown in provider dashboard
 
                 handler = self._handlers.get(msg_type)
                 if handler:
