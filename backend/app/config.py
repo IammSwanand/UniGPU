@@ -20,8 +20,13 @@ class Settings(BaseSettings):
     def is_prod_db(self) -> bool:
         return not self.DATABASE_URL.startswith("sqlite")
 
-    # ── Redis ──
+    # ── Redis (rate limiting only — Celery broker moved to RabbitMQ) ──
     REDIS_URL: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+
+    # ── RabbitMQ (Celery broker) ──
+    # CloudAMQP free tier: https://www.cloudamqp.com
+    # Format: amqps://<user>:<password>@<host>/<vhost>
+    RABBITMQ_URL: str = os.getenv("RABBITMQ_URL", "amqp://localhost//")
 
     # ── JWT ──
     # ⚠️  CRITICAL: In production, this MUST be set via environment variable

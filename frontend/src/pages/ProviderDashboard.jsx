@@ -370,7 +370,7 @@ export default function ProviderDashboard() {
                 <div className="section animate-in">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            📋 Agent Logs
+                            📋 Job Logs
                             <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 400 }}>
                                 {agentLogs.length} lines
                             </span>
