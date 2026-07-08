@@ -10,7 +10,11 @@ export default function ClientDashboard() {
     const [selectedGPU, setSelectedGPU] = useState('');
     const [topupAmt, setTopupAmt] = useState('');
     const [script, setScript] = useState(null);
+    const [scriptText, setScriptText] = useState('');
+    const [isEditingScript, setIsEditingScript] = useState(false);
     const [reqs, setReqs] = useState(null);
+    const [reqText, setReqText] = useState('');
+    const [isEditingReq, setIsEditingReq] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [logModal, setLogModal] = useState(null);
     const [logs, setLogs] = useState('');
@@ -31,13 +35,41 @@ export default function ClientDashboard() {
 
     useEffect(() => { load(); const iv = setInterval(load, 15000); return () => clearInterval(iv); }, []);
 
+    const handleScriptUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setScript(file);
+        const reader = new FileReader();
+        reader.onload = (ev) => setScriptText(ev.target.result);
+        reader.readAsText(file);
+    };
+
+    const handleReqsUpload = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setReqs(file);
+        const reader = new FileReader();
+        reader.onload = (ev) => setReqText(ev.target.result);
+        reader.readAsText(file);
+    };
+
     const handleSubmit = async () => {
         if (!script) return;
         setSubmitting(true);
         try {
-            await api.submitJob(script, reqs || undefined, selectedGPU || undefined);
+            const finalScript = new File([scriptText], script.name, { type: script.type || 'text/plain' });
+            let finalReqs = undefined;
+            if (reqs) {
+                finalReqs = new File([reqText], reqs.name, { type: reqs.type || 'text/plain' });
+            }
+
+            await api.submitJob(finalScript, finalReqs, selectedGPU || undefined);
             setScript(null);
+            setScriptText('');
+            setIsEditingScript(false);
             setReqs(null);
+            setReqText('');
+            setIsEditingReq(false);
             setSelectedGPU('');
             if (fileRef.current) fileRef.current.value = '';
             if (reqRef.current) reqRef.current.value = '';
@@ -154,22 +186,44 @@ export default function ClientDashboard() {
                         <div className="section-title">Submit a Job</div>
                         <div className="glass" style={{ padding: '24px' }}>
                             <div className="form-group" style={{ marginBottom: '14px' }}>
-                                <label>Training Script *</label>
-                                <div className="upload-zone" onClick={() => fileRef.current?.click()}>
-                                    <div className="upload-icon">📄</div>
-                                    <p>{script ? script.name : 'Click to select your .py script'}</p>
-                                    <input ref={fileRef} type="file" accept=".py" hidden
-                                        onChange={e => setScript(e.target.files[0])} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <label>Training Script *</label>
+                                    {script && (
+                                        <button className="btn btn-ghost btn-small" onClick={() => setIsEditingScript(!isEditingScript)}>
+                                            {isEditingScript ? 'Close Editor' : 'Edit / Review'}
+                                        </button>
+                                    )}
                                 </div>
+                                {isEditingScript ? (
+                                    <textarea className="code-editor" value={scriptText} onChange={e => setScriptText(e.target.value)} />
+                                ) : (
+                                    <div className="upload-zone" onClick={() => fileRef.current?.click()}>
+                                        <div className="upload-icon">📄</div>
+                                        <p>{script ? script.name : 'Click to select your .py script'}</p>
+                                        <input ref={fileRef} type="file" accept=".py" hidden
+                                            onChange={handleScriptUpload} />
+                                    </div>
+                                )}
                             </div>
                             <div className="form-group" style={{ marginBottom: '14px' }}>
-                                <label>Requirements (optional)</label>
-                                <div className="upload-zone" onClick={() => reqRef.current?.click()}
-                                    style={{ padding: '20px' }}>
-                                    <p>{reqs ? reqs.name : 'Click to select requirements.txt'}</p>
-                                    <input ref={reqRef} type="file" accept=".txt" hidden
-                                        onChange={e => setReqs(e.target.files[0])} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <label>Requirements (optional)</label>
+                                    {reqs && (
+                                        <button className="btn btn-ghost btn-small" onClick={() => setIsEditingReq(!isEditingReq)}>
+                                            {isEditingReq ? 'Close Editor' : 'Edit / Review'}
+                                        </button>
+                                    )}
                                 </div>
+                                {isEditingReq ? (
+                                    <textarea className="code-editor" value={reqText} onChange={e => setReqText(e.target.value)} />
+                                ) : (
+                                    <div className="upload-zone" onClick={() => reqRef.current?.click()}
+                                        style={{ padding: '20px' }}>
+                                        <p>{reqs ? reqs.name : 'Click to select requirements.txt'}</p>
+                                        <input ref={reqRef} type="file" accept=".txt" hidden
+                                            onChange={handleReqsUpload} />
+                                    </div>
+                                )}
                             </div>
                             <div className="form-group" style={{ marginBottom: '14px' }}>
                                 <label>Target GPU</label>
