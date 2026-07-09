@@ -206,6 +206,29 @@ select.input {
   cursor: pointer;
 }
 
+.code-editor {
+  width: 100%;
+  min-height: 180px;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--green);
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  resize: vertical;
+  outline: none;
+  transition: var(--transition);
+  white-space: pre;
+  overflow: auto;
+}
+
+.code-editor:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px var(--cyan-dim);
+}
+
 .form-group {
   display: flex;
   flex-direction: column;
