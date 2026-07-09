@@ -25,8 +25,8 @@ if _use_ssl:
     # cafile is None on some Linux distros — fall back to letting ssl pick the store.
     _cafile = ssl.get_default_verify_paths().cafile or True
     _broker_use_ssl = {
-        "ssl_cert_reqs": ssl.CERT_REQUIRED,
-        "ssl_ca_certs": _cafile,
+        "cert_reqs": ssl.CERT_REQUIRED,
+        "ca_certs": _cafile,
     }
 
 celery_app = Celery(
