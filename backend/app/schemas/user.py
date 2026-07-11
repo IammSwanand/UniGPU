@@ -12,8 +12,21 @@ class UserCreate(BaseModel):
 
 
 class UserLogin(BaseModel):
-    username: str
+    email: EmailStr
     password: str
+
+
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    new_password: str
+
+
+class MessageResponse(BaseModel):
+    message: str
 
 
 # ── Response ──
@@ -34,3 +47,5 @@ class Token(BaseModel):
     token_type: str = "bearer"
     role: UserRole
     user_id: str
+    email: str
+    username: str

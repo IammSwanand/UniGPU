@@ -25,6 +25,7 @@ kombu[amqp]==5.3.7          # AMQP transport for RabbitMQ broker
 
 # ── Utilities ──
 httpx==0.27.2
+aiosmtplib==3.0.2
 
 # ── Rate Limiting ──
 slowapi==0.1.9

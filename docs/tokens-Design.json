@@ -1,0 +1,282 @@
+{
+  "color": {
+    "snow-canvas": {
+      "$value": "#fcfcfc",
+      "$type": "color",
+      "$description": "Snow Canvas — Page background, primary surface. Inherited from Relate as the dominant neutral."
+    },
+    "lavender-wash": {
+      "$value": "#f0f4fe",
+      "$type": "color",
+      "$description": "Lavender Wash — Soft accent band behind hero and feature sections."
+    },
+    "midnight-ink": {
+      "$value": "#020520",
+      "$type": "color",
+      "$description": "Midnight Ink — Headings, hero text, and the Inverse Fill Button surface. Near-black with a cool violet cast."
+    },
+    "graphite-body": {
+      "$value": "#14141e",
+      "$type": "color",
+      "$description": "Graphite Body — Body copy AND the dark fill for Code Window Card components, reused rather than importing Modal's separate void-black/ground-iron surfaces."
+    },
+    "slate-caption": {
+      "$value": "#374151",
+      "$type": "color",
+      "$description": "Slate Caption — Muted body text, nav labels, Outlined Ghost Link text."
+    },
+    "ash-helper": {
+      "$value": "#6b7280",
+      "$type": "color",
+      "$description": "Ash Helper — Helper text, metadata, and code comments inside Code Window Cards."
+    },
+    "stone-divider": {
+      "$value": "#e2e8f0",
+      "$type": "color",
+      "$description": "Stone Divider — Hairline borders, Section Dividers, card edges."
+    },
+    "fog-surface": {
+      "$value": "#f1f5f9",
+      "$type": "color",
+      "$description": "Fog Surface — Input backgrounds, disabled states."
+    },
+    "royal-signal": {
+      "$value": "#145aff",
+      "$type": "color",
+      "$description": "Royal Signal — The single saturated accent in the merged system. Carries every job Relate's blue and Modal's lime used to carry separately: links, CTA outlines, eyebrow labels, code keywords, active status chips, hero highlight word."
+    },
+    "azure-focus": {
+      "$value": "#0099ff",
+      "$type": "color",
+      "$description": "Azure Focus — Input focus ring glow. The one permitted second blue value, reserved strictly for functional focus states."
+    },
+    "terminal-white": {
+      "$value": "#f7f9ff",
+      "$type": "color",
+      "$description": "Terminal White — Text/string color inside dark Code Window Cards. A cool off-white standing in for Modal's Phosphor White, never pure #ffffff."
+    }
+  },
+  "font": {
+    "inter": {
+      "$value": "Inter",
+      "$type": "fontFamily",
+      "$description": "The only UI/heading/body typeface in the merged system. Modal's Goga display face is retired to keep a single-family minimalist rule; Inter's 600 weight covers what Goga covered."
+    },
+    "roboto-mono": {
+      "$value": "Roboto Mono",
+      "$type": "fontFamily",
+      "$description": "Reserved entirely for Code Window Card content and technical/numerical labels. Inherited from Relate — Modal's Fira Mono is retired since Roboto Mono already covered the same role."
+    }
+  },
+  "typography": {
+    "caption": {
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "12px",
+        "fontWeight": 500,
+        "lineHeight": 1.2,
+        "letterSpacing": "0.6px"
+      },
+      "$type": "typography",
+      "$description": "Eyebrow labels, uppercase category tags, chip text."
+    },
+    "body-sm": {
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "14px",
+        "fontWeight": 400,
+        "lineHeight": 1.43
+      },
+      "$type": "typography",
+      "$description": "Secondary body copy, metadata, nav links."
+    },
+    "body": {
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "16px",
+        "fontWeight": 400,
+        "lineHeight": 1.63
+      },
+      "$type": "typography",
+      "$description": "Default paragraph copy."
+    },
+    "code": {
+      "$value": {
+        "fontFamily": "Roboto Mono",
+        "fontSize": "14px",
+        "fontWeight": 500,
+        "lineHeight": 1.5,
+        "letterSpacing": "-0.03em"
+      },
+      "$type": "typography",
+      "$description": "Code Window Card body text — keywords in royal-signal, output in terminal-white, comments in ash-helper."
+    },
+    "subheading": {
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "20px",
+        "fontWeight": 400,
+        "lineHeight": 1.4,
+        "letterSpacing": "-0.16px"
+      },
+      "$type": "typography",
+      "$description": "Hero subhead, section intros."
+    },
+    "heading-sm": {
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "22px",
+        "fontWeight": 500,
+        "lineHeight": 1.4,
+        "letterSpacing": "-0.2px"
+      },
+      "$type": "typography",
+      "$description": "Card titles, small section headings."
+    },
+    "heading": {
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "40px",
+        "fontWeight": 600,
+        "lineHeight": 1.05,
+        "letterSpacing": "-1.48px"
+      },
+      "$type": "typography",
+      "$description": "Feature Section Card headings."
+    },
+    "heading-lg": {
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "56px",
+        "fontWeight": 600,
+        "lineHeight": 1.05,
+        "letterSpacing": "-1.51px"
+      },
+      "$type": "typography",
+      "$description": "Hero headline, standard size."
+    },
+    "display": {
+      "$value": {
+        "fontFamily": "Inter",
+        "fontSize": "80px",
+        "fontWeight": 600,
+        "lineHeight": 1.05,
+        "letterSpacing": "-1.52px"
+      },
+      "$type": "typography",
+      "$description": "Hero headline, largest / full-bleed variant."
+    }
+  },
+  "spacing": {
+    "4": { "$value": "4px", "$type": "dimension" },
+    "8": { "$value": "8px", "$type": "dimension" },
+    "12": { "$value": "12px", "$type": "dimension" },
+    "16": { "$value": "16px", "$type": "dimension" },
+    "20": { "$value": "20px", "$type": "dimension" },
+    "24": { "$value": "24px", "$type": "dimension" },
+    "28": { "$value": "28px", "$type": "dimension" },
+    "32": { "$value": "32px", "$type": "dimension" },
+    "36": { "$value": "36px", "$type": "dimension" },
+    "40": { "$value": "40px", "$type": "dimension" },
+    "52": { "$value": "52px", "$type": "dimension" },
+    "72": { "$value": "72px", "$type": "dimension" },
+    "96": {
+      "$value": "96px",
+      "$type": "dimension",
+      "$description": "Borrowed up from Modal's spacing scale — reserved for rare full-bleed hero moments; everything else stays in Relate's tighter compact range."
+    }
+  },
+  "radius": {
+    "md": { "$value": "4px", "$type": "dimension" },
+    "lg": { "$value": "8px", "$type": "dimension" },
+    "xl": { "$value": "12px", "$type": "dimension" },
+    "2xl": { "$value": "16px", "$type": "dimension" },
+    "3xl": { "$value": "40px", "$type": "dimension" },
+    "full": { "$value": "9999px", "$type": "dimension" },
+    "buttons": {
+      "$value": "9999px",
+      "$type": "dimension",
+      "$description": "Pill radius — the only button treatment in the merged system, inherited from Relate."
+    },
+    "cards": {
+      "$value": "8px",
+      "$type": "dimension",
+      "$description": "Inner/product cards. Relate and Modal already agreed on this value."
+    },
+    "inputs": {
+      "$value": "12px",
+      "$type": "dimension"
+    },
+    "code-window": {
+      "$value": "16px",
+      "$type": "dimension",
+      "$description": "Code Window Card radius — matches Relate's pipeline-card radius, tying Modal's dark component into the light system's geometry."
+    },
+    "feature-container": {
+      "$value": "40px",
+      "$type": "dimension",
+      "$description": "Outer hero/feature blocks, from Relate."
+    },
+    "tags": {
+      "$value": "9999px",
+      "$type": "dimension"
+    }
+  },
+  "shadow": {
+    "sm": {
+      "$value": "rgba(0, 0, 0, 0.1) 0px 0px 4px -2px",
+      "$type": "shadow",
+      "$description": "Product/deal cards."
+    },
+    "feature": {
+      "$value": "rgba(0, 0, 0, 0.08) 0px 0.36px 1.8px -1.4px, rgba(0, 0, 0, 0.07) 0px 1.37px 6.87px -2.8px, rgba(0, 0, 0, 0.016) 0px 6px 30px -4.25px",
+      "$type": "shadow",
+      "$description": "Feature Section Card — three-layer soft float."
+    },
+    "glow": {
+      "$value": "rgba(20, 90, 255, 0.1) 0px 0px 100px -28px",
+      "$type": "shadow",
+      "$description": "Ambient blue glow behind hero band."
+    },
+    "code-window": {
+      "$value": "none",
+      "$type": "shadow",
+      "$description": "Code Window Card intentionally has no shadow — depth comes from the hairline border alone, per Modal's rule."
+    }
+  },
+  "surface": {
+    "canvas": {
+      "$value": "#fcfcfc",
+      "$type": "color",
+      "$description": "Surface level 0: Page background."
+    },
+    "wash": {
+      "$value": "#f0f4fe",
+      "$type": "color",
+      "$description": "Surface level 1: Hero/feature band tint."
+    },
+    "card": {
+      "$value": "#ffffff",
+      "$type": "color",
+      "$description": "Surface level 2: Product UI cards, inputs."
+    },
+    "ink": {
+      "$value": "#020520",
+      "$type": "color",
+      "$description": "Surface level 3: Inverse Fill Button, footer band — the system's other intentional dark surface besides the code panel."
+    },
+    "code-panel": {
+      "$value": "#14141e",
+      "$type": "color",
+      "$description": "Surface level 4: Code Window Card — the system's one deliberate dark 'window' component, replacing Modal's void-black/ground-iron/carbon-veil stack with a single reused token."
+    }
+  },
+  "$extensions": {
+    "com.refero.extraction": {
+      "siteName": "Design",
+      "derivedFrom": ["Relate", "Modal"],
+      "mergeStrategy": "Relate's light, single-accent, pill-radius minimalism as the base system; Modal's component vocabulary (Code Window Card, Eyebrow Label, Status Chip, blurred Nav Bar) re-skinned into Relate's palette rather than imported with its own green-on-black hues. Modal's second color (lime-pulse) is fully retired — royal-signal (#145aff) is the system's only accent.",
+      "generatedAt": "2026-07-11"
+    }
+  }
+}

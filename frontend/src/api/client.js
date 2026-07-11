@@ -46,6 +46,8 @@ const api = {
     // Auth
     register: (d) => request('POST', '/auth/register', { body: d }),
     login: (d) => request('POST', '/auth/login', { body: d }),
+    forgotPassword: (d) => request('POST', '/auth/forgot-password', { body: d }),
+    resetPassword: (d) => request('POST', '/auth/reset-password', { body: d }),
 
     // GPUs
     listGPUs: () => request('GET', '/gpus/'),

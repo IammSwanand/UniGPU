@@ -158,7 +158,7 @@ def refresh_token(backend_http_url: str) -> Optional[str]:
         logger.info("🔄 Attempting token refresh at %s/auth/login", base_url)
         resp = httpx.post(
             f"{base_url}/auth/login",
-            json={"username": username, "password": password},
+            json={"email": username, "password": password},
             timeout=10,
             verify=False,  # Match agent's setup_wizard behavior
         )

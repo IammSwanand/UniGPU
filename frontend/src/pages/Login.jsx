@@ -5,7 +5,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faArrowLeft } from '@fortawesome/free-solid-svg-icons';
 
 export default function Login() {
-    const [username, setUsername] = useState('');
+    const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -17,7 +17,7 @@ export default function Login() {
         setError('');
         setLoading(true);
         try {
-            const user = await login(username, password);
+            const user = await login(email, password);
             const paths = { client: '/dashboard/client', provider: '/dashboard/provider', admin: '/dashboard/admin' };
             navigate(paths[user.role] || '/dashboard');
         } catch (err) {
@@ -40,14 +40,17 @@ export default function Login() {
 
                 <form onSubmit={handleSubmit}>
                     <div className="form-group">
-                        <label>Username</label>
-                        <input className="input" type="text" placeholder="Enter username"
-                            value={username} onChange={e => setUsername(e.target.value)} required />
+                        <label>Email</label>
+                        <input className="input" type="email" placeholder="you@university.edu"
+                            value={email} onChange={e => setEmail(e.target.value)} required />
                     </div>
                     <div className="form-group">
                         <label>Password</label>
                         <input className="input" type="password" placeholder="Enter password"
                             value={password} onChange={e => setPassword(e.target.value)} required />
+                        <div style={{ textAlign: 'right', marginTop: '6px' }}>
+                            <Link to="/forgot-password" style={{ fontSize: '0.85rem' }}>Forgot password?</Link>
+                        </div>
                     </div>
                     <button className="btn btn-primary" type="submit" disabled={loading}
                         style={{ width: '100%', marginTop: '8px' }}>
