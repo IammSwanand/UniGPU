@@ -20,12 +20,13 @@ export function AuthProvider({ children }) {
         setLoading(false);
     }, []);
 
-    const login = async (username, password) => {
-        const res = await api.login({ username, password });
+    const login = async (email, password) => {
+        const res = await api.login({ email, password });
         localStorage.setItem('token', res.access_token);
         const userData = {
             id: res.user_id,
-            username,
+            email: res.email,
+            username: res.username,
             role: res.role,
         };
         localStorage.setItem('user', JSON.stringify(userData));
@@ -35,10 +36,8 @@ export function AuthProvider({ children }) {
     };
 
     const register = async (data) => {
-        // Register the user
         await api.register(data);
-        // Auto-login after successful registration
-        const userData = await login(data.username, data.password);
+        const userData = await login(data.email, data.password);
         return userData;
     };
 

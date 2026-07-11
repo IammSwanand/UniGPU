@@ -36,10 +36,16 @@ async def lifespan(app: FastAPI):
     os.makedirs("uploads", exist_ok=True)
     print("✅ Upload directory ready")
     
-    # Auto-create database tables on startup
-    from app.database import engine, Base
+    # Apply Alembic migrations, then ensure any new tables exist
+    from app.database import engine, Base, run_migrations
     from sqlalchemy import text
-    
+
+    try:
+        await run_migrations()
+        print("✅ Database migrations applied")
+    except Exception as e:
+        print(f"⚠️  Migration warning: {e}")
+
     async with engine.begin() as conn:
         # Create tables with error handling for existing ENUMs
         try:

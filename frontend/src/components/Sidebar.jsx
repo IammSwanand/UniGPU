@@ -38,7 +38,7 @@ export default function Sidebar() {
 
             <div className="sidebar-footer">
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
-                    Signed in as <strong style={{ color: 'var(--text-secondary)' }}>{user?.username}</strong>
+                    Signed in as <strong style={{ color: 'var(--text-secondary)' }}>{user?.email || user?.username}</strong>
                     <br />
                     <span className="badge badge-online" style={{ marginTop: '4px' }}>{user?.role}</span>
                 </div>

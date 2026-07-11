@@ -64,6 +64,22 @@ class Settings(BaseSettings):
     # Multiple origins: "https://domain1.com,https://domain2.com"
     ALLOWED_ORIGINS: str = os.getenv("ALLOWED_ORIGINS", "*")
 
+    # ── Frontend URL (password reset links) ──
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+    # ── Email (SMTP) ──
+    # Leave SMTP_HOST empty in dev to log reset links to the console instead.
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: str = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")
+    SMTP_FROM: str = os.getenv("SMTP_FROM", "noreply@unigpu.in")
+    SMTP_USE_TLS: bool = os.getenv("SMTP_USE_TLS", "true").lower() == "true"
+
+    @property
+    def smtp_enabled(self) -> bool:
+        return bool(self.SMTP_HOST)
+
     class Config:
         env_file = ".env"
     

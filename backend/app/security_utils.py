@@ -12,14 +12,14 @@ from collections import defaultdict
 from app.redis_rate_limiter import get_rate_limiter
 
 
-# Exponential backoff configuration
-PROGRESSIVE_DELAYS = [1.0, 2.0, 4.0, 8.0, 16.0]  # seconds
-MAX_FAILED_ATTEMPTS = 3
-LOCKOUT_DURATION_SECONDS = 900  # 15 minutes
+# Login lockout — keyed by email + IP in Redis
+PROGRESSIVE_DELAYS = [1.0, 2.0, 3.0, 5.0, 8.0]  # seconds between retries
+MAX_FAILED_ATTEMPTS = 8
+LOCKOUT_DURATION_SECONDS = 300  # 5 minutes
 
 
 async def check_login_attempt(
-    username: str,
+    login_id: str,
     ip_address: str
 ) -> Tuple[bool, Optional[str]]:
     """
@@ -34,7 +34,7 @@ async def check_login_attempt(
     limiter = get_rate_limiter()
     
     is_allowed, delay_or_reason = await limiter.check_login_attempt(
-        username=username,
+        username=login_id,
         ip_address=ip_address,
         max_attempts=MAX_FAILED_ATTEMPTS,
         lockout_duration=LOCKOUT_DURATION_SECONDS,
@@ -49,14 +49,14 @@ async def check_login_attempt(
 
 
 async def record_failed_login(
-    username: str,
+    login_id: str,
     ip_address: str
 ) -> None:
     """Record a failed login attempt with exponential backoff and lockout"""
     limiter = get_rate_limiter()
     
     await limiter.record_failed_login(
-        username=username,
+        username=login_id,
         ip_address=ip_address,
         max_attempts=MAX_FAILED_ATTEMPTS,
         lockout_duration=LOCKOUT_DURATION_SECONDS
@@ -64,13 +64,13 @@ async def record_failed_login(
 
 
 async def record_successful_login(
-    username: str,
+    login_id: str,
     ip_address: str
 ) -> None:
     """Reset failed login attempts after successful login"""
     limiter = get_rate_limiter()
     await limiter.record_successful_login(
-        username=username,
+        username=login_id,
         ip_address=ip_address
     )
 

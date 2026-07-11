@@ -29,3 +29,17 @@ async def init_db():
     Database schema management is handled by Alembic migrations at startup.
     """
     from app.models import user, gpu, job, wallet  # noqa: F401 — register models
+
+
+async def run_migrations() -> None:
+    """Apply pending Alembic migrations."""
+    import asyncio
+    from alembic.config import Config
+    from alembic import command
+
+    def _upgrade() -> None:
+        cfg = Config("alembic.ini")
+        cfg.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+        command.upgrade(cfg, "head")
+
+    await asyncio.to_thread(_upgrade)

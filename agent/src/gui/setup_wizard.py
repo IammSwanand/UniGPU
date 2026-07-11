@@ -152,8 +152,8 @@ class SetupWizard:
         tk.Label(page, text="Use your UniGPU account (register at the website first)",
                  font=("Segoe UI", 10), bg=BG, fg=FG_DIM).pack(pady=(0, 20))
 
-        # Username
-        tk.Label(page, text="Username", font=("Segoe UI", 10, "bold"),
+        # Email
+        tk.Label(page, text="Email", font=("Segoe UI", 10, "bold"),
                  bg=BG, fg=FG, anchor="w").pack(fill="x", pady=(10, 3))
         tk.Entry(page, textvariable=self._username, font=("Segoe UI", 11),
                  bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
@@ -241,7 +241,7 @@ class SetupWizard:
         username = self._username.get().strip()
         password = self._password.get().strip()
         if not username or not password:
-            self._status.set("Please enter username and password")
+            self._status.set("Please enter email and password")
             return
 
         self._status.set("Signing in…")
@@ -251,7 +251,7 @@ class SetupWizard:
         try:
             resp = httpx.post(
                 f"{base_url}/auth/login",
-                json={"username": username, "password": password},
+                json={"email": username, "password": password},
                 timeout=15,
                 verify=False,
             )

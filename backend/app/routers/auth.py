@@ -1,4 +1,7 @@
 from datetime import datetime, timedelta, timezone
+import hashlib
+import logging
+import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,13 +14,29 @@ from app.database import get_db
 from app.config import get_settings
 from app.models.user import User
 from app.models.wallet import Wallet
-from app.schemas.user import UserCreate, UserLogin, UserOut, Token
+from app.schemas.user import (
+    UserCreate,
+    UserLogin,
+    UserOut,
+    Token,
+    ForgotPasswordRequest,
+    ResetPasswordRequest,
+    MessageResponse,
+)
 from app.security_utils import (
     check_login_attempt, record_failed_login, record_successful_login
 )
+from app.services.email import send_password_reset_email
+from app.redis_rate_limiter import get_rate_limiter
 
 router = APIRouter()
 settings = get_settings()
+logger = logging.getLogger(__name__)
+
+RESET_TOKEN_EXPIRE_HOURS = 1
+MIN_PASSWORD_LENGTH = 8
+FORGOT_PASSWORD_MAX_REQUESTS = 5
+FORGOT_PASSWORD_WINDOW_SECONDS = 900  # 5 attempts per 15 minutes
 
 
 def _hash_password(password: str) -> str:
@@ -26,6 +45,15 @@ def _hash_password(password: str) -> str:
 
 def _verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode("utf-8"), hashed.encode("utf-8"))
+
+
+def _hash_reset_token(token: str) -> str:
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
+
+
+def _create_reset_token() -> tuple[str, str]:
+    raw_token = secrets.token_urlsafe(32)
+    return raw_token, _hash_reset_token(raw_token)
 
 
 def _create_token(user: User) -> str:
@@ -74,47 +102,141 @@ async def login(
     db: AsyncSession = Depends(get_db),
 ):
     """
-    Login with exponential backoff and progressive delays.
-    Failed attempts trigger increasing delays: 1s → 2s → 4s → 8s → 16s
-    After 3 failures, account is locked for 15 minutes.
-    Rate limiting disabled in DEBUG mode (local development).
+    Login with email and password.
+    Failed attempts use progressive delays (1s → 8s), then lockout after 8 failures for 5 minutes.
     """
-    # NOTE: login rate limiting (global 5/min) removed to allow tests and demos.
-    # Progressive per-account backoff and lockout still apply via `check_login_attempt`.
-    # Re-enable global rate limiting in production if desired.
-    
-    # Get client IP for progressive delay tracking
     client_ip = request.client.host if request.client else "unknown"
-    
-    # Check for account lockout and get progressive delay
-    is_allowed, delay_info = await check_login_attempt(data.username, client_ip)
+    login_key = data.email.lower()
+
+    is_allowed, delay_info = await check_login_attempt(login_key, client_ip)
     if not is_allowed:
         raise HTTPException(status_code=429, detail=delay_info)
-    
-    # Apply progressive delay with exponential backoff if needed
+
     if delay_info and "wait" in delay_info:
-        # Extract delay from message like "Progressive delay: wait 2.0s before retry"
         try:
             delay_str = delay_info.split("wait ")[1].split("s")[0]
             delay = float(delay_str)
             await asyncio.sleep(delay)
         except (IndexError, ValueError):
             pass
-    
-    # Verify credentials
-    result = await db.execute(select(User).where(User.username == data.username))
+
+    result = await db.execute(select(User).where(User.email == data.email))
     user = result.scalar_one_or_none()
 
     if not user or not _verify_password(data.password, user.hashed_password):
-        # Record failed attempt
-        await record_failed_login(data.username, client_ip)
+        await record_failed_login(login_key, client_ip)
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabled")
 
-    # Reset failed attempts on successful login
-    await record_successful_login(data.username, client_ip)
+    await record_successful_login(login_key, client_ip)
 
     token = _create_token(user)
-    return Token(access_token=token, role=user.role, user_id=user.id)
+    return Token(
+        access_token=token,
+        role=user.role,
+        user_id=user.id,
+        email=user.email,
+        username=user.username,
+    )
+
+
+@router.post("/forgot-password", response_model=MessageResponse)
+async def forgot_password(
+    request: Request,
+    data: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Request a password reset link sent to the user's email."""
+    client_ip = request.client.host if request.client else "unknown"
+    rate_key = f"{data.email}@{client_ip}"
+
+    if not settings.DEBUG:
+        limiter = get_rate_limiter()
+        is_allowed, _ = await limiter.check_rate_limit(
+            identifier=rate_key,
+            limit_type="forgot_password",
+            requests=FORGOT_PASSWORD_MAX_REQUESTS,
+            window_seconds=FORGOT_PASSWORD_WINDOW_SECONDS,
+        )
+        if not is_allowed:
+            raise HTTPException(
+                status_code=429,
+                detail="Too many reset requests. Please try again later.",
+            )
+
+    result = await db.execute(select(User).where(User.email == data.email))
+    user = result.scalar_one_or_none()
+
+    if user and user.is_active:
+        raw_token, token_hash = _create_reset_token()
+        user.reset_token_hash = token_hash
+        user.reset_token_expires = datetime.now(timezone.utc) + timedelta(
+            hours=RESET_TOKEN_EXPIRE_HOURS
+        )
+        await db.flush()
+
+        reset_url = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={raw_token}"
+        try:
+            await send_password_reset_email(user.email, reset_url)
+        except Exception:
+            logger.exception("Failed to send password reset email to %s", user.email)
+            user.reset_token_hash = None
+            user.reset_token_expires = None
+            await db.flush()
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to send reset email. Please try again later.",
+            )
+
+    if not settings.DEBUG:
+        await limiter.record_request(
+            identifier=rate_key,
+            limit_type="forgot_password",
+            window_seconds=FORGOT_PASSWORD_WINDOW_SECONDS,
+        )
+
+    return MessageResponse(
+        message="If an account with that email exists, a reset link has been sent."
+    )
+
+
+@router.post("/reset-password", response_model=MessageResponse)
+async def reset_password(
+    data: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Set a new password using a valid reset token."""
+    if len(data.new_password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Password must be at least {MIN_PASSWORD_LENGTH} characters.",
+        )
+
+    token_hash = _hash_reset_token(data.token)
+    now = datetime.now(timezone.utc)
+
+    result = await db.execute(
+        select(User).where(
+            User.reset_token_hash == token_hash,
+            User.reset_token_expires > now,
+        )
+    )
+    user = result.scalar_one_or_none()
+
+    if not user:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid or expired reset token.",
+        )
+
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account disabled")
+
+    user.hashed_password = _hash_password(data.new_password)
+    user.reset_token_hash = None
+    user.reset_token_expires = None
+    await db.flush()
+
+    return MessageResponse(message="Password updated successfully. You can now sign in.")
