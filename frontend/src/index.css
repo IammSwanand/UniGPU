@@ -2419,3 +2419,354 @@ tbody tr:last-child td {
     letter-spacing: -0.8px;
   }
 }
+
+/* ════════════════════════════════════════════════════════
+   AUTH PAGES — Light split layout (Login / Register / Forgot / Reset)
+   Reuses the landing design system (docs/Design.md).
+   Wraps page in `.landing-page` to inherit light tokens.
+   ════════════════════════════════════════════════════════ */
+
+.auth-page--lp {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding-top: 64px; /* navbar height */
+}
+
+.lp-auth {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  max-width: 1200px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px;
+  gap: 32px;
+  align-items: stretch;
+}
+
+/* ── Aside (lavender wash + code window) ──────────── */
+.lp-auth__aside {
+  background: linear-gradient(180deg, var(--lp-lavender-wash) 0%, var(--lp-snow-canvas) 100%);
+  border-radius: var(--lp-radius-feature);
+  padding: 52px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 24px;
+}
+
+.lp-auth__aside-eyebrow {
+  font-family: var(--lp-font-inter);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--lp-royal-signal);
+}
+
+.lp-auth__aside-headline {
+  font-family: var(--lp-font-inter);
+  font-size: clamp(28px, 3vw, 36px);
+  font-weight: 600;
+  color: var(--lp-midnight-ink);
+  line-height: 1.1;
+  letter-spacing: -1px;
+  margin: 0;
+}
+
+.lp-auth__aside-sub {
+  font-family: var(--lp-font-inter);
+  font-size: 16px;
+  font-weight: 400;
+  color: var(--lp-slate-caption);
+  line-height: 1.63;
+  margin: 0;
+  max-width: 440px;
+}
+
+.lp-auth__aside-code {
+  margin-top: 8px;
+}
+
+/* ── Main (form panel on snow canvas) ─────────────── */
+.lp-auth__main {
+  background: var(--lp-surface-card);
+  border: 1px solid var(--lp-stone-divider);
+  border-radius: var(--lp-radius-feature);
+  padding: 52px 48px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 4px;
+  box-shadow: var(--lp-shadow-feature);
+}
+
+.lp-auth__back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  align-self: flex-start;
+  font-family: var(--lp-font-inter);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lp-slate-caption);
+  padding: 6px 14px;
+  border: 1px solid var(--lp-stone-divider);
+  border-radius: var(--lp-radius-btn);
+  background: transparent;
+  margin-bottom: 24px;
+  transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+}
+
+.lp-auth__back:hover {
+  color: var(--lp-royal-signal);
+  border-color: var(--lp-royal-signal);
+  transform: translateY(-1px);
+}
+
+.lp-auth__title {
+  font-family: var(--lp-font-inter);
+  font-size: 30px;
+  font-weight: 600;
+  color: var(--lp-midnight-ink);
+  line-height: 1.1;
+  letter-spacing: -0.8px;
+  margin: 0;
+}
+
+.lp-auth__subtitle {
+  font-family: var(--lp-font-inter);
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--lp-slate-caption);
+  line-height: 1.5;
+  margin: 8px 0 28px;
+}
+
+/* ── Inputs (Design.md § Input Field) ─────────────── */
+.lp-auth__form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.lp-auth__form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.lp-auth__label {
+  font-family: var(--lp-font-inter);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lp-ash-helper);
+}
+
+.lp-input {
+  width: 100%;
+  padding: 13px 15px;
+  background: var(--lp-surface-card);
+  border: 1px solid var(--lp-stone-divider);
+  border-radius: var(--lp-radius-input);
+  color: var(--lp-graphite-body);
+  font-family: var(--lp-font-inter);
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lp-input::placeholder {
+  color: #9aa3b2;
+}
+
+.lp-input:focus {
+  border-color: var(--lp-azure-focus);
+  box-shadow: 0 0 0 3px rgba(0, 153, 255, 0.16);
+}
+
+.lp-auth__row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+/* ── Ghost-outline inline links ───────────────────── */
+.lp-auth__link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--lp-font-inter);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lp-slate-caption);
+  padding: 4px 10px;
+  border: 1px solid var(--lp-stone-divider);
+  border-radius: var(--lp-radius-btn);
+  background: transparent;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.lp-auth__link:hover {
+  color: var(--lp-royal-signal);
+  border-color: var(--lp-royal-signal);
+  text-decoration: none;
+}
+
+.lp-auth__link--accent {
+  color: var(--lp-royal-signal);
+}
+
+.lp-auth__link--accent:hover {
+  text-decoration: underline;
+}
+
+/* ── Submit button (full-width inverse fill) ──────── */
+.lp-auth__submit {
+  width: 100%;
+  margin-top: 8px;
+  padding: 13px 24px;
+  justify-content: center;
+}
+
+/* ── Role selector (Use GPU / Share GPU chips) ────── */
+.lp-auth__role {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.lp-auth__role-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  font-family: var(--lp-font-inter);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--lp-slate-caption);
+  background: var(--lp-snow-canvas);
+  border: 1px solid var(--lp-stone-divider);
+  border-radius: var(--lp-radius-btn);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease, background 0.15s ease;
+}
+
+.lp-auth__role-btn:hover {
+  border-color: var(--lp-royal-signal);
+  color: var(--lp-royal-signal);
+}
+
+.lp-auth__role-btn--active {
+  background: rgba(20, 90, 255, 0.08);
+  border-color: var(--lp-royal-signal);
+  color: var(--lp-royal-signal);
+}
+
+/* ── Feedback banners (single-accent, no red/green) ─ */
+.lp-auth__error {
+  padding: 11px 14px;
+  background: rgba(20, 90, 255, 0.06);
+  border: 1px solid rgba(20, 90, 255, 0.22);
+  border-left: 3px solid var(--lp-royal-signal);
+  border-radius: var(--lp-radius-input);
+  font-family: var(--lp-font-inter);
+  font-size: 13px;
+  color: var(--lp-royal-signal);
+  font-weight: 500;
+}
+
+.lp-auth__success {
+  padding: 11px 14px;
+  background: rgba(20, 90, 255, 0.06);
+  border: 1px solid rgba(20, 90, 255, 0.22);
+  border-left: 3px solid var(--lp-royal-signal);
+  border-radius: var(--lp-radius-input);
+  font-family: var(--lp-font-inter);
+  font-size: 13px;
+  color: var(--lp-royal-signal);
+  font-weight: 500;
+}
+
+/* ── Divider + footer link row ────────────────────── */
+.lp-auth__divider {
+  height: 1px;
+  background: var(--lp-stone-divider);
+  margin: 28px 0 18px;
+}
+
+.lp-auth__footer {
+  text-align: center;
+  font-family: var(--lp-font-inter);
+  font-size: 14px;
+  color: var(--lp-ash-helper);
+}
+
+.lp-auth__footer a {
+  color: var(--lp-royal-signal);
+  font-weight: 500;
+}
+
+.lp-auth__footer a:hover {
+  text-decoration: underline;
+}
+
+/* ── Auth grid vertically centered against the viewport ── */
+.auth-page--lp {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-page--lp .lp-auth {
+  flex: 1;
+  align-items: center;
+}
+
+/* ── Responsive ───────────────────────────────────── */
+@media (max-width: 900px) {
+  .lp-auth {
+    grid-template-columns: 1fr;
+    gap: 24px;
+    padding: 20px;
+  }
+
+  .lp-auth__aside {
+    padding: 36px 32px;
+  }
+
+  .lp-auth__main {
+    padding: 36px 32px;
+  }
+
+  .lp-auth__aside-code {
+    display: none; /* hide terminal on narrow screens for focus */
+  }
+}
+
+@media (max-width: 480px) {
+  .lp-auth {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .lp-auth__aside,
+  .lp-auth__main {
+    padding: 28px 22px;
+    border-radius: 24px;
+  }
+
+  .lp-auth__aside-code {
+    display: none;
+  }
+
+  .lp-auth__title {
+    font-size: 26px;
+  }
+
+  .lp-auth__role {
+    grid-template-columns: 1fr;
+  }
+}

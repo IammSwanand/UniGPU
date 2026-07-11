@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
@@ -37,6 +37,7 @@ function LogoMark() {
 
 export default function Navbar() {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -56,6 +57,17 @@ export default function Navbar() {
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
+  // Logo click: route to the landing page. If already there, smooth-scroll up.
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    setDrawerOpen(false);
+    if (window.location.pathname === '/') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      navigate('/');
+    }
+  };
+
   return (
     <>
       <nav
@@ -67,9 +79,9 @@ export default function Navbar() {
         <div className="lp-nav__inner">
           {/* Logo */}
           <a
-            href="#top"
+            href="/"
             className="lp-nav__logo"
-            onClick={(e) => { e.preventDefault(); handleNavClick('#top'); }}
+            onClick={handleLogoClick}
             aria-label="UniGPU — home"
           >
             <LogoMark />
