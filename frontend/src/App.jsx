@@ -1,16 +1,22 @@
+import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import Landing from './pages/Landing';
-import Login from './pages/Login';
-import Register from './pages/Register';
-import ForgotPassword from './pages/ForgotPassword';
-import ResetPassword from './pages/ResetPassword';
-import HowToUse from './pages/HowToUse';
-import AboutUs from './pages/AboutUs';
-import Download from './pages/Download';
-import ClientDashboard from './pages/ClientDashboard';
-import ProviderDashboard from './pages/ProviderDashboard';
-import AdminDashboard from './pages/AdminDashboard';
+
+const Landing = lazy(() => import('./pages/Landing'));
+const Login = lazy(() => import('./pages/Login'));
+const Register = lazy(() => import('./pages/Register'));
+const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/ResetPassword'));
+const HowToUse = lazy(() => import('./pages/HowToUse'));
+const AboutUs = lazy(() => import('./pages/AboutUs'));
+const Download = lazy(() => import('./pages/Download'));
+const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
+const ProviderDashboard = lazy(() => import('./pages/ProviderDashboard'));
+const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
+
+function AppShell() {
+  return <div className="connecting-spinner" aria-label="Loading" />;
+}
 
 function ProtectedRoute({ children, roles }) {
   const { user, loading } = useAuth();
@@ -31,28 +37,30 @@ function DashboardRedirect() {
 export default function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Landing />} />
-          <Route path="/how-to-use" element={<HowToUse />} />
-          <Route path="/about" element={<AboutUs />} />
-          <Route path="/download" element={<Download />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/dashboard" element={<DashboardRedirect />} />
-          <Route path="/dashboard/client" element={
-            <ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>
-          } />
-          <Route path="/dashboard/provider" element={
-            <ProtectedRoute roles={['provider']}><ProviderDashboard /></ProtectedRoute>
-          } />
-          <Route path="/dashboard/admin" element={
-            <ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>
-          } />
-        </Routes>
-      </BrowserRouter>
+      <Suspense fallback={<AppShell />}>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Landing />} />
+            <Route path="/how-to-use" element={<HowToUse />} />
+            <Route path="/about" element={<AboutUs />} />
+            <Route path="/download" element={<Download />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/dashboard" element={<DashboardRedirect />} />
+            <Route path="/dashboard/client" element={
+              <ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/provider" element={
+              <ProtectedRoute roles={['provider']}><ProviderDashboard /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/admin" element={
+              <ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>
+            } />
+          </Routes>
+        </BrowserRouter>
+      </Suspense>
     </AuthProvider>
   );
 }
