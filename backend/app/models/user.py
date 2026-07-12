@@ -25,7 +25,12 @@ class User(Base):
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole), default=UserRole.client, nullable=False
     )
+    is_email_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    email_verification_token_hash: Mapped[str | None] = mapped_column(String, nullable=True)
+    email_verification_expires: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True), nullable=True
+    )
     reset_token_hash: Mapped[str | None] = mapped_column(String, nullable=True)
     reset_token_expires: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True

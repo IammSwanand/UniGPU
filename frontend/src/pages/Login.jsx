@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/landing/Navbar';
@@ -7,12 +7,14 @@ import CodeWindow from '../components/landing/CodeWindow';
 import { containerVariants, childVariants, asideVariants } from '../lib/authMotion';
 
 export default function Login() {
+    const location = useLocation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const { login } = useAuth();
     const navigate = useNavigate();
+    const successMessage = location.state?.message || '';
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -77,6 +79,7 @@ export default function Login() {
                             Sign in to your UniGPU account
                         </motion.p>
 
+                        {successMessage && <motion.div className="lp-auth__error" variants={childVariants}>{successMessage}</motion.div>}
                         {error && <motion.div className="lp-auth__error" variants={childVariants}>{error}</motion.div>}
 
                         <motion.form className="lp-auth__form" onSubmit={handleSubmit} variants={childVariants}>

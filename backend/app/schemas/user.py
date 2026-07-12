@@ -11,6 +11,14 @@ class UserCreate(BaseModel):
     role: UserRole = UserRole.client
 
 
+class EmailVerificationRequest(BaseModel):
+    token: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
@@ -35,6 +43,7 @@ class UserOut(BaseModel):
     email: str
     username: str
     role: UserRole
+    is_email_verified: bool
     is_active: bool
     created_at: datetime
 
@@ -49,3 +58,4 @@ class Token(BaseModel):
     user_id: str
     email: str
     username: str
+    is_email_verified: bool

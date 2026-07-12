@@ -8,6 +8,21 @@ export function AuthProvider({ children }) {
     const [token, setToken] = useState(null);
     const [loading, setLoading] = useState(true);
 
+    const applySession = (res) => {
+        localStorage.setItem('token', res.access_token);
+        const userData = {
+            id: res.user_id,
+            email: res.email,
+            username: res.username,
+            role: res.role,
+            isEmailVerified: res.is_email_verified,
+        };
+        localStorage.setItem('user', JSON.stringify(userData));
+        setToken(res.access_token);
+        setUser(userData);
+        return userData;
+    };
+
     useEffect(() => {
         const savedToken = localStorage.getItem('token');
         const saved = localStorage.getItem('user');
@@ -22,23 +37,17 @@ export function AuthProvider({ children }) {
 
     const login = async (email, password) => {
         const res = await api.login({ email, password });
-        localStorage.setItem('token', res.access_token);
-        const userData = {
-            id: res.user_id,
-            email: res.email,
-            username: res.username,
-            role: res.role,
-        };
-        localStorage.setItem('user', JSON.stringify(userData));
-        setToken(res.access_token);
-        setUser(userData);
-        return userData;
+        return applySession(res);
     };
 
     const register = async (data) => {
-        await api.register(data);
-        const userData = await login(data.email, data.password);
-        return userData;
+        return api.register(data);
+    };
+
+    const verifyEmail = async (tokenValue) => api.verifyEmail({ token: tokenValue });
+
+    const resendVerification = async (email) => {
+        return api.resendVerification({ email });
     };
 
     const logout = () => {
@@ -49,7 +58,7 @@ export function AuthProvider({ children }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+        <AuthContext.Provider value={{ user, token, loading, login, register, verifyEmail, resendVerification, logout }}>
             {children}
         </AuthContext.Provider>
     );

@@ -27,8 +27,7 @@ export default function Register() {
         setLoading(true);
         try {
             await register({ email, username, password, role });
-            const dashboardRoute = role === 'provider' ? '/provider-dashboard' : '/client-dashboard';
-            navigate(dashboardRoute);
+            navigate(`/verify-email?email=${encodeURIComponent(email)}&role=${role}`);
         } catch (err) {
             setError(err.detail || 'Registration failed');
         } finally {
@@ -64,12 +63,12 @@ export default function Register() {
                                 <span className="lp-tok-output">Account created</span>
                                 {'\n'}
                                 <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Wallet initialized</span>
+                                <span className="lp-tok-output">Verification email sent</span>
                                 {'\n'}
                                 <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Profile: {role}</span>
+                                <span className="lp-tok-output">Account activates after verification</span>
                                 {'\n\n'}
-                                <span className="lp-tok-comment">Welcome to UniGPU.</span>
+                                <span className="lp-tok-comment">Check your inbox to activate the account.</span>
                             </CodeWindow>
                         </div>
                     </motion.aside>
