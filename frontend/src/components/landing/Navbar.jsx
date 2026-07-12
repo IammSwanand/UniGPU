@@ -42,19 +42,44 @@ export default function Navbar() {
   const [drawerOpen, setDrawerOpen] = useState(false);
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 8);
+    const handleScroll = () => setScrolled(window.scrollY > 16);
     window.addEventListener('scroll', handleScroll, { passive: true });
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleNavClick = (href) => {
-    setDrawerOpen(false);
+  // Scroll to a top-level anchor. If we're not on the landing page,
+  // navigate home first, then scroll once the target exists.
+  const scrollToAnchor = (href) => {
     if (href === '#top') {
       window.scrollTo({ top: 0, behavior: 'smooth' });
       return;
     }
     const el = document.querySelector(href);
-    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
+  const handleNavClick = (href) => {
+    setDrawerOpen(false);
+    if (window.location.pathname !== '/') {
+      navigate('/');
+      // wait for the landing page to mount, then scroll
+      setTimeout(() => scrollToAnchor(href), 80);
+      return;
+    }
+    scrollToAnchor(href);
+  };
+
+  // Logo click: route to the landing page. If already there, smooth-scroll up.
+  const handleLogoClick = (e) => {
+    e.preventDefault();
+    setDrawerOpen(false);
+    if (window.location.pathname === '/') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      navigate('/');
+    }
   };
 
   // Logo click: route to the landing page. If already there, smooth-scroll up.
@@ -74,7 +99,7 @@ export default function Navbar() {
         className="lp-nav"
         role="navigation"
         aria-label="Main navigation"
-        style={scrolled ? { boxShadow: '0 1px 12px rgba(0,0,0,0.06)' } : {}}
+        style={scrolled ? { boxShadow: '0 4px 24px rgba(0, 0, 0, 0.08), 0 0 1px rgba(0, 0, 0, 0.04)', background: 'rgba(252, 252, 252, 0.92)' } : {}}
       >
         <div className="lp-nav__inner">
           {/* Logo */}

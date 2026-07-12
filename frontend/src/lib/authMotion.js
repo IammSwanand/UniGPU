@@ -18,7 +18,7 @@ export const childVariants = {
   show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
 };
 
-/** CodeWindow / aside panel slides in from the opposite side. */
+/** Aside / form panel slides in slightly slower for visual weight. */
 export const asideVariants = {
   hidden: { opacity: 0, y: 20 },
   show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },

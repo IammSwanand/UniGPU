@@ -71,7 +71,7 @@ export default function ProviderSection() {
                 containers, and rewards you with credits based on execution time.
               </p>
               <Link to="/register?role=provider" className="lp-btn-ghost">
-                Become a Provider
+                Provide Compute
               </Link>
             </motion.div>
           </div>

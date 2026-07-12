@@ -18,10 +18,10 @@ export default function FinalCTASection() {
         </p>
         <div className="lp-final-cta__actions">
           <Link to="/register?role=client" className="lp-btn-inverse">
-            Start Computing
+            Rent Compute
           </Link>
           <Link to="/register?role=provider" className="lp-btn-ghost">
-            Become a Provider
+            Provide Compute
           </Link>
         </div>
       </motion.div>
