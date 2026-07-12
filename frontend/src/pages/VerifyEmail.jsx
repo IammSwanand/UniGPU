@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/landing/Navbar';
 import CodeWindow from '../components/landing/CodeWindow';
-import { containerVariants, childVariants, asideVariants } from '../lib/authMotion';
 
 export default function VerifyEmail() {
     const location = useLocation();
@@ -14,10 +12,12 @@ export default function VerifyEmail() {
     const token = params.get('token') || '';
     const initialEmail = params.get('email') || '';
     const [email, setEmail] = useState(initialEmail);
+    // verifying -> request in flight after clicking the email link
+    // verified  -> backend confirmed, redirecting to /login
+    // idle      -> no token (landed here manually or resend flow) or a failed attempt
     const [status, setStatus] = useState(token ? 'verifying' : 'idle');
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
-    const [loading, setLoading] = useState(false);
     const [resendLoading, setResendLoading] = useState(false);
 
     useEffect(() => {
@@ -32,16 +32,16 @@ export default function VerifyEmail() {
                 await verifyEmail(token);
                 if (!active) return;
                 setStatus('verified');
-                setMessage('Email verified successfully. Redirecting to sign in...');
+                setMessage('Verification done! Redirecting you to sign in...');
                 setTimeout(() => {
                     navigate('/login', {
                         state: { message: 'Email verified successfully. Please sign in.' },
                     });
-                }, 1200);
+                }, 400);
             } catch (err) {
                 if (!active) return;
                 setStatus('idle');
-                setError(err.detail || 'Verification failed');
+                setError(err.detail || 'Verification failed. The link may be invalid or expired.');
             }
         };
 
@@ -71,8 +71,8 @@ export default function VerifyEmail() {
         <div className="landing-page auth-page--lp">
             <Navbar />
             <main id="main-content">
-                <motion.div className="lp-auth" variants={containerVariants} initial="hidden" animate="show">
-                    <motion.aside className="lp-auth__aside" variants={asideVariants}>
+                <div className="lp-auth">
+                    <aside className="lp-auth__aside">
                         <span className="lp-auth__aside-eyebrow">Verify Email</span>
                         <h1 className="lp-auth__aside-headline">One click to unlock the account.</h1>
                         <p className="lp-auth__aside-sub">
@@ -96,45 +96,69 @@ export default function VerifyEmail() {
                                 <span className="lp-tok-comment">No OTP needed.</span>
                             </CodeWindow>
                         </div>
-                    </motion.aside>
+                    </aside>
 
-                    <motion.section className="lp-auth__main" variants={asideVariants}>
-                        <motion.div variants={childVariants}>
-                            <Link to="/register" className="lp-auth__back">← Back to Sign Up</Link>
-                        </motion.div>
-                        <motion.h2 className="lp-auth__title" variants={childVariants}>Verify your email</motion.h2>
-                        <motion.p className="lp-auth__subtitle" variants={childVariants}>
-                            {status === 'verifying'
-                                ? 'Checking your verification link...'
-                                : 'We need one verified email before you can continue.'}
-                        </motion.p>
-
-                        {message && <motion.div className="lp-auth__error" variants={childVariants}>{message}</motion.div>}
-                        {error && <motion.div className="lp-auth__error" variants={childVariants}>{error}</motion.div>}
-
-                        <motion.form className="lp-auth__form" onSubmit={handleResend} variants={childVariants}>
-                            <div className="lp-auth__form-group">
-                                <label className="lp-auth__label">Email</label>
-                                <input
-                                    className="lp-input"
-                                    type="email"
-                                    placeholder="you@university.edu"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
-                                    required
-                                />
+                    <section className="lp-auth__main">
+                        {status === 'verifying' && (
+                            <div className="lp-auth__static-panel">
+                                <Link to="/register" className="lp-auth__back">← Back to Sign Up</Link>
+                                <h2 className="lp-auth__title">Verifying your email…</h2>
+                                <p className="lp-auth__subtitle">
+                                    Your email is being verified. Please wait a moment.
+                                </p>
                             </div>
-                            <button className="lp-btn-inverse lp-auth__submit" type="submit" disabled={resendLoading}>
-                                {resendLoading ? 'Sending…' : 'Resend verification email'}
-                            </button>
-                        </motion.form>
+                        )}
 
-                        <motion.div className="lp-auth__divider" variants={childVariants} />
-                        <motion.div className="lp-auth__footer" variants={childVariants}>
-                            Already verified? <Link to="/login">Sign In</Link>
-                        </motion.div>
-                    </motion.section>
-                </motion.div>
+                        {status === 'verified' && (
+                            <div className="lp-auth__static-panel">
+                                <h2 className="lp-auth__title">Verification done!</h2>
+                                <p className="lp-auth__subtitle">
+                                    Your email has been verified successfully. Redirecting you to sign in…
+                                </p>
+                                <div className="lp-auth__footer">
+                                    <Link to="/login">Click here if you are not redirected</Link>
+                                </div>
+                            </div>
+                        )}
+
+                        {status === 'idle' && (
+                            <>
+                                <div>
+                                    <Link to="/register" className="lp-auth__back">← Back to Sign Up</Link>
+                                </div>
+                                <h2 className="lp-auth__title">Verify your email</h2>
+                                <p className="lp-auth__subtitle">
+                                    We need one verified email before you can continue.
+                                </p>
+
+                                {message && <div className="lp-auth__success">{message}</div>}
+                                {error && <div className="lp-auth__error">{error}</div>}
+
+                                <form className="lp-auth__form" onSubmit={handleResend}>
+                                    <div className="lp-auth__form-group">
+                                        <label className="lp-auth__label">Email</label>
+                                        <input
+                                            className="lp-input"
+                                            type="email"
+                                            placeholder="you@university.edu"
+                                            value={email}
+                                            onChange={e => setEmail(e.target.value)}
+                                            required
+                                        />
+                                    </div>
+                                    <button className="lp-btn-inverse lp-auth__submit" type="submit" disabled={resendLoading}>
+                                        {resendLoading ? 'Sending…' : 'Resend verification email'}
+                                    </button>
+                                </form>
+
+                                <div className="lp-auth__divider" />
+                                <div className="lp-auth__footer">
+                                    Already verified? <Link to="/login">Sign In</Link>
+                                </div>
+                            </>
+                        )}
+                    </section>
+                </div>
             </main>
         </div>
     );

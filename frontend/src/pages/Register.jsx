@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
@@ -18,8 +18,11 @@ export default function Register() {
     const [role, setRole] = useState(initialRole);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { register } = useAuth();
-    const navigate = useNavigate();
+    const [registeredEmail, setRegisteredEmail] = useState('');
+    const [resendMessage, setResendMessage] = useState('');
+    const [resendError, setResendError] = useState('');
+    const [resendLoading, setResendLoading] = useState(false);
+    const { register, resendVerification } = useAuth();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -27,11 +30,25 @@ export default function Register() {
         setLoading(true);
         try {
             await register({ email, username, password, role });
-            navigate(`/verify-email?email=${encodeURIComponent(email)}&role=${role}`);
+            setRegisteredEmail(email);
         } catch (err) {
             setError(err.detail || 'Registration failed');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleResend = async () => {
+        setResendError('');
+        setResendMessage('');
+        setResendLoading(true);
+        try {
+            await resendVerification(registeredEmail);
+            setResendMessage('Verification email sent. Check your inbox and spam folder.');
+        } catch (err) {
+            setResendError(err.detail || 'Could not resend verification email');
+        } finally {
+            setResendLoading(false);
         }
     };
 
@@ -75,56 +92,98 @@ export default function Register() {
 
                     {/* ── Main — form panel ── */}
                     <motion.section className="lp-auth__main" variants={asideVariants}>
-                        <motion.div variants={childVariants}>
-                            <Link to="/" className="lp-auth__back">← Back to Home</Link>
-                        </motion.div>
-                        <motion.h2 className="lp-auth__title" variants={childVariants}>Create Account</motion.h2>
-                        <motion.p className="lp-auth__subtitle" variants={childVariants}>
-                            Join the UniGPU marketplace
-                        </motion.p>
+                        {registeredEmail ? (
+                            <motion.div variants={childVariants} className="lp-auth__success-card">
+                                <motion.h2 className="lp-auth__title" variants={childVariants}>
+                                    Verification link sent
+                                </motion.h2>
+                                <motion.p className="lp-auth__subtitle" variants={childVariants}>
+                                    Your account was created. We sent a verification link to{' '}
+                                    <strong>{registeredEmail}</strong>. Please check your mailbox and
+                                    click the link to verify your email.
+                                </motion.p>
 
-                        {error && <motion.div className="lp-auth__error" variants={childVariants}>{error}</motion.div>}
+                                {resendMessage && (
+                                    <motion.div className="lp-auth__success" variants={childVariants}>
+                                        {resendMessage}
+                                    </motion.div>
+                                )}
+                                {resendError && (
+                                    <motion.div className="lp-auth__error" variants={childVariants}>
+                                        {resendError}
+                                    </motion.div>
+                                )}
 
-                        <motion.form className="lp-auth__form" onSubmit={handleSubmit} variants={childVariants}>
-                            <div className="lp-auth__form-group">
-                                <label className="lp-auth__label">I want to</label>
-                                <div className="lp-auth__role">
-                                    <button type="button"
-                                        className={`lp-auth__role-btn ${role === 'client' ? 'lp-auth__role-btn--active' : ''}`}
-                                        onClick={() => setRole('client')}>
-                                        <FontAwesomeIcon icon={faRocket} /> Rent GPU
+                                <motion.div variants={childVariants} className="lp-auth__success-actions">
+                                    <button
+                                        className="lp-btn-inverse lp-auth__submit"
+                                        type="button"
+                                        onClick={handleResend}
+                                        disabled={resendLoading}
+                                    >
+                                        {resendLoading ? 'Sending…' : 'Resend verification email'}
                                     </button>
-                                    <button type="button"
-                                        className={`lp-auth__role-btn ${role === 'provider' ? 'lp-auth__role-btn--active' : ''}`}
-                                        onClick={() => setRole('provider')}>
-                                        <FontAwesomeIcon icon={faBolt} /> Provide GPU
-                                    </button>
-                                </div>
-                            </div>
-                            <div className="lp-auth__form-group">
-                                <label className="lp-auth__label">Email</label>
-                                <input className="lp-input" type="email" placeholder="you@university.edu"
-                                    value={email} onChange={e => setEmail(e.target.value)} required />
-                            </div>
-                            <div className="lp-auth__form-group">
-                                <label className="lp-auth__label">Username</label>
-                                <input className="lp-input" type="text" placeholder="Choose a username"
-                                    value={username} onChange={e => setUsername(e.target.value)} required />
-                            </div>
-                            <div className="lp-auth__form-group">
-                                <label className="lp-auth__label">Password</label>
-                                <input className="lp-input" type="password" placeholder="Choose a password"
-                                    value={password} onChange={e => setPassword(e.target.value)} required />
-                            </div>
-                            <button className="lp-btn-inverse lp-auth__submit" type="submit" disabled={loading}>
-                                {loading ? 'Creating…' : 'Create Account'}
-                            </button>
-                        </motion.form>
+                                </motion.div>
 
-                        <motion.div className="lp-auth__divider" variants={childVariants} />
-                        <motion.div className="lp-auth__footer" variants={childVariants}>
-                            Already have an account? <Link to="/login">Sign In</Link>
-                        </motion.div>
+                                <motion.div className="lp-auth__divider" variants={childVariants} />
+                                <motion.div className="lp-auth__footer" variants={childVariants}>
+                                    Already verified? <Link to="/login">Sign In</Link>
+                                </motion.div>
+                            </motion.div>
+                        ) : (
+                            <>
+                                <motion.div variants={childVariants}>
+                                    <Link to="/" className="lp-auth__back">← Back to Home</Link>
+                                </motion.div>
+                                <motion.h2 className="lp-auth__title" variants={childVariants}>Create Account</motion.h2>
+                                <motion.p className="lp-auth__subtitle" variants={childVariants}>
+                                    Join the UniGPU marketplace
+                                </motion.p>
+
+                                {error && <motion.div className="lp-auth__error" variants={childVariants}>{error}</motion.div>}
+
+                                <motion.form className="lp-auth__form" onSubmit={handleSubmit} variants={childVariants}>
+                                    <div className="lp-auth__form-group">
+                                        <label className="lp-auth__label">I want to</label>
+                                        <div className="lp-auth__role">
+                                            <button type="button"
+                                                className={`lp-auth__role-btn ${role === 'client' ? 'lp-auth__role-btn--active' : ''}`}
+                                                onClick={() => setRole('client')}>
+                                                <FontAwesomeIcon icon={faRocket} /> Rent GPU
+                                            </button>
+                                            <button type="button"
+                                                className={`lp-auth__role-btn ${role === 'provider' ? 'lp-auth__role-btn--active' : ''}`}
+                                                onClick={() => setRole('provider')}>
+                                                <FontAwesomeIcon icon={faBolt} /> Provide GPU
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="lp-auth__form-group">
+                                        <label className="lp-auth__label">Email</label>
+                                        <input className="lp-input" type="email" placeholder="you@university.edu"
+                                            value={email} onChange={e => setEmail(e.target.value)} required />
+                                    </div>
+                                    <div className="lp-auth__form-group">
+                                        <label className="lp-auth__label">Username</label>
+                                        <input className="lp-input" type="text" placeholder="Choose a username"
+                                            value={username} onChange={e => setUsername(e.target.value)} required />
+                                    </div>
+                                    <div className="lp-auth__form-group">
+                                        <label className="lp-auth__label">Password</label>
+                                        <input className="lp-input" type="password" placeholder="Choose a password"
+                                            value={password} onChange={e => setPassword(e.target.value)} required />
+                                    </div>
+                                    <button className="lp-btn-inverse lp-auth__submit" type="submit" disabled={loading}>
+                                        {loading ? 'Creating…' : 'Create Account'}
+                                    </button>
+                                </motion.form>
+
+                                <motion.div className="lp-auth__divider" variants={childVariants} />
+                                <motion.div className="lp-auth__footer" variants={childVariants}>
+                                    Already have an account? <Link to="/login">Sign In</Link>
+                                </motion.div>
+                            </>
+                        )}
                     </motion.section>
                 </motion.div>
             </main>

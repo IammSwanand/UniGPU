@@ -2695,6 +2695,28 @@ tbody tr:last-child td {
   font-weight: 500;
 }
 
+/* ── Success / static states (post-registration, email verify) ── */
+.lp-auth__success-card {
+  display: flex;
+  flex-direction: column;
+}
+
+.lp-auth__success-actions {
+  margin-top: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.lp-auth__static-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.lp-auth__static-panel .lp-auth__back {
+  margin-bottom: 18px;
+}
+
 /* ── Divider + footer link row ────────────────────── */
 .lp-auth__divider {
   height: 1px;
