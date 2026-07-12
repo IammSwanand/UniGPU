@@ -81,10 +81,10 @@ export default function HeroSection() {
           {/* CTAs */}
           <motion.div className="lp-hero__ctas" variants={childVariants}>
             <Link to="/register?role=client" className="lp-btn-ghost">
-              Start Computing
+              Rent Compute
             </Link>
             <Link to="/register?role=provider" className="lp-btn-ghost">
-              Become a Provider
+              Provide Compute
             </Link>
           </motion.div>
         </motion.div>

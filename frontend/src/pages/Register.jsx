@@ -27,7 +27,6 @@ export default function Register() {
         setLoading(true);
         try {
             await register({ email, username, password, role });
-            // Auto-login succeeded, redirect to dashboard
             const dashboardRoute = role === 'provider' ? '/provider-dashboard' : '/client-dashboard';
             navigate(dashboardRoute);
         } catch (err) {
@@ -94,12 +93,12 @@ export default function Register() {
                                     <button type="button"
                                         className={`lp-auth__role-btn ${role === 'client' ? 'lp-auth__role-btn--active' : ''}`}
                                         onClick={() => setRole('client')}>
-                                        <FontAwesomeIcon icon={faRocket} /> Use GPU
+                                        <FontAwesomeIcon icon={faRocket} /> Rent GPU
                                     </button>
                                     <button type="button"
                                         className={`lp-auth__role-btn ${role === 'provider' ? 'lp-auth__role-btn--active' : ''}`}
                                         onClick={() => setRole('provider')}>
-                                        <FontAwesomeIcon icon={faBolt} /> Share GPU
+                                        <FontAwesomeIcon icon={faBolt} /> Provide GPU
                                     </button>
                                 </div>
                             </div>

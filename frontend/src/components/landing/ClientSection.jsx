@@ -80,7 +80,7 @@ export default function ClientSection() {
                 developers, and hackathon teams.
               </p>
               <Link to="/register?role=client" className="lp-btn-ghost">
-                Start Computing
+                Rent Compute
               </Link>
             </motion.div>
 
