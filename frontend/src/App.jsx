@@ -13,6 +13,7 @@ const Docs = lazy(() => import('./pages/Docs'));
 const AboutUs = lazy(() => import('./pages/AboutUs'));
 const Download = lazy(() => import('./pages/Download'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
+const ClientWallet = lazy(() => import('./pages/ClientWallet'));
 const ProviderDashboard = lazy(() => import('./pages/ProviderDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 
@@ -55,6 +56,9 @@ export default function App() {
             <Route path="/dashboard" element={<DashboardRedirect />} />
             <Route path="/dashboard/client" element={
               <ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/client/wallet" element={
+              <ProtectedRoute roles={['client']}><ClientWallet /></ProtectedRoute>
             } />
             <Route path="/dashboard/provider" element={
               <ProtectedRoute roles={['provider']}><ProviderDashboard /></ProtectedRoute>
