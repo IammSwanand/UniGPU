@@ -29,3 +29,5 @@ docker-compose.prodtest.yml
 /backend/Dockerfile.prodtest
 
 PROJECT_CONTEXT.md
+
+.zcode/

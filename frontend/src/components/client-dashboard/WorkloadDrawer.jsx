@@ -1,0 +1,144 @@
+import { useState, useEffect } from 'react';
+import { IconClose, IconCheck } from './icons';
+import { statusInfo } from './utils';
+
+/**
+ * WorkloadDrawer — right-side drawer opened by clicking a row in the
+ * Recent Workloads table.
+ *
+ * Per docs/client-db-design.md § Workload Details: "Clicking row opens
+ * side drawer" with tabs Overview, Timeline, Environment, GPU, Logs,
+ * Artifacts, Billing.
+ *
+ * Only Overview (real JobOut fields) and Logs (fetched from /logs) have
+ * real backend data. All other tabs are locked and shown as "Coming soon",
+ * following the "never fake execution" principle.
+ *
+ * Props:
+ *  - job        : JobOut | null (null = closed)
+ *  - logs       : string (from the parent's log-fetch state)
+ *  - logsLoading: boolean
+ *  - onFetchLogs(jobId): trigger log fetch
+ *  - onClose()
+ */
+
+const TABS = [
+  { key: 'overview', label: 'Overview', live: true },
+  { key: 'timeline', label: 'Timeline', live: false },
+  { key: 'environment', label: 'Environment', live: false },
+  { key: 'gpu', label: 'GPU', live: false },
+  { key: 'artifacts', label: 'Artifacts', live: false },
+  { key: 'billing', label: 'Billing', live: false },
+];
+
+export default function WorkloadDrawer({ job, onClose }) {
+  if (!job) return null;
+  // Mount a fresh panel per job (keyed by id) so internal tab state resets
+  // automatically — no setState-in-effect needed.
+  return (
+    <DrawerPanel
+      key={job.id}
+      job={job}
+      onClose={onClose}
+    />
+  );
+}
+
+function DrawerPanel({ job, onClose }) {
+  const [tab, setTab] = useState('overview');
+
+  // Lock body scroll while drawer is open.
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = ''; };
+  }, []);
+
+  const si = statusInfo(job.status);
+  const fmt = (iso) => (iso ? new Date(iso).toLocaleString() : '—');
+
+  return (
+    <div className="cd-modal" role="dialog" aria-label="Workload details">
+      <div className="cd-modal__scrim" onClick={onClose} />
+      <div className="cd-modal__panel">
+        
+        {/* Left Sidebar */}
+        <div className="cd-modal__sidebar">
+          <div className="cd-modal__head">
+            <h3 className="cd-modal__title">
+              {job.script_path?.split('/').pop() || job.id.slice(0, 8)}
+            </h3>
+          </div>
+          
+          <div className="cd-modal__tabs" role="tablist">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={tab === t.key}
+                className={`cd-modal__tab ${tab === t.key ? 'cd-modal__tab--active' : ''} ${!t.live ? 'cd-modal__tab--locked' : ''}`}
+                disabled={!t.live}
+                title={!t.live ? 'Coming soon' : undefined}
+                onClick={() => t.live && setTab(t.key)}
+              >
+                {t.label}
+                {!t.live && <span className="cd-coming" style={{ marginLeft: 'auto' }}>Soon</span>}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Right Content Area */}
+        <div className="cd-modal__content">
+          <div className="cd-modal__body">
+          {/* ── Overview (real data) ── */}
+          {tab === 'overview' && (
+            <div className="cd-detail-grid">
+              <div className="cd-detail-row">
+                <span className="cd-detail-row__label">Script</span>
+                <span className="cd-detail-row__value">{job.script_path?.split('/').pop() || '—'}</span>
+              </div>
+              <div className="cd-detail-row">
+                <span className="cd-detail-row__label">Status</span>
+                <span className={`cd-status ${si.cls}`}>{si.label}</span>
+              </div>
+              <div className="cd-detail-row">
+                <span className="cd-detail-row__label">Submitted</span>
+                <span className="cd-detail-row__value">{fmt(job.created_at)}</span>
+              </div>
+              <div className="cd-detail-row">
+                <span className="cd-detail-row__label">Started</span>
+                <span className="cd-detail-row__value">{fmt(job.started_at)}</span>
+              </div>
+              <div className="cd-detail-row">
+                <span className="cd-detail-row__label">Completed</span>
+                <span className="cd-detail-row__value">{fmt(job.completed_at)}</span>
+              </div>
+              <div className="cd-detail-row">
+                <span className="cd-detail-row__label">Job ID</span>
+                <span className="cd-detail-row__value cd-detail-row__value--mono">{job.id}</span>
+              </div>
+            </div>
+          )}
+
+          {/* ── All other tabs: Coming soon ── */}
+          {tab !== 'overview' && (
+            <div className="cd-locked-panel">
+              <IconCheck style={{ width: 40, height: 40, margin: '0 auto 12px', opacity: 0.2 }} />
+              <p>
+                <strong>{tab.charAt(0).toUpperCase() + tab.slice(1)}</strong> details are not yet available.
+              </p>
+              <span className="cd-coming" style={{ marginTop: 8 }}>Coming soon</span>
+            </div>
+          )}
+          </div>
+          {/* Footer actions */}
+          <div className="cd-modal__footer">
+            <button className="cd-btn cd-btn--outline" onClick={onClose}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

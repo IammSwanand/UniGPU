@@ -1,19 +1,57 @@
 # CLIENT_DB_CONTENT.md
 
-> Version: 1.0
+> Version: 2.0
 > Product: UniGPU
 > Scope: Client Dashboard
 >
-> This document defines all user-facing copy, labels, headings,
-> microcopy, tooltips, notifications, empty states, loading states,
-> and interaction text used throughout the Client Dashboard.
+> This document defines every piece of content visible to a Client using
+> the UniGPU platform.
 >
-> It complements:
+> References
 >
 > - PROJECT_CONTEXT.md
 > - DESIGN_SYSTEM.md
 > - APP_DESIGN_SYSTEM.md
 > - CLIENT_DB_DESIGN.md
+>
+> This document intentionally contains **only content**.
+> Layout decisions belong in CLIENT_DB_DESIGN.md.
+
+---
+
+# Brand Voice
+
+The dashboard should communicate confidence.
+
+It should never feel overly technical nor overly simplified.
+
+Avoid phrases like
+
+❌ Job
+
+❌ Host
+
+❌ Machine
+
+❌ Execute Code
+
+❌ Deploy
+
+Prefer
+
+✓ Workload
+
+✓ Provider
+
+✓ Compute
+
+✓ Scheduler
+
+✓ Runtime
+
+✓ Execution
+
+✓ Results
 
 ---
 
@@ -29,15 +67,21 @@ Documentation
 
 ## Wallet Pill
 
-Wallet
+Heading
 
 Available Credits
 
-₹{{balance}}
+Value
+
+₹{{wallet_balance}}
 
 Tooltip
 
->Your available credits used to execute workloads.
+Available credits used to execute workloads.
+
+Action
+
+View Wallet
 
 ---
 
@@ -47,19 +91,23 @@ Tooltip
 
 Notifications
 
-Empty
+Empty State
 
 You're all caught up.
 
 ---
 
-## Profile Dropdown
+## Profile Menu
 
 My Profile
 
 Wallet
 
 Settings
+
+Documentation
+
+Keyboard Shortcuts
 
 Sign Out
 
@@ -69,111 +117,77 @@ Sign Out
 
 Morning
 
-Good Morning, {{username}}
+Good Morning, {{first_name}}
 
 Afternoon
 
-Good Afternoon, {{username}}
+Good Afternoon, {{first_name}}
 
 Evening
 
-Good Evening, {{username}}
+Good Evening, {{first_name}}
 
 ---
 
-## Subheading
+## Welcome Text
 
-Run AI workloads without owning expensive hardware.
+Welcome back.
 
-OR
+Your compute workspace is ready.
 
-Submit workloads and let UniGPU handle scheduling,
-execution and billing.
+Alternative
 
----
-
-# Quick Metrics
+Ready to run your next workload?
 
 ---
 
-## Wallet
+# GPU Network Strip
 
 Heading
 
-Available Credits
-
-Description
-
-Current balance available for workload execution.
-
-Button
-
-Top Up
+GPU Network
 
 ---
-
-## Running Jobs
-
-Heading
-
-Running
-
-Description
-
-Currently executing workloads.
-
----
-
-## Queue
-
-Heading
-
-Queued
-
-Description
-
-Waiting for an available provider.
-
----
-
-## Completed
-
-Heading
-
-Completed
-
-Description
-
-Successfully executed workloads.
-
----
-
-# Network Status
-
-Heading
-
-Network Status
 
 Healthy
 
 Scheduler Online
 
-GPU Network Available
+---
 
-Average Queue Time
+Metric
 
-Average Runtime
-
-Available Providers
-
-Tooltip
-
-UniGPU continuously monitors provider availability
-and automatically schedules workloads.
+Available GPUs
 
 ---
 
-# Submit Workload
+Metric
+
+Average Queue Time
+
+---
+
+Metric
+
+Running Workloads
+
+---
+
+Tooltip
+
+UniGPU continuously monitors provider availability and automatically schedules workloads.
+
+---
+
+If no providers
+
+No providers are currently online.
+
+Your workload will automatically begin once compute becomes available.
+
+---
+
+# Execution Workspace
 
 Heading
 
@@ -181,28 +195,35 @@ Submit Workload
 
 Description
 
-Upload your workload and let UniGPU automatically
-find an available GPU.
+Upload a Python workload and UniGPU will securely schedule execution on an available provider GPU.
 
 ---
 
-# Upload Area
+# Python Script
 
 Heading
 
 Python Script
 
+Description
+
+Upload the primary Python file to execute.
+
+---
+
 Dropzone
 
-Drop your .py file here
+Drop your Python script here
 
 or
 
 Browse Files
 
+---
+
 Supported
 
-Python (.py)
+.py
 
 Maximum Size
 
@@ -210,21 +231,15 @@ Maximum Size
 
 ---
 
-Success
+After Upload
 
 Python script uploaded successfully.
 
----
+Replace File
 
-Replace
+Remove File
 
-Replace Script
-
----
-
-Remove
-
-Remove Script
+Preview Script
 
 ---
 
@@ -236,15 +251,33 @@ Dependencies
 
 Description
 
-Optional requirements.txt file.
+Optional Python dependencies.
+
+---
 
 Dropzone
 
 Drop requirements.txt here
 
-Optional
+or
 
-No dependency file selected.
+Browse Files
+
+---
+
+Helper
+
+Leave empty if your workload has no external dependencies.
+
+---
+
+After Upload
+
+Dependencies uploaded successfully.
+
+Replace File
+
+Remove File
 
 ---
 
@@ -256,13 +289,21 @@ GPU Preference
 
 Description
 
-Choose a preferred GPU or let UniGPU decide.
+Choose a preferred GPU or allow UniGPU to automatically assign the best available provider.
 
-Options
+---
+
+Dropdown Options
 
 Auto Select
 
 Any Available
+
+RTX 3060
+
+RTX 3070
+
+RTX 3080
 
 RTX 4060
 
@@ -280,12 +321,11 @@ RTX 5090
 
 Tooltip
 
-Auto Select allows the scheduler to choose
-the best available GPU.
+Auto Select minimizes queue time and improves scheduling efficiency.
 
 ---
 
-# Advanced Settings
+# Advanced Configuration
 
 Heading
 
@@ -293,29 +333,49 @@ Advanced Configuration
 
 Description
 
-Optional execution parameters.
+Optional runtime settings.
+
+---
 
 Fields
 
 CUDA Version
 
-Memory Requirement
+GPU Memory Requirement
 
 Execution Timeout
-
-Container Limit
 
 Working Directory
 
 Environment Variables
 
-Collapse
+Container Limit
+
+---
+
+Buttons
+
+Show Advanced Settings
 
 Hide Advanced Settings
 
-Expand
+---
 
-Configure Advanced Settings
+# Runtime Estimate
+
+Heading
+
+Estimated Runtime
+
+Description
+
+Based on previous workloads.
+
+---
+
+Example
+
+≈ 12 minutes
 
 ---
 
@@ -327,19 +387,25 @@ Estimated Cost
 
 Description
 
-Approximate execution cost.
+Approximate compute cost.
 
 ---
 
-Queue Estimate
+Example
+
+≈ ₹3.42
+
+---
+
+# Queue Estimate
 
 Heading
 
-Estimated Wait
+Estimated Queue Time
 
-Description
+Example
 
-Current average waiting time.
+Less than 2 minutes
 
 ---
 
@@ -349,45 +415,63 @@ Primary
 
 Submit Workload
 
+---
+
 Secondary
 
 Save Draft
 
+---
+
 Outline
 
-Clear Form
+Reset
+
+---
 
 Loading
 
-Submitting...
+Submitting Workload...
+
+---
 
 Disabled
 
-Complete Required Fields
+Complete the required fields to continue.
 
 ---
 
 # Submission Success
 
-Heading
+Title
 
 Workload Submitted
 
-Description
+Message
 
 Your workload has been successfully queued.
 
-Button
+UniGPU will automatically assign an available provider.
 
-View Progress
+Primary Button
+
+Track Progress
+
+Secondary Button
+
+Return to Dashboard
 
 ---
 
-# Job Timeline
+# Execution Timeline
 
 Heading
 
-Execution Timeline
+Execution Progress
+
+Description
+
+Follow your workload through every stage of execution.
 
 ---
 
@@ -397,17 +481,19 @@ Uploading Files
 
 Waiting for Scheduler
 
-Searching Providers
+Searching for Provider
 
-Provider Found
+Provider Selected
 
 GPU Assigned
 
+Preparing Runtime
+
 Downloading Files
 
-Preparing Environment
+Creating Container
 
-Starting Container
+Installing Dependencies
 
 Executing Workload
 
@@ -417,7 +503,15 @@ Saving Results
 
 Updating Wallet
 
-Completed
+Execution Complete
+
+---
+
+Completed Message
+
+Your workload finished successfully.
+
+Results are now available.
 
 ---
 
@@ -425,17 +519,17 @@ Failure States
 
 Provider Disconnected
 
-Retrying
-
-Scheduler Busy
+Scheduler Retrying
 
 Execution Failed
 
-Download Failed
-
-Upload Failed
-
 Container Error
+
+Dependency Installation Failed
+
+Runtime Error
+
+Logs Unavailable
 
 ---
 
@@ -443,17 +537,15 @@ Container Error
 
 Heading
 
-Live Execution Logs
+Execution Logs
+
+Description
+
+Real-time output streamed directly from the provider.
+
+---
 
 Toolbar
-
-Execution Output
-
-Filename
-
-train.py
-
-Status
 
 Running
 
@@ -461,23 +553,47 @@ Completed
 
 Failed
 
-Waiting
-
 ---
 
-Code Window Placeholder
-
-Logs will appear once execution begins.
-
----
-
-Button
+Buttons
 
 Copy Logs
 
 Download Logs
 
-Clear Logs
+Clear
+
+Expand
+
+Collapse
+
+---
+
+Empty
+
+Logs will appear when execution begins.
+
+---
+
+# Embedded Editor
+
+Heading
+
+Script Preview
+
+Toolbar
+
+Filename
+
+Save
+
+Read Only
+
+---
+
+Empty
+
+Upload a Python script to preview or edit it.
 
 ---
 
@@ -489,7 +605,7 @@ Recent Workloads
 
 Description
 
-Track every workload you've submitted.
+Monitor every workload you've submitted.
 
 ---
 
@@ -497,9 +613,9 @@ Filters
 
 All
 
-Running
-
 Queued
+
+Running
 
 Completed
 
@@ -509,7 +625,7 @@ Cancelled
 
 ---
 
-Search
+Search Placeholder
 
 Search workloads...
 
@@ -529,35 +645,17 @@ Status
 
 ---
 
-# Job Card
+# Workload Card
 
-Title
+Primary
 
-train.py
-
-Subtitle
-
-Submitted Today
+train_model.py
 
 ---
 
-Status
+Subtitle
 
-Queued
-
-Running
-
-Completed
-
-Failed
-
-Cancelled
-
-Preparing
-
-Downloading
-
-Uploading
+Submitted 4 minutes ago
 
 ---
 
@@ -567,9 +665,9 @@ GPU
 
 Execution Time
 
-Cost
+Estimated Cost
 
-Submitted
+Created
 
 Completed
 
@@ -581,11 +679,35 @@ Container
 
 ---
 
+Status Chips
+
+Queued
+
+Preparing
+
+Running
+
+Completed
+
+Failed
+
+Cancelled
+
+Retrying
+
+Downloading
+
+Uploading
+
+---
+
 Actions
+
+View Details
 
 View Logs
 
-Download Output
+Download Results
 
 Run Again
 
@@ -595,11 +717,11 @@ Delete
 
 Tooltip
 
-View complete execution details.
+Open workload details.
 
 ---
 
-# Job Details
+# Workload Details
 
 Heading
 
@@ -609,13 +731,13 @@ Execution Details
 
 Sections
 
-General
+Overview
+
+Timeline
 
 Environment
 
-GPU Information
-
-Runtime
+GPU
 
 Logs
 
@@ -625,29 +747,45 @@ Billing
 
 ---
 
-General
+Overview
 
 Script Name
 
 Status
 
-Submitted At
+Submitted
 
-Completed At
+Completed
 
 Execution Time
+
+Runtime
+
+---
+
+Environment
+
+Python Version
+
+CUDA Version
+
+Installed Dependencies
+
+Container ID
 
 ---
 
 GPU
 
-Assigned GPU
-
-CUDA Version
+Model
 
 Memory
 
+CUDA
+
 Driver
+
+Provider
 
 ---
 
@@ -663,35 +801,13 @@ Transaction ID
 
 Artifacts
 
-Output Files
+Results
 
 Logs
 
-Download ZIP
+ZIP Archive
 
----
-
-# Wallet
-
-Heading
-
-Wallet
-
-Description
-
-Manage credits for workload execution.
-
-Buttons
-
-Top Up
-
-View Transactions
-
----
-
-Empty
-
-No transactions yet.
+Download All
 
 ---
 
@@ -701,11 +817,13 @@ Heading
 
 Recent Activity
 
+---
+
 Events
 
 Workload Submitted
 
-GPU Assigned
+Provider Assigned
 
 Execution Started
 
@@ -715,11 +833,15 @@ Wallet Updated
 
 Retry Scheduled
 
-Provider Changed
+Results Available
 
-Logs Available
+Logs Downloaded
 
-Output Ready
+---
+
+Empty
+
+No recent activity.
 
 ---
 
@@ -727,16 +849,19 @@ Output Ready
 
 Heading
 
-No Workloads Yet
+Welcome to UniGPU
 
 Description
 
-Upload your first Python script
-to begin using UniGPU.
+Submit your first workload to begin using community-powered GPU compute.
 
-Button
+Primary Button
 
 Submit Workload
+
+Secondary Button
+
+Read Documentation
 
 ---
 
@@ -744,11 +869,11 @@ Submit Workload
 
 Heading
 
-Nothing Found
+No matching workloads
 
 Description
 
-Try changing your filters.
+Try changing your search or filters.
 
 ---
 
@@ -760,82 +885,73 @@ Waiting for Execution
 
 Description
 
-Logs will appear after
-your workload starts.
+Execution logs will appear once your workload begins running.
 
 ---
 
 # Loading States
 
-Loading Metrics...
+Loading Workspace...
 
 Loading Workloads...
 
-Preparing Workspace...
+Preparing Execution...
 
 Fetching Logs...
 
 Loading Wallet...
 
-Loading Activity...
+Updating Timeline...
 
 ---
 
-# Success Messages
+# Success Toasts
 
-Python script uploaded.
+✓ Python script uploaded.
 
-Dependencies uploaded.
+✓ Dependencies uploaded.
 
-Workload submitted.
+✓ Workload submitted.
 
-GPU assigned.
+✓ Provider assigned.
 
-Execution started.
+✓ Execution started.
 
-Execution completed.
+✓ Execution completed.
 
-Results available.
+✓ Results ready.
 
-Logs downloaded.
+✓ Wallet updated.
 
-Wallet updated.
-
-Draft saved.
-
-Settings updated.
+✓ Draft saved.
 
 ---
 
-# Warning Messages
+# Warning Toasts
 
-No GPU currently matches your preference.
+Scheduler is currently busy.
 
 Using Auto Select may reduce queue time.
 
-Large workloads may take longer.
+Provider temporarily unavailable.
+
+Retrying execution.
 
 Insufficient wallet balance.
 
-Requirements file missing.
-
-Provider unavailable.
-
-Retry scheduled.
+Large workloads may take longer.
 
 ---
 
-# Error Messages
+# Error Toasts
 
 Unable to upload script.
 
-Unable to contact scheduler.
-
-Provider disconnected.
+Scheduler unavailable.
 
 Execution failed.
 
-Logs unavailable.
+Provider disconnected.
 
 Download failed.
 
@@ -849,9 +965,15 @@ Unexpected server error.
 
 # Confirmation Dialogs
 
-Delete Workload
+## Delete Workload
 
-Are you sure you want to delete this workload?
+Title
+
+Delete Workload?
+
+Message
+
+This action permanently removes the workload history from your dashboard.
 
 Buttons
 
@@ -861,9 +983,15 @@ Delete
 
 ---
 
-Run Again
+## Run Again
 
-Submit this workload again?
+Title
+
+Run this workload again?
+
+Message
+
+The same files and configuration will be submitted as a new workload.
 
 Buttons
 
@@ -873,21 +1001,33 @@ Run Again
 
 ---
 
-Clear Form
+## Reset Workspace
 
-Discard uploaded files?
+Title
+
+Clear current workspace?
+
+Message
+
+Uploaded files and unsaved changes will be removed.
 
 Buttons
 
 Keep Editing
 
-Discard
+Clear Workspace
 
 ---
 
-Sign Out
+## Sign Out
 
-Are you sure you want to sign out?
+Title
+
+Sign out?
+
+Message
+
+You'll need to log in again to access your workloads.
 
 Buttons
 
@@ -903,7 +1043,9 @@ Success
 
 ✓ Workload Submitted
 
-✓ GPU Assigned
+✓ Provider Assigned
+
+✓ GPU Ready
 
 ✓ Execution Started
 
@@ -911,19 +1053,31 @@ Success
 
 ✓ Results Ready
 
-✓ Wallet Updated
+---
+
+Information
+
+Scheduler Searching...
+
+Waiting for Available GPU...
+
+Installing Dependencies...
+
+Preparing Runtime...
+
+Streaming Logs...
 
 ---
 
 Warning
 
-Scheduler Busy
+Provider Offline
 
 Retry Scheduled
 
-Provider Offline
-
 Queue Delay
+
+Low Wallet Balance
 
 ---
 
@@ -931,13 +1085,15 @@ Error
 
 Execution Failed
 
+Runtime Error
+
+Container Failed
+
 Upload Failed
 
 Download Failed
 
 Wallet Error
-
-Connection Lost
 
 ---
 
@@ -945,77 +1101,67 @@ Connection Lost
 
 Wallet
 
-Credits used to pay providers.
+Credits available for workload execution.
 
 ---
 
 Scheduler
 
-Matches workloads to available GPUs.
-
----
-
-Queue
-
-Current workloads waiting
-for execution.
+Matches workloads to the most suitable available provider.
 
 ---
 
 GPU Preference
 
-Selecting Auto allows faster scheduling.
+Auto Select chooses the provider with the shortest estimated wait.
 
 ---
 
-Execution Cost
+Estimated Cost
 
-Estimated cost based on workload duration.
-
----
-
-Logs
-
-Real-time output streamed
-from the provider.
+Calculated using workload duration and provider pricing.
 
 ---
 
-Provider
+Execution Logs
 
-The remote GPU executing your workload.
+Real-time output streamed from the provider's runtime container.
+
+---
+
+Download Results
+
+Download all generated output files as a ZIP archive.
 
 ---
 
 # Future Features
 
-Pinned Workloads
+Saved Workload Templates
 
 Notebook Execution
 
-TensorBoard
+TensorBoard Integration
 
-Saved Templates
-
-Shared Workloads
-
-Dataset Manager
-
-CLI Sync
-
-GitHub Integration
-
-Webhook Notifications
-
-API Keys
+Dataset Library
 
 Cloud Storage
 
+GitHub Repository Import
+
+Webhook Notifications
+
+CLI Upload
+
+API Access
+
+Artifact Explorer
+
 ---
 
-# Tone & Writing Style
+# Writing Guidelines
 
-Always use
+Always write
 
 Submit Workload
 
@@ -1025,7 +1171,7 @@ Submit Job
 
 ---
 
-Always use
+Always write
 
 Available Credits
 
@@ -1035,17 +1181,7 @@ Wallet Amount
 
 ---
 
-Always use
-
-Running Workload
-
-Never
-
-Active Job
-
----
-
-Always use
+Always write
 
 Provider
 
@@ -1055,7 +1191,7 @@ Host
 
 ---
 
-Always use
+Always write
 
 GPU Preference
 
@@ -1065,24 +1201,36 @@ Target GPU
 
 ---
 
-Always use
+Always write
 
-Dependencies
+Execution
 
 Never
 
-Requirements File
+Processing
+
+---
+
+Always write
+
+Results
+
+Never
+
+Output Files
+
+(unless referring specifically to downloadable artifacts)
 
 ---
 
 # UX Principle
 
-Every piece of text should answer one of three questions:
+Every piece of copy should answer one of these questions:
 
 1. What is happening?
 
 2. What should I do next?
 
-3. What happens after this?
+3. What will happen after I do it?
 
-Users should never be uncertain about the current state of their workload or the next expected action.
+The dashboard should make distributed GPU execution feel transparent, predictable, and trustworthy without exposing unnecessary backend complexity.
