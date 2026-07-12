@@ -71,12 +71,10 @@ async def register(
     # NOTE: registration rate limiting removed for demo/deployment troubleshooting.
     # In production you should re-enable rate limits to prevent abuse (e.g. 5/minute per IP).
     
-    # Check duplicates
-    existing = await db.execute(
-        select(User).where((User.email == data.email) | (User.username == data.username))
-    )
+    # Check duplicates by email only; usernames can repeat.
+    existing = await db.execute(select(User).where(User.email == data.email))
     if existing.scalar_one_or_none():
-        raise HTTPException(status_code=400, detail="Email or username already registered")
+        raise HTTPException(status_code=400, detail="Email already registered")
 
     user = User(
         email=data.email,
