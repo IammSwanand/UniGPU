@@ -9,6 +9,7 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const HowToUse = lazy(() => import('./pages/HowToUse'));
+const Docs = lazy(() => import('./pages/Docs'));
 const AboutUs = lazy(() => import('./pages/AboutUs'));
 const Download = lazy(() => import('./pages/Download'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
@@ -43,6 +44,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/how-to-use" element={<HowToUse />} />
+            <Route path="/docs" element={<Docs />} />
             <Route path="/about" element={<AboutUs />} />
             <Route path="/download" element={<Download />} />
             <Route path="/login" element={<Login />} />
