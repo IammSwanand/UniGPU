@@ -1,62 +1,53 @@
 # CLIENT_DB_DESIGN.md
 
-> Version: 1.0
+> Version: 2.0
 > Product: UniGPU
 > Scope: Client Dashboard
 >
-> This document defines the complete layout, information hierarchy,
-> interaction design and UX for the Client Dashboard.
+> This document defines the complete UI/UX, information architecture,
+> layout hierarchy, interaction design, and component specification for
+> the Client Dashboard.
 >
-> It extends:
+> References:
 >
 > - PROJECT_CONTEXT.md
 > - DESIGN_SYSTEM.md
 > - APP_DESIGN_SYSTEM.md
+>
+> This dashboard must feel like a continuation of the Landing Page,
+> not a separate admin panel.
 
 ---
 
-# Dashboard Philosophy
+# Design Philosophy
 
-The Client Dashboard is **not** an admin panel.
+The Client Dashboard is the user's personal compute workspace.
 
-It is a **Developer Workspace**.
+Unlike traditional cloud dashboards that expose infrastructure first,
+UniGPU focuses on the workload.
 
-The dashboard exists for one purpose:
+The dashboard answers four questions immediately:
 
-> Submit workloads, monitor execution, and retrieve results.
+• Can I submit a workload?
 
-Everything else is secondary.
+• Is the network available?
 
----
+• What is happening to my workload?
 
-# Primary User Goal
+• Can I retrieve my results?
 
-A client should be able to
-
-1. Upload workload
-2. Configure execution
-3. Submit
-4. Watch scheduler
-5. Monitor logs
-6. Retrieve outputs
-
-without navigating across multiple pages.
+Every design decision should reinforce those four questions.
 
 ---
 
-# Dashboard Layout
+# Dashboard Structure
 
 ```
-
 Navbar
 
 ↓
 
-Greeting
-
-↓
-
-Quick Metrics
+GPU Network Status
 
 ↓
 
@@ -64,32 +55,52 @@ Execution Workspace
 
 ↓
 
-Recent Workloads
-
-↓
-
-Footer
-
+Workload History
 ```
 
-No sidebar.
+No sidebars.
 
-No left navigation.
+No nested navigation.
 
-No floating menus.
+No floating cards.
 
-Everything flows vertically.
+Single-page workflow.
+
+---
+
+# Page Width
+
+Maximum Width
+
+1280px
+
+Centered.
+
+Same spacing system as Landing Page.
+
+Section spacing
+
+48px
+
+Card spacing
+
+24px
+
+Internal spacing
+
+16px
 
 ---
 
 # Navbar
 
-Uses APP_DESIGN_SYSTEM.
+The navbar is identical to the Landing Page.
 
-Contains
+Only the actions change.
 
-```
-Logo
+-------------------------------------------------
+
+LOGO
 
 Dashboard
 
@@ -97,14 +108,92 @@ Documentation
 
 Wallet Pill
 
-Notification
+Notifications
 
-Avatar
-```
+Profile Avatar
 
-Avatar Dropdown
+-------------------------------------------------
 
-```
+Height
+
+72px
+
+Background
+
+Snow Canvas
+
+Blur
+
+Enabled
+
+Border Bottom
+
+Stone Divider
+
+---
+
+# Logo
+
+Same positioning as Landing Page.
+
+Clicking logo always returns to Dashboard.
+
+---
+
+# Navigation
+
+Dashboard
+
+Documentation
+
+Future
+
+CLI
+
+API
+
+Support
+
+---
+
+# Wallet Pill
+
+Small pill.
+
+Never a card.
+
+Displays
+
+₹842.30
+
+Available Credits
+
+Click opens Wallet page.
+
+Never show transaction history here.
+
+---
+
+# Notifications
+
+Bell icon.
+
+Dropdown.
+
+Recent activity.
+
+Maximum 10 entries.
+
+Unread badge.
+
+---
+
+# Profile
+
+Circular avatar.
+
+Dropdown
+
 My Profile
 
 Wallet
@@ -112,208 +201,154 @@ Wallet
 Settings
 
 Sign Out
-```
+
+Future
+
+API Keys
+
+CLI Tokens
 
 ---
 
-# Greeting Section
+# GPU Network Strip
 
-Instead of
+Immediately below navbar.
 
-```
-Client Dashboard
-```
+Not cards.
 
-Use
+Single horizontal strip.
 
-```
-Good Afternoon, {{username}}
-```
+Purpose
 
-Subtext
-
-```
-Submit workloads and let UniGPU manage scheduling,
-execution, billing and log collection.
-```
-
----
-
-# Quick Metrics
-
-Four cards.
-
-Single row.
-
-Equal width.
-
----
-
-## Card 1
-
-Wallet
-
-```
-₹850.20
-
-Available Credits
-```
-
-Small button
-
-```
-Top Up
-```
-
----
-
-## Card 2
-
-Running Jobs
-
-```
-2
-
-Currently Executing
-```
-
----
-
-## Card 3
-
-Queued Jobs
-
-```
-1
-
-Waiting for Provider
-```
-
----
-
-## Card 4
-
-Completed
-
-```
-24
-
-Lifetime Workloads
-```
-
----
-
-# Network Status Strip
-
-Below metrics.
-
-Full width.
-
-Small pill.
+Give confidence that compute is available.
 
 Example
 
 ```
 ● 18 GPUs Online
 
-Average Queue Time
+Average Queue
 
-< 2 min
+1m 24s
 
 Scheduler Healthy
 ```
 
-This connects PROJECT_CONTEXT with the UI.
+The user should know
 
-Client understands
+"I can submit a workload."
 
-There are providers online.
-
-Scheduler is functioning.
-
-No need to expose provider machines.
+without reading documentation.
 
 ---
 
-# Main Workspace
+# Execution Workspace
 
-Largest component.
+Largest visual component.
 
-Two-column layout.
+White Feature Card.
+
+40px outer radius.
+
+Uses Feature Shadow from DESIGN_SYSTEM.
+
+Layout
+
+```
+Left
+
+↓
+
+Upload Panel
+
+↓
+
+GPU Configuration
+
+↓
+
+Submit
+
+Right
+
+↓
+
+Integrated Editor
+```
 
 70 / 30 split.
 
 ---
 
-# Left Column
-
-Submit Workload
-
-This is the primary action.
-
----
-
-Card
+# Upload Panel
 
 Heading
 
-```
-Submit Workload
-```
-
-Description
-
-```
-Upload your Python script and optional dependencies.
-
-UniGPU automatically schedules execution
-to an available provider GPU.
-```
-
----
-
-Section 1
-
 Python Script
 
-Large Dropzone
+Large drag-and-drop area.
 
-```
-Drop train.py
+No browser default file input.
 
-or Browse
-```
+Uses Vercel deployment style.
+
+Centered icon.
+
+Primary message
+
+Drop your Python script here
+
+Secondary
+
+or browse files
 
 Supported
 
-```
 .py
-```
+
+Hover
+
+Blue border
+
+Blue glow
 
 ---
 
-Section 2
+# Dependencies
+
+Second upload card.
+
+Smaller.
+
+Optional.
+
+Heading
 
 Dependencies
 
-Optional
+Subtext
 
-```
 requirements.txt
-```
+
+Supports
+
+.txt
 
 ---
 
-Section 3
+# GPU Configuration
 
-Execution Configuration
+Compact card.
 
-Dropdown
+Contains
 
 GPU Preference
 
-```
+Dropdown
+
 Auto Select
+
+Any Available
 
 RTX 4060
 
@@ -323,137 +358,103 @@ RTX 4080
 
 RTX 4090
 
-Any Available
-```
-
-Advanced
+Advanced Configuration
 
 Collapsed by default.
 
 Contains
 
-Memory Requirement
-
 CUDA Version
+
+Memory
 
 Timeout
 
-Container Limits
+Container Limit
 
-Future ready.
+Environment Variables
+
+Future-ready.
 
 ---
 
-Section 4
+# Submit Area
+
+Bottom of upload section.
+
+Displays
 
 Estimated Cost
 
-```
-≈ ₹3.42
-```
+Estimated Queue Time
 
-Estimated Wait
+Submit Button
 
-```
-≈ 1 min
-```
-
-These update dynamically.
-
----
-
-Section 5
-
-Buttons
-
-Primary
-
-```
-Submit Workload
-```
-
-Secondary
-
-```
 Save Draft
-```
+
+Primary CTA
+
+Submit Workload
+
+Only one filled button.
+
+Everything else outlined.
 
 ---
 
-# Right Column
+# Embedded Editor
 
-Developer Information
+Right side.
 
-Instead of Wallet.
+Purpose
 
-Contains
+Preview uploaded script.
 
----
+Quick edits.
 
-## Current Scheduler
+Not a full IDE.
 
-```
-Scheduler
+Dark Code Window component.
 
-Healthy
+Inherited directly from Landing Page.
 
-18 GPUs Online
-```
+Toolbar
 
----
+Filename
 
-## Recent Activity
+Save
 
-Card
+Editor body
 
-```
-Workload Submitted
+Roboto Mono
 
-2 mins ago
+Syntax Highlighting
 
-━━━━━━━━━━━━━━
+No minimap.
 
-GPU Assigned
+No terminal.
 
-1 min ago
-
-━━━━━━━━━━━━━━
-
-Execution Started
-
-Now
-```
-
-Timeline style.
+Just editing.
 
 ---
 
-## Documentation
+# Execution Transition
 
-Small links
+Once workload is submitted
 
-Execution Guide
+Upload interface transforms.
 
-Supported Libraries
+Editor remains.
 
-Python Requirements
+Left side becomes
 
-GPU Runtime
+Execution Timeline.
 
 ---
 
-# Job Lifecycle
+Timeline
 
-Immediately after submission
-
-Workspace transforms.
-
-Instead of upload form
-
-Show
-
-```
-Uploading
+Uploading Files
 
 ↓
 
@@ -461,7 +462,7 @@ Waiting for Scheduler
 
 ↓
 
-Searching Providers
+Searching Provider
 
 ↓
 
@@ -477,7 +478,7 @@ Container Starting
 
 ↓
 
-Running
+Executing
 
 ↓
 
@@ -485,114 +486,87 @@ Streaming Logs
 
 ↓
 
-Completed
-```
+Saving Output
 
-Timeline updates live.
+↓
+
+Completed
+
+Every state updates live.
+
+Never refresh.
 
 ---
 
-# Live Execution
+# Live Logs
 
-Below Workspace.
+Appears below editor.
 
 Dark Code Window.
 
-Exactly same component as Landing Page.
+Same design as Landing Page.
 
 Toolbar
 
-```
-train.py
+Execution Output
 
-Running
-```
+Auto-scroll.
 
-Body
+Copy Logs.
 
-```
-Epoch 1
-
-Loss
-
-Accuracy
-
-GPU Utilization
-
-Memory
-
-ETA
-```
-
-Scrollable.
+Download Logs.
 
 ---
 
-# Recent Workloads
+# History Section
 
 Heading
 
-```
 Recent Workloads
-```
 
-Description
+Subheading
 
-```
-Track every workload you've submitted.
-```
+Track every workload you've executed.
 
 ---
 
-Instead of Bootstrap table
+Layout
 
-Use Job Cards.
+Modern table.
 
-Each card
+Rounded container.
 
-------------------------------------------------
+Hover rows.
 
-Python Icon
+Large whitespace.
 
-train_resnet.py
+No Bootstrap styling.
 
-Completed
+---
 
-RTX 4060
+Columns
 
-Duration
+Script
 
-11m 42s
+Status
+
+GPU
 
 Created
 
-Today
+Duration
+
+Cost
 
 Actions
 
-View Logs
-
-Download
-
-Delete
-
-------------------------------------------------
-
-Status chip appears top right.
-
 ---
 
-# Job Status
+Status
 
-Uploading
+Uses Status Chips.
 
 Queued
-
-Waiting
-
-GPU Assigned
-
-Preparing
 
 Running
 
@@ -602,142 +576,71 @@ Failed
 
 Cancelled
 
+Preparing
+
 ---
 
-# Job Details
+Actions
 
-Clicking card expands.
+Three-dot menu.
 
-Shows
+Never multiple buttons.
 
-Script
+Menu
 
-Provider GPU
+View Details
 
-Execution Time
+Logs
 
-Cost
+Download Output
 
-Container
+Run Again
+
+Delete
+
+---
+
+# Workload Details
+
+Clicking row opens side drawer.
+
+Contains
+
+Overview
+
+Execution Timeline
+
+Environment
+
+GPU Information
 
 Logs
 
 Artifacts
 
-Output Files
+Billing
 
-Environment
-
----
-
-Uses accordion.
-
-No page navigation.
+No navigation away from dashboard.
 
 ---
 
-# Download Area
+# Empty State
 
-If completed
+Centered.
 
-Card shows
-
-```
-Outputs Ready
-
-Download ZIP
-
-View Logs
-
-Run Again
-```
-
----
-
-# Wallet
-
-Wallet is NOT part of workspace.
-
-Wallet only appears
-
-Navbar
-
-Dropdown
-
-Dedicated Wallet Page
-
-Never inside dashboard body.
-
----
-
-# Empty Dashboard
-
-Illustration
-
-Simple upload icon.
+Large upload icon.
 
 Heading
 
-```
 No Workloads Yet
-```
 
 Description
 
-```
-Submit your first Python script
-to begin using UniGPU.
-```
+Upload your first Python script to start using UniGPU.
 
 Button
 
-```
 Submit Workload
-```
-
----
-
-# Notifications
-
-Dropdown
-
-Recent
-
-```
-Workload Completed
-
-Wallet Updated
-
-GPU Assigned
-
-Execution Failed
-
-Provider Offline
-
-Scheduler Retry
-```
-
----
-
-# Error Handling
-
-Upload Failed
-
-Retry
-
-Scheduler Offline
-
-Retry Later
-
-Provider Disconnected
-
-Automatic Reschedule
-
-Execution Failed
-
-View Logs
-
-Run Again
 
 ---
 
@@ -745,21 +648,67 @@ Run Again
 
 Metrics
 
-Skeleton
-
-Cards
-
-Skeleton
+Skeleton.
 
 Workspace
 
-Skeleton
+Skeleton.
 
 History
 
-Skeleton
+Skeleton rows.
+
+Editor
+
+Skeleton.
 
 Never spinner-only.
+
+---
+
+# Error States
+
+Upload Failed
+
+Scheduler Offline
+
+Provider Unavailable
+
+Execution Failed
+
+Logs Unavailable
+
+Download Failed
+
+Retry actions always visible.
+
+---
+
+# Motion
+
+Hover
+
+Small elevation.
+
+Dropdown
+
+Fade + Scale.
+
+Cards
+
+Fade Up.
+
+Timeline
+
+Sequential appearance.
+
+Editor
+
+Smooth content replacement.
+
+Never bounce.
+
+Never spring.
 
 ---
 
@@ -771,63 +720,78 @@ Desktop
 
 Tablet
 
-Single column.
-
-History cards.
+Editor moves below upload.
 
 Mobile
 
 Everything stacks.
 
-Timeline collapses.
+History becomes cards.
 
-Upload fills width.
+Navbar collapses.
 
-Navbar compresses.
-
----
-
-# Future Components
-
-Pinned Workloads
-
-Favourite Templates
-
-Saved Configurations
-
-Notebook Support
-
-Jupyter Execution
-
-TensorBoard
-
-Artifact Browser
-
-Dataset Library
-
-Cloud Storage Integration
-
-Webhook Notifications
-
-API Tokens
-
-CLI Upload
+Wallet pill becomes icon.
 
 ---
 
-# UX Goals
+# Accessibility
 
-Users should always know
+Semantic HTML.
 
-- What is happening
-- Which GPU is executing
-- What the scheduler is doing
-- Estimated wait
-- Estimated cost
-- Current execution stage
+Keyboard navigation.
 
-without needing to refresh.
+Visible focus states.
 
-The dashboard should feel like watching a distributed compute network operate in real time while remaining simple enough that first-time users can understand it within minutes.
+Screen reader support.
 
-The interface should prioritize confidence, transparency, and clarity over exposing unnecessary backend complexity.
+Drag-and-drop keyboard alternative.
+
+---
+
+# Backend Awareness
+
+This dashboard must visually reflect the backend defined in PROJECT_CONTEXT.md.
+
+The UI should never fake execution.
+
+Every workload transitions through the real backend pipeline:
+
+Upload
+
+↓
+
+Scheduler
+
+↓
+
+Provider Match
+
+↓
+
+GPU Assignment
+
+↓
+
+Container Execution
+
+↓
+
+Live Logs
+
+↓
+
+Result Upload
+
+↓
+
+Billing
+
+↓
+
+Completed
+
+Every visual component should correspond to one real backend event.
+
+The dashboard is not simply a frontend.
+
+It is a visualization of UniGPU's distributed compute orchestration.
