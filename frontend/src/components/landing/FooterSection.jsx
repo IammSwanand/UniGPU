@@ -1,17 +1,17 @@
 const FOOTER_COLS = [
   {
     title: 'Product',
-    links: [
-      { label: 'Features', href: '#features' },
-      { label: 'Pricing', href: '#pricing' },
-      { label: 'Docs', href: '#' },
-      { label: 'Dashboard', href: '/dashboard' },
-    ],
+      links: [
+        { label: 'Features', href: '#features' },
+        { label: 'Pricing', href: '#pricing' },
+        { label: 'Docs', href: '/docs#client' },
+        { label: 'Dashboard', href: '/dashboard' },
+      ],
   },
   {
     title: 'Resources',
     links: [
-      { label: 'Documentation', href: '#' },
+      { label: 'Documentation', href: '/docs#provider' },
       { label: 'API Reference', href: '#' },
       { label: 'GitHub', href: '#' },
       { label: 'FAQ', href: '#faq' },

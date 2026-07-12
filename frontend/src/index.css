@@ -2789,7 +2789,318 @@ tbody tr:last-child td {
   }
 }
 
-/* ════════════════════════════════════════════════════════
+/* ══════════════════════════════════════════════════
+   DOCS PAGE (.lp-docs)
+   Light-theme documentation page. Tokens come from
+   .landing-page, so nothing here is hardcoded.
+   ══════════════════════════════════════════════════ */
+.lp-docs {
+  padding-top: 120px; /* clear the fixed navbar island */
+}
+
+/* ── Hero / header ───────────────────────────────── */
+.lp-docs__hero {
+  max-width: 760px;
+  margin: 0 auto;
+  padding: 16px 24px 56px;
+  text-align: center;
+}
+
+.lp-docs__title {
+  font-family: var(--lp-font-inter);
+  font-size: clamp(32px, 4.4vw, 48px);
+  font-weight: 600;
+  color: var(--lp-midnight-ink);
+  line-height: 1.05;
+  letter-spacing: -1.6px;
+  margin: 0 0 16px;
+}
+
+.lp-docs__intro {
+  font-family: var(--lp-font-inter);
+  font-size: 17px;
+  color: var(--lp-slate-caption);
+  line-height: 1.6;
+  margin: 0 auto 32px;
+  max-width: 620px;
+}
+
+/* ── Tabs ────────────────────────────────────────── */
+.lp-docs__tabs {
+  display: inline-flex;
+  padding: 5px;
+  background: var(--lp-fog-surface);
+  border: 1px solid var(--lp-stone-divider);
+  border-radius: var(--lp-radius-btn);
+}
+
+.lp-docs__tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 22px;
+  font-family: var(--lp-font-inter);
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--lp-ash-helper);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--lp-radius-btn);
+  cursor: pointer;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.lp-docs__tab:hover {
+  color: var(--lp-midnight-ink);
+}
+
+.lp-docs__tab--active {
+  color: var(--lp-royal-signal);
+  background: var(--lp-surface-card);
+  border-color: var(--lp-stone-divider);
+  box-shadow: var(--lp-shadow-sm);
+}
+
+.lp-docs__tab-icon {
+  font-size: 13px;
+}
+
+/* ── Two-column layout ───────────────────────────── */
+.lp-docs__layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: 64px;
+  align-items: start;
+  padding-bottom: 96px;
+}
+
+/* ── Sidebar ─────────────────────────────────────── */
+.lp-docs__sidebar {
+  position: sticky;
+  top: 100px; /* sit below the fixed navbar */
+}
+
+.lp-docs__sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 24px 20px;
+  background: var(--lp-surface-card);
+  border: 1px solid var(--lp-stone-divider);
+  border-radius: var(--lp-radius-input);
+}
+
+.lp-docs__sidebar-label {
+  font-family: var(--lp-font-inter);
+  font-size: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--lp-royal-signal);
+  margin: 0;
+}
+
+.lp-docs__sidebar-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.lp-docs__sidebar-link {
+  display: block;
+  padding: 8px 12px;
+  font-family: var(--lp-font-inter);
+  font-size: 14px;
+  color: var(--lp-slate-caption);
+  border-radius: var(--lp-radius-card);
+  border-left: 2px solid transparent;
+  transition: color 0.15s ease, background 0.15s ease, border-color 0.15s ease;
+}
+
+.lp-docs__sidebar-link:hover {
+  color: var(--lp-midnight-ink);
+  background: var(--lp-fog-surface);
+  border-left-color: var(--lp-royal-signal);
+}
+
+.lp-docs__sidebar-cta {
+  align-self: flex-start;
+  margin-top: 4px;
+}
+
+/* ── Content column ──────────────────────────────── */
+.lp-docs__content {
+  min-width: 0; /* allow code windows to shrink within the grid track */
+}
+
+.lp-docs__content-head {
+  margin-bottom: 40px;
+}
+
+.lp-docs__content-title {
+  font-family: var(--lp-font-inter);
+  font-size: clamp(26px, 3vw, 34px);
+  font-weight: 600;
+  color: var(--lp-midnight-ink);
+  line-height: 1.1;
+  letter-spacing: -1px;
+  margin: 0 0 14px;
+}
+
+.lp-docs__content-intro {
+  font-family: var(--lp-font-inter);
+  font-size: 16px;
+  color: var(--lp-slate-caption);
+  line-height: 1.65;
+  margin: 0;
+  max-width: 640px;
+}
+
+/* ── Step card ───────────────────────────────────── */
+.lp-docs__step {
+  padding: 36px 0;
+  border-top: 1px solid var(--lp-stone-divider);
+  scroll-margin-top: 100px; /* anchor target clears the fixed navbar */
+}
+
+.lp-docs__step:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.lp-docs__step-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.lp-docs__step-num {
+  font-family: var(--lp-font-mono);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lp-royal-signal);
+  letter-spacing: 0.4px;
+}
+
+.lp-docs__step-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 14px;
+  color: var(--lp-royal-signal);
+  background: rgba(20, 90, 255, 0.08);
+  border-radius: var(--lp-radius-card);
+}
+
+.lp-docs__step-title {
+  font-family: var(--lp-font-inter);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--lp-midnight-ink);
+  line-height: 1.2;
+  letter-spacing: -0.4px;
+  margin: 0;
+}
+
+.lp-docs__step-body {
+  font-family: var(--lp-font-inter);
+  font-size: 15.5px;
+  color: var(--lp-slate-caption);
+  line-height: 1.65;
+  margin: 0 0 18px;
+}
+
+/* ── Bullet list ─────────────────────────────────── */
+.lp-docs__list {
+  list-style: none;
+  margin: 0 0 18px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.lp-docs__list li {
+  position: relative;
+  padding-left: 26px;
+  font-family: var(--lp-font-inter);
+  font-size: 15px;
+  color: var(--lp-graphite-body);
+  line-height: 1.6;
+}
+
+.lp-docs__list li::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 9px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--lp-royal-signal);
+}
+
+/* ── Code window wrapper ─────────────────────────── */
+.lp-docs__code {
+  margin-top: 8px;
+}
+
+.lp-docs__code .lp-code-window {
+  /* the inline dark card already has its own radius + border */
+  margin: 0;
+}
+
+/* ══════════════════════════════════════════════════
+   DOCS PAGE — responsive
+   ══════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  .lp-docs__layout {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+
+  .lp-docs__sidebar {
+    position: static;
+  }
+
+  /* horizontal rail of links on tablet/mobile */
+  .lp-docs__sidebar-list {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .lp-docs__sidebar-link {
+    border-left: none;
+    border: 1px solid var(--lp-stone-divider);
+    border-radius: var(--lp-radius-btn);
+  }
+}
+
+@media (max-width: 600px) {
+  .lp-docs {
+    padding-top: 96px;
+  }
+
+  .lp-docs__hero {
+    padding-bottom: 40px;
+  }
+
+  .lp-docs__tabs {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .lp-docs__step {
+    padding: 28px 0;
+  }
+}/* ════════════════════════════════════════════════════════
    CLIENT DASHBOARD — Light Theme (scoped to .client-dashboard)
    Follows docs/client-db-design.md + docs/client-db-content.md.
    Reuses the shared --lp-* tokens (now defined on :root) so the
