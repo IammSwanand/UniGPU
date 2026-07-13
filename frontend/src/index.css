@@ -57,6 +57,7 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  overflow-y: scroll;
 }
 
 body {
@@ -4581,7 +4582,7 @@ tbody tr:last-child td {
 .cd-modal__body {
   flex: 1;
   overflow-y: auto;
-  padding: 32px;
+  padding: 64px 32px 32px 32px;
 }
 
 .cd-modal__footer {

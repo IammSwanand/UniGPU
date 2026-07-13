@@ -4,7 +4,7 @@ import {
 } from './icons';
 import { statusInfo, timeAgo } from './utils';
 
-const FILTERS = ['All', 'Queued', 'Running', 'Completed', 'Failed', 'Cancelled'];
+const FILTERS = ['All', 'Queued', 'Running', 'Completed', 'Failed'];
 
 function ScriptName({ job }) {
   // Derive a friendly script name from the stored path; fall back to id.
@@ -88,10 +88,10 @@ export default function RecentWorkloads({
   }, [jobs, filter, query, sort, gpuNameFor]);
 
   return (
-    <section aria-label="Recent workloads">
+    <section id="workloads-section" aria-label="Recent workloads">
       <div className="cd-section-head">
         <div>
-          <h2 className="cd-section-head__title">Recent Workloads</h2>
+          <h2 className="cd-section-head__title">Workloads</h2>
           <p className="cd-section-head__desc">Monitor every workload you&apos;ve submitted.</p>
         </div>
       </div>
