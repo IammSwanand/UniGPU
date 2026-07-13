@@ -10,7 +10,7 @@ import { IconCpu } from './icons';
  * not available from the backend and is shown as "Coming soon" rather than
  * fabricated (per the doc's "never fake execution" rule).
  */
-export default function GpuNetworkStrip({ availableGPUs }) {
+export default function GpuNetworkStrip({ availableGPUs, busyCount = 0 }) {
   const count = availableGPUs.length;
   const hasCompute = count > 0;
 
@@ -24,16 +24,8 @@ export default function GpuNetworkStrip({ availableGPUs }) {
       <span className="cd-gpu-strip__divider" />
 
       <span className="cd-gpu-strip__metric">
-        Average Queue
-        <span className="cd-coming">Coming soon</span>
-      </span>
-
-      <span className="cd-gpu-strip__divider" />
-
-      <span className="cd-gpu-strip__metric">
         <IconCpu style={{ width: 15, height: 15, color: 'var(--lp-ash-helper)' }} />
-        Running Workloads
-        <span className="cd-coming">Coming soon</span>
+        <strong>{busyCount}</strong>&nbsp;Running Workloads
       </span>
 
       {hasCompute ? (

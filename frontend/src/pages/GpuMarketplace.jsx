@@ -8,6 +8,7 @@ export default function GpuMarketplace() {
   const location = useLocation();
   const [gpus, setGpus] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [wallet, setWallet] = useState(null);
 
   const queryParams = new URLSearchParams(location.search);
   const mode = queryParams.get('mode'); // 'select' or null
@@ -19,14 +20,18 @@ export default function GpuMarketplace() {
   const [sortBy, setSortBy] = useState('Recommended');
 
   useEffect(() => {
-    loadGpus();
+    loadData();
   }, []);
 
-  const loadGpus = async () => {
+  const loadData = async () => {
     try {
-      const data = await api.availableGPUs();
+      const [gpusData, walletData] = await Promise.all([
+        api.availableGPUs(),
+        api.getWallet()
+      ]);
+      setWallet(walletData);
       // Add mock data for missing fields to showcase UI
-      const enrichedGpus = data.map(gpu => ({
+      const enrichedGpus = gpusData.map(gpu => ({
         ...gpu,
         priceHr: 'N/A', 
         queueTime: 'N/A',
@@ -67,7 +72,7 @@ export default function GpuMarketplace() {
 
   return (
     <div className="client-dashboard">
-      <DashboardNavbar />
+      <DashboardNavbar wallet={wallet} />
 
       <main className="cd-shell">
         <button 

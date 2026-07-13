@@ -36,6 +36,7 @@ export default function ClientDashboard() {
   const [wallet, setWallet] = useState(null);
 
   const [availableGPUs, setAvailableGPUs] = useState([]);
+  const [busyGpusCount, setBusyGpusCount] = useState(0);
 
   // Parse selectedGpu from URL if coming from the marketplace
   const queryParams = new URLSearchParams(location.search);
@@ -66,12 +67,13 @@ export default function ClientDashboard() {
   // ══════════════ Data loading ══════════════
   const load = useCallback(async () => {
     try {
-      const [j, w, g] = await Promise.all([
-        api.listJobs(), api.getWallet(), api.availableGPUs(0),
+      const [j, w, g, allGpus] = await Promise.all([
+        api.listJobs(), api.getWallet(), api.availableGPUs(0), api.listGPUs()
       ]);
       setJobs(j);
       setWallet(w);
       setAvailableGPUs(g);
+      setBusyGpusCount(allGpus.filter(gpu => gpu.status === 'busy').length);
     } catch (e) {
       console.error(e);
     }
@@ -136,6 +138,9 @@ export default function ClientDashboard() {
       setSelectedGPU('');
       notify('Workload submitted successfully.', 'success');
       await load();
+      setTimeout(() => {
+        document.getElementById('workloads-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
     } catch (e) {
       notify(e.detail || 'Unable to submit workload. Scheduler unavailable.', 'error');
     } finally {
@@ -253,7 +258,7 @@ export default function ClientDashboard() {
         <Greeting user={user} />
 
         {/* GPU Network strip */}
-        <GpuNetworkStrip availableGPUs={availableGPUs} />
+        <GpuNetworkStrip availableGPUs={availableGPUs} busyCount={busyGpusCount} />
 
         {/* Execution workspace: upload + editor + gpu + submit */}
         <ExecutionWorkspace
@@ -306,6 +311,7 @@ export default function ClientDashboard() {
         <WorkloadDrawer
           job={drawerJob}
           onClose={() => setDrawerJob(null)}
+          availableGPUs={availableGPUs}
         />
       )}
 

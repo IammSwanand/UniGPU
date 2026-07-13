@@ -26,12 +26,12 @@ const TABS = [
   { key: 'overview', label: 'Overview', live: true },
   { key: 'timeline', label: 'Timeline', live: false },
   { key: 'environment', label: 'Environment', live: false },
-  { key: 'gpu', label: 'GPU', live: false },
+  { key: 'gpu', label: 'GPU', live: true },
   { key: 'artifacts', label: 'Artifacts', live: false },
   { key: 'billing', label: 'Billing', live: false },
 ];
 
-export default function WorkloadDrawer({ job, onClose }) {
+export default function WorkloadDrawer({ job, onClose, availableGPUs = [] }) {
   if (!job) return null;
   // Mount a fresh panel per job (keyed by id) so internal tab state resets
   // automatically — no setState-in-effect needed.
@@ -40,11 +40,12 @@ export default function WorkloadDrawer({ job, onClose }) {
       key={job.id}
       job={job}
       onClose={onClose}
+      availableGPUs={availableGPUs}
     />
   );
 }
 
-function DrawerPanel({ job, onClose }) {
+function DrawerPanel({ job, onClose, availableGPUs }) {
   const [tab, setTab] = useState('overview');
 
   // Lock body scroll while drawer is open.
@@ -120,8 +121,55 @@ function DrawerPanel({ job, onClose }) {
             </div>
           )}
 
+          {/* ── GPU ── */}
+          {tab === 'gpu' && (
+            <div className="cd-detail-grid">
+              {(() => {
+                if (!job.gpu_id) {
+                  return (
+                    <div className="cd-detail-row" style={{ gridColumn: '1 / -1', padding: '40px', textAlign: 'center', color: 'var(--lp-ash-helper)' }}>
+                      No specific GPU was selected (Auto-scheduled).
+                    </div>
+                  );
+                }
+                const gpu = availableGPUs.find((g) => g.id === job.gpu_id);
+                if (!gpu) {
+                  return (
+                    <div className="cd-detail-row" style={{ gridColumn: '1 / -1' }}>
+                      <span className="cd-detail-row__label">GPU ID</span>
+                      <span className="cd-detail-row__value cd-detail-row__value--mono">{job.gpu_id}</span>
+                      <div style={{ marginTop: '10px', color: 'var(--lp-ash-helper)', fontSize: '13px' }}>
+                        Additional details unavailable (GPU may be offline).
+                      </div>
+                    </div>
+                  );
+                }
+                return (
+                  <>
+                    <div className="cd-detail-row">
+                      <span className="cd-detail-row__label">Model</span>
+                      <span className="cd-detail-row__value">{gpu.name}</span>
+                    </div>
+                    <div className="cd-detail-row">
+                      <span className="cd-detail-row__label">VRAM</span>
+                      <span className="cd-detail-row__value cd-detail-row__value--mono">{(gpu.vram_mb / 1024).toFixed(0)} GB</span>
+                    </div>
+                    <div className="cd-detail-row">
+                      <span className="cd-detail-row__label">CUDA Version</span>
+                      <span className="cd-detail-row__value cd-detail-row__value--mono">{gpu.cuda_version || 'N/A'}</span>
+                    </div>
+                    <div className="cd-detail-row">
+                      <span className="cd-detail-row__label">GPU ID</span>
+                      <span className="cd-detail-row__value cd-detail-row__value--mono">{gpu.id}</span>
+                    </div>
+                  </>
+                );
+              })()}
+            </div>
+          )}
+
           {/* ── All other tabs: Coming soon ── */}
-          {tab !== 'overview' && (
+          {tab !== 'overview' && tab !== 'gpu' && (
             <div className="cd-locked-panel">
               <IconCheck style={{ width: 40, height: 40, margin: '0 auto 12px', opacity: 0.2 }} />
               <p>

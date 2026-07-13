@@ -113,7 +113,7 @@ export default function DashboardNavbar({ wallet }) {
           >
             <span className="cd-wallet-pill__cta">Balance</span>
             <span className="cd-wallet-pill__amount">
-              ₹{wallet?.balance?.toFixed(2) ?? '0.00'}
+              {wallet ? `₹${wallet.balance.toFixed(2)}` : '₹...'}
             </span>
           </Link>
 
