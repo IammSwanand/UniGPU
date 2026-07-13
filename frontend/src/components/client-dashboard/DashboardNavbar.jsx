@@ -9,6 +9,7 @@ import {
   IconSettings,
   IconLogout,
   IconClose,
+  IconSearch,
 } from './icons';
 
 /**
@@ -28,7 +29,7 @@ function LogoMark() {
         viewBox="0 0 1341.7407 1040.9506"
         fill="white"
         xmlns="http://www.w3.org/2000/svg"
-        style={{ width: '20px', height: '16px' }}
+        style={{ width: '30px', height: '24px' }}
       >
         <path
           fillRule="evenodd"
@@ -102,23 +103,19 @@ export default function DashboardNavbar({ wallet }) {
 
         {/* Right actions */}
         <div className="cd-nav__actions">
-          {/* Wallet pill → scrolls to #wallet section */}
-          <a
+          {/* Wallet pill → navigates to wallet page */}
+          <Link
+            to="/dashboard/client/wallet"
             className="cd-wallet-pill"
-            href="#wallet"
-            onClick={(e) => {
-              e.preventDefault();
-              document.getElementById('wallet')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            }}
             aria-label="Available credits — view wallet"
             title="Available credits used to execute workloads."
+            style={{ textDecoration: 'none' }}
           >
             <span className="cd-wallet-pill__cta">Balance</span>
             <span className="cd-wallet-pill__amount">
               ₹{wallet?.balance?.toFixed(2) ?? '0.00'}
             </span>
-
-          </a>
+          </Link>
 
           {/* Notifications */}
           <button
@@ -153,7 +150,7 @@ export default function DashboardNavbar({ wallet }) {
             {initials}
             {openMenu === 'profile' && (
               <div className="cd-menu" role="dialog" aria-label="Profile menu">
-                <div className="cd-menu__head">
+                <div className="cd-menu__head" style={{ textAlign: 'left' }}>
                   {user?.username || 'Account'}
                   <div style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, fontSize: 12, color: 'var(--lp-ash-helper)', marginTop: 2 }}>
                     {user?.email}
@@ -172,6 +169,15 @@ export default function DashboardNavbar({ wallet }) {
                   }}
                 >
                   <IconWallet /> Wallet
+                </button>
+                <button
+                  className="cd-menu__item"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    navigate('/dashboard/client/gpus');
+                  }}
+                >
+                  <IconSearch /> Explore GPUs
                 </button>
                 <button className="cd-menu__item" disabled title="Coming soon">
                   <IconSettings /> Settings <span className="cd-coming" style={{ marginLeft: 'auto' }}>Soon</span>

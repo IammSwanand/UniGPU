@@ -24,7 +24,7 @@ function LogoMark() {
         viewBox="0 0 1341.7407 1040.9506"
         fill="white"
         xmlns="http://www.w3.org/2000/svg"
-        style={{ width: '22px', height: '17px' }}
+        style={{ width: '30px', height: '24px' }}
       >
         <path
           fillRule="evenodd"

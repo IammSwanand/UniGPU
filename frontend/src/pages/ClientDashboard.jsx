@@ -13,6 +13,8 @@ import LogsViewer from '../components/client-dashboard/LogsViewer';
 
 import ConfirmDialog from '../components/client-dashboard/ConfirmDialog';
 
+import { useLocation } from 'react-router-dom';
+
 /**
  * ClientDashboard — orchestrator for the light-themed compute workspace.
  *
@@ -27,6 +29,7 @@ import ConfirmDialog from '../components/client-dashboard/ConfirmDialog';
  */
 export default function ClientDashboard() {
   const { user } = useAuth();
+  const location = useLocation();
 
   // ── Data state ──
   const [jobs, setJobs] = useState([]);
@@ -34,8 +37,12 @@ export default function ClientDashboard() {
 
   const [availableGPUs, setAvailableGPUs] = useState([]);
 
+  // Parse selectedGpu from URL if coming from the marketplace
+  const queryParams = new URLSearchParams(location.search);
+  const initialGpu = queryParams.get('selectedGpu') || '';
+
   // ── Upload state ──
-  const [selectedGPU, setSelectedGPU] = useState('');
+  const [selectedGPU, setSelectedGPU] = useState(initialGpu);
   const [script, setScript] = useState(null);
   const [scriptText, setScriptText] = useState('');
   const [scriptPreview, setScriptPreview] = useState(false);

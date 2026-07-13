@@ -43,7 +43,7 @@ export default function RecentWorkloads({
 }) {
   const [filter, setFilter] = useState('All');
   const [query, setQuery] = useState('');
-  const [sort, setSort] = useState('newest');
+  const [sort, setSort] = useState('default');
   const [openRow, setOpenRow] = useState(null); // job id whose menu is open
   const menuWrap = useRef(null);
 
@@ -126,10 +126,11 @@ export default function RecentWorkloads({
           value={sort}
           onChange={(e) => setSort(e.target.value)}
           aria-label="Sort workloads"
+          style={{ color: sort === 'default' ? 'var(--lp-ash-helper)' : undefined }}
         >
+          <option value="default" disabled hidden>Sort workloads</option>
           <option value="newest">Newest</option>
           <option value="oldest">Oldest</option>
-          <option value="status">Status</option>
           <option value="duration" disabled>Duration (Coming soon)</option>
           <option value="cost" disabled>Cost (Coming soon)</option>
         </select>

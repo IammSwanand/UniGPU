@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { IconFile } from './icons';
+import { useState, useRef, useEffect } from 'react';
+import { IconFile, IconMaximize, IconMinimize } from './icons';
 
 /**
  * ScriptEditor — dark CodeWindow-style panel for previewing/editing an
@@ -31,25 +31,57 @@ export default function ScriptEditor({
   hasFile = false,
 }) {
   const ref = useRef(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Prevent background scrolling when fullscreen
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isFullscreen]);
 
   return (
-    <div className="cd-editor">
+    <div className={`cd-editor ${isFullscreen ? 'cd-editor--fullscreen' : ''}`}>
       <div className="cd-editor__window">
-        <div className="cd-editor__topbar">
+        <div className="cd-editor__topbar" style={{ position: 'relative' }}>
           <div className="cd-editor__dots" aria-hidden="true">
             <span className="cd-editor__dot" />
             <span className="cd-editor__dot" />
             <span className="cd-editor__dot" />
           </div>
           <span className="cd-editor__filename">{filename || 'untitled'}</span>
+          {!readOnly && (
+            <span style={{
+              position: 'absolute',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              fontSize: '11px',
+              fontWeight: 600,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px',
+              color: '#ffffff',
+              background: 'rgba(255, 255, 255, 0.15)',
+              padding: '4px 10px',
+              borderRadius: '12px',
+              border: '1px solid rgba(255, 255, 255, 0.2)'
+            }}>
+              Editing Mode
+            </span>
+          )}
           <div className="cd-editor__tools">
             <button
               className="cd-editor__tool"
-              onClick={onToggleReadOnly}
+              onClick={() => setIsFullscreen(!isFullscreen)}
               disabled={!hasFile}
-              title={readOnly ? 'Switch to edit mode' : 'Switch to read-only'}
+              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+              style={{ padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
-              {readOnly ? 'Read Only' : 'Editing'}
+              {isFullscreen ? <IconMinimize style={{ width: '14px', height: '14px' }} /> : <IconMaximize style={{ width: '14px', height: '14px' }} />}
             </button>
           </div>
         </div>
