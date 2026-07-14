@@ -1,8 +1,8 @@
-import { useState, useMemo, useRef, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import {
-  IconSearch, IconMore, IconEye, IconStop, IconTrash, IconPlay, IconUpload,
-} from './icons';
-import { statusInfo, timeAgo } from './utils';
+  IconSearch, IconEye, IconTrash, IconUpload,
+} from '../client-dashboard/icons';
+import { statusInfo, timeAgo } from '../client-dashboard/utils';
 
 const FILTERS = ['All', 'Queued', 'Running', 'Completed', 'Failed'];
 
@@ -38,30 +38,12 @@ function ScriptName({ job }) {
  *  - onDelete(job)       : delete a job
  *  - onSelectJob(job)    : open the details drawer
  */
-export default function RecentWorkloads({
+export default function ProviderWorkloads({
   jobs, gpuNameFor, onViewLogs, onStop, onDelete, onSelectJob,
 }) {
   const [filter, setFilter] = useState('All');
   const [query, setQuery] = useState('');
   const [sort, setSort] = useState('default');
-  const [openRow, setOpenRow] = useState(null); // job id whose menu is open
-  const menuWrap = useRef(null);
-
-  // Close the row menu on outside click / Escape.
-  useEffect(() => {
-    if (!openRow) return;
-    const onDown = (e) => {
-      if (menuWrap.current && !menuWrap.current.contains(e.target)) setOpenRow(null);
-    };
-    const onKey = (e) => e.key === 'Escape' && setOpenRow(null);
-    document.addEventListener('mousedown', onDown);
-    document.addEventListener('keydown', onKey);
-    return () => {
-      document.removeEventListener('mousedown', onDown);
-      document.removeEventListener('keydown', onKey);
-    };
-  }, [openRow]);
-
   const visible = useMemo(() => {
     let list = jobs.slice();
     if (filter !== 'All') {
@@ -91,8 +73,8 @@ export default function RecentWorkloads({
     <section id="workloads-section" aria-label="Recent workloads">
       <div className="cd-section-head">
         <div>
-          <h2 className="cd-section-head__title">Workloads</h2>
-          <p className="cd-section-head__desc">Monitor every workload you&apos;ve submitted.</p>
+          <h2 className="cd-section-head__title">Received Workloads</h2>
+          <p className="cd-section-head__desc">Monitor every workload assigned to your node.</p>
         </div>
       </div>
 
@@ -143,7 +125,7 @@ export default function RecentWorkloads({
             <div className="cd-empty__icon"><IconUpload /></div>
             <p className="cd-empty__title">No Workloads Yet</p>
             <p className="cd-empty__desc">
-              Upload your first Python script to start using UniGPU.
+              Keep your agent online to receive client workloads.
             </p>
           </div>
         </div>
@@ -170,10 +152,9 @@ export default function RecentWorkloads({
                   <th aria-label="Actions" />
                 </tr>
               </thead>
-              <tbody ref={menuWrap}>
+              <tbody>
                 {visible.map((job) => {
                   const si = statusInfo(job.status);
-                  const stoppable = job.status === 'queued' || job.status === 'running' || job.status === 'pending';
                   return (
                     <tr key={job.id} onClick={() => onSelectJob(job)}>
                       <td data-label="Script"><ScriptName job={job} /></td>
@@ -198,35 +179,12 @@ export default function RecentWorkloads({
                       <td data-label="" className="cd-row-actions" onClick={(e) => e.stopPropagation()}>
                         <button
                           className="cd-row-trigger"
-                          aria-label={`Actions for ${job.id.slice(0, 8)}`}
-                          aria-haspopup="menu"
-                          aria-expanded={openRow === job.id}
-                          onClick={() => setOpenRow(openRow === job.id ? null : job.id)}
+                          aria-label={`Delete ${job.id.slice(0, 8)}`}
+                          style={{ color: '#ef4444', width: '20px', height: '20px', marginRight: '15px' }}
+                          onClick={() => onDelete(job)}
                         >
-                          <IconMore />
+                          <IconTrash />
                         </button>
-                        {openRow === job.id && (
-                          <div className="cd-row-menu" role="menu">
-
-                            {stoppable && (
-                              <button className="cd-menu__item" role="menuitem" onClick={() => { setOpenRow(null); onStop(job); }}>
-                                <IconStop /> Stop
-                              </button>
-                            )}
-                            <button className="cd-menu__item" role="menuitem" disabled title="Coming soon">
-                              <IconPlay /> Run Again <span className="cd-coming" style={{ marginLeft: 'auto' }}>Soon</span>
-                            </button>
-                            <div className="cd-menu__divider" />
-                            <button
-                              className="cd-menu__item"
-                              role="menuitem"
-                              style={{ color: '#ef4444' }}
-                              onClick={() => { setOpenRow(null); onDelete(job); }}
-                            >
-                              <IconTrash /> Delete
-                            </button>
-                          </div>
-                        )}
                       </td>
                     </tr>
                   );

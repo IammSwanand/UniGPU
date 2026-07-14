@@ -178,6 +178,14 @@ async def list_jobs(
 ):
     if current_user.role.value == "admin":
         result = await db.execute(select(Job).order_by(Job.created_at.desc()))
+    elif current_user.role.value == "provider":
+        # Find GPUs owned by provider, then fetch jobs assigned to those GPUs
+        result = await db.execute(
+            select(Job)
+            .join(GPU, Job.gpu_id == GPU.id)
+            .where(GPU.provider_id == current_user.id)
+            .order_by(Job.created_at.desc())
+        )
     else:
         result = await db.execute(
             select(Job).where(Job.client_id == current_user.id).order_by(Job.created_at.desc())
@@ -195,7 +203,14 @@ async def get_job(
     job = result.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    if current_user.role.value != "admin" and job.client_id != current_user.id:
+
+    is_owner = job.client_id == current_user.id
+    is_provider = job.gpu_id and (await db.execute(
+        select(GPU).where(GPU.id == job.gpu_id, GPU.provider_id == current_user.id)
+    )).scalar_one_or_none() is not None
+    is_admin = current_user.role.value == "admin"
+
+    if not (is_owner or is_provider or is_admin):
         raise HTTPException(status_code=403, detail="Access denied")
     return job
 
@@ -210,7 +225,14 @@ async def get_job_logs(
     job = result.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    if current_user.role.value != "admin" and job.client_id != current_user.id:
+
+    is_owner = job.client_id == current_user.id
+    is_provider = job.gpu_id and (await db.execute(
+        select(GPU).where(GPU.id == job.gpu_id, GPU.provider_id == current_user.id)
+    )).scalar_one_or_none() is not None
+    is_admin = current_user.role.value == "admin"
+
+    if not (is_owner or is_provider or is_admin):
         raise HTTPException(status_code=403, detail="Access denied")
     return {"job_id": job.id, "logs": job.logs or ""}
 
@@ -328,7 +350,15 @@ async def delete_job(
     job = result.scalar_one_or_none()
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
-    if current_user.role.value != "admin" and job.client_id != current_user.id:
+        
+    is_provider = False
+    if job.gpu_id:
+        gpu_result = await db.execute(select(GPU).where(GPU.id == job.gpu_id))
+        gpu = gpu_result.scalar_one_or_none()
+        if gpu and gpu.provider_id == current_user.id:
+            is_provider = True
+
+    if current_user.role.value != "admin" and not is_provider:
         raise HTTPException(status_code=403, detail="Access denied")
 
     if job.status.value in ("queued", "running"):

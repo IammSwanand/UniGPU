@@ -15,6 +15,7 @@ const Download = lazy(() => import('./pages/Download'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
 const ClientWallet = lazy(() => import('./pages/ClientWallet'));
 const ProviderDashboard = lazy(() => import('./pages/ProviderDashboard'));
+const ProviderWallet = lazy(() => import('./pages/ProviderWallet'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const GpuMarketplace = lazy(() => import('./pages/GpuMarketplace'));
 
@@ -66,6 +67,9 @@ export default function App() {
             } />
             <Route path="/dashboard/provider" element={
               <ProtectedRoute roles={['provider']}><ProviderDashboard /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/provider/wallet" element={
+              <ProtectedRoute roles={['provider']}><ProviderWallet /></ProtectedRoute>
             } />
             <Route path="/dashboard/admin" element={
               <ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>
