@@ -1,15 +1,20 @@
-import { useState, useEffect, useRef } from 'react';
-import Sidebar from '../components/Sidebar';
-import api from '../api/client';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faTemperatureQuarter } from '@fortawesome/free-solid-svg-icons';
-import { faServer } from '@fortawesome/free-solid-svg-icons';
-import { faMicrochip } from '@fortawesome/free-solid-svg-icons';
-import { faMemory } from '@fortawesome/free-solid-svg-icons';
+import api from '../api/client';
+import { useToasts } from '../components/client-dashboard/useToasts';
+import ToastStack from '../components/client-dashboard/Toast';
 
-// WebSocket URL: prefer Vite env `VITE_WS_BASE_URL` when provided (e.g. wss://api.example.com)
-// Otherwise default to same-origin (wss:// or ws:// based on page protocol)
+import ProviderNavbar from '../components/provider-dashboard/ProviderNavbar';
+import ConnectionPipeline from '../components/provider-dashboard/ConnectionPipeline';
+import SystemMetrics from '../components/provider-dashboard/SystemMetrics';
+import MyGPUs from '../components/provider-dashboard/MyGPUs';
+import GpuDetailDrawer from '../components/provider-dashboard/GpuDetailDrawer';
+
+import ProviderWorkloads from '../components/provider-dashboard/ProviderWorkloads';
+import WorkloadDrawer from '../components/client-dashboard/WorkloadDrawer';
+import LogsViewer from '../components/client-dashboard/LogsViewer';
+import ConfirmDialog from '../components/client-dashboard/ConfirmDialog';
+
 const WS_ENV = import.meta.env.VITE_WS_BASE_URL;
 const WS_BASE_RAW = WS_ENV && WS_ENV.length > 0
     ? WS_ENV
@@ -17,420 +22,286 @@ const WS_BASE_RAW = WS_ENV && WS_ENV.length > 0
 const WS_BASE = WS_BASE_RAW.replace(/\/+$/, '');
 
 export default function ProviderDashboard() {
-    const { user, token } = useAuth();
-    const [gpus, setGPUs] = useState([]);
-    const [wallet, setWallet] = useState(null);
-    const [transactions, setTransactions] = useState([]);
-    const [showRegister, setShowRegister] = useState(false);
-    const [form, setForm] = useState({ name: '', vram_mb: '', cuda_version: '' });
+  const { user, token } = useAuth();
+  
+  const [gpus, setGPUs] = useState([]);
+  const [wallet, setWallet] = useState(null);
+  const [jobs, setJobs] = useState([]);
 
-    // Live data from WebSocket
-    const [metrics, setMetrics] = useState({});      // gpu_id → latest metrics
-    const [agentLogs, setAgentLogs] = useState([]);   // array of log lines
-    const [wsConnected, setWsConnected] = useState(false);
-    const [agentConnecting, setAgentConnecting] = useState(false); // shows progress bar
+  // Live data from WebSocket
+  const [metrics, setMetrics] = useState({});
+  const [wsConnected, setWsConnected] = useState(false);
+  const wsRef = useRef(null);
+  
+  // UI states
+  const [showRegister, setShowRegister] = useState(false);
+  const [form, setForm] = useState({ name: '', vram_mb: '', cuda_version: '' });
+  const [selectedGpuDetails, setSelectedGpuDetails] = useState(null);
 
-    const wsRef = useRef(null);
-    const MAX_LOG_LINES = 500;
+  // Client components states
+  const [logModal, setLogModal] = useState(null);
+  const [logs, setLogs] = useState('');
+  const [logsLoading, setLogsLoading] = useState(false);
+  const [drawerJob, setDrawerJob] = useState(null);
+  const [confirm, setConfirm] = useState(null);
+  const { toasts, notify, dismiss } = useToasts();
 
-    const load = async () => {
+  const load = useCallback(async () => {
+    try {
+      const [g, w, j] = await Promise.all([
+        api.listGPUs(), 
+        api.getWallet(), 
+        api.listJobs()
+      ]);
+      setGPUs(g);
+      setWallet(w);
+      setJobs(j);
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
+
+  useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    if (!user?.id || !token) return;
+
+    let ws;
+    let reconnectTimer;
+
+    const connect = () => {
+      ws = new WebSocket(`${WS_BASE}/ws/provider/${user.id}?token=${encodeURIComponent(token)}`);
+      wsRef.current = ws;
+
+      ws.onopen = () => {
+        setWsConnected(true);
+        notify('Backend connected', 'success');
+      };
+
+      ws.onmessage = (event) => {
         try {
-            const [g, w, t] = await Promise.all([api.listGPUs(), api.getWallet(), api.getTransactions()]);
-            setGPUs(g);
-            setWallet(w);
-            setTransactions(t);
-        } catch (e) { console.error(e); }
-    };
-
-    useEffect(() => { load(); }, []);
-
-    // WebSocket connection for real-time updates
-    useEffect(() => {
-        if (!user?.id || !token) return;
-
-        let ws;
-        let reconnectTimer;
-
-        const connect = () => {
-            ws = new WebSocket(`${WS_BASE}/ws/provider/${user.id}?token=${encodeURIComponent(token)}`);
-            wsRef.current = ws;
-
-            ws.onopen = () => {
-                setWsConnected(true);
-                console.log('Provider WS connected');
-            };
-
-            ws.onmessage = (event) => {
-                try {
-                    const msg = JSON.parse(event.data);
-
-                    if (msg.type === 'metrics') {
-                        setMetrics(prev => ({ ...prev, [msg.gpu_id]: msg.data }));
-                        setAgentConnecting(false); // Agent is back — hide progress bar
-                    } else if (msg.type === 'agent_log') {
-                        // Agent infrastructure logs (heartbeats, reconnects, etc.) — not shown on dashboard
-                    } else if (msg.type === 'job_log') {
-                        setAgentLogs(prev => {
-                            const next = [...prev, { time: new Date().toLocaleTimeString(), text: `[JOB ${msg.job_id?.slice(0, 8)}] ${msg.data}`, gpu_id: msg.gpu_id, isJob: true }];
-                            return next.length > MAX_LOG_LINES ? next.slice(-MAX_LOG_LINES) : next;
-                        });
-                    } else if (msg.type === 'job_status') {
-                        setAgentLogs(prev => {
-                            const next = [...prev, { time: new Date().toLocaleTimeString(), text: `[JOB ${msg.job_id?.slice(0, 8)}] Status → ${msg.status}`, gpu_id: msg.gpu_id, isStatus: true }];
-                            return next.length > MAX_LOG_LINES ? next.slice(-MAX_LOG_LINES) : next;
-                        });
-                        load(); // Refresh data on job status changes
-                    } else if (msg.type === 'agent_status') {
-                        if (msg.status === 'disconnected') {
-                            setMetrics(prev => {
-                                const next = { ...prev };
-                                delete next[msg.gpu_id];
-                                return next;
-                            });
-                        }
-                        load(); // Refresh GPU list on status changes
-                    }
-                } catch (err) {
-                    console.error('WS message parse error:', err);
-                }
-            };
-
-            ws.onclose = () => {
-                setWsConnected(false);
-                console.log('Provider WS disconnected, reconnecting in 3s…');
-                reconnectTimer = setTimeout(connect, 3000);
-            };
-
-            ws.onerror = (err) => {
-                console.error('Provider WS error:', err);
-                ws.close();
-            };
-        };
-
-        connect();
-
-        return () => {
-            clearTimeout(reconnectTimer);
-            if (wsRef.current) {
-                wsRef.current.onclose = null; // prevent reconnect on unmount
-                wsRef.current.close();
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'metrics') {
+            setMetrics(prev => ({ ...prev, [msg.gpu_id]: msg.data }));
+          } else if (msg.type === 'job_status' || msg.type === 'agent_status') {
+            if (msg.status === 'disconnected') {
+                setMetrics(prev => { const next = { ...prev }; delete next[msg.gpu_id]; return next; });
             }
-        };
-    }, [user?.id, token]);
+            load();
+          }
+        } catch (err) {}
+      };
 
-    const handleRegisterGPU = async () => {
-        try {
-            await api.registerGPU({
-                name: form.name,
-                vram_mb: parseInt(form.vram_mb),
-                cuda_version: form.cuda_version,
-            });
-            setShowRegister(false);
-            setForm({ name: '', vram_mb: '', cuda_version: '' });
-            await load();
-        } catch (e) { alert(e.detail || 'Registration failed'); }
+      ws.onclose = () => {
+        setWsConnected(false);
+        notify('Backend disconnected. Reconnecting...', 'error');
+        reconnectTimer = setTimeout(connect, 3000);
+      };
+
+      ws.onerror = (err) => { ws.close(); };
     };
 
-    const toggleStatus = async (gpu) => {
-        const newStatus = gpu.status === 'online' ? 'offline' : 'online';
-        try {
-            if (newStatus === 'online') {
-                setAgentConnecting(true); // Show progress bar
-            } else {
-                setAgentConnecting(false);
-                setMetrics(prev => { const next = { ...prev }; delete next[gpu.id]; return next; });
-            }
-            await api.updateGPU(gpu.id, { status: newStatus });
-            await load();
-        } catch (e) {
-            setAgentConnecting(false);
-            alert(e.detail || 'Update failed');
-        }
+    connect();
+
+    return () => {
+      clearTimeout(reconnectTimer);
+      if (wsRef.current) {
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+      }
     };
+  }, [user?.id, token, notify, load]);
 
-    const statusBadge = (s) => <span className={`badge badge-${s}`}>{s}</span>;
+  const handleRegisterGPU = async () => {
+    try {
+      await api.registerGPU({
+        name: form.name,
+        vram_mb: parseInt(form.vram_mb),
+        cuda_version: form.cuda_version,
+      });
+      setShowRegister(false);
+      setForm({ name: '', vram_mb: '', cuda_version: '' });
+      notify('GPU Registered successfully', 'success');
+      await load();
+    } catch (e) { notify(e.detail || 'Registration failed', 'error'); }
+  };
 
-    // Get combined metrics (show first GPU's metrics if available)
-    const activeGpuId = gpus.find(g => g.status === 'online' || g.status === 'busy')?.id;
-    const liveMetrics = activeGpuId ? metrics[activeGpuId] : null;
+  const toggleStatus = async (gpu) => {
+    const newStatus = gpu.status === 'online' ? 'offline' : 'online';
+    try {
+      if (newStatus === 'offline') {
+        setMetrics(prev => { const next = { ...prev }; delete next[gpu.id]; return next; });
+      }
+      await api.updateGPU(gpu.id, { status: newStatus });
+      notify(`GPU status changed to ${newStatus}`, 'success');
+      await load();
+    } catch (e) {
+      notify(e.detail || 'Update failed', 'error');
+    }
+  };
 
-    return (
-        <div className="layout">
-            <Sidebar />
-            <main className="main-content">
-                <div className="page-header animate-in">
-                    <h2>Provider Dashboard</h2>
-                    <p>Manage your GPUs and track earnings</p>
-                </div>
+  const activeGpuId = gpus.find(g => g.status === 'online' || g.status === 'busy')?.id;
+  const liveMetrics = activeGpuId ? metrics[activeGpuId] : null;
+  const agentConnected = !!liveMetrics;
+  const dockerHealthy = liveMetrics?.docker_running !== false;
 
-                {/* Stat Cards */}
-                <div className="grid-4 animate-in">
-                    <div className="glass stat-card">
-                        <span className="stat-label">Total GPUs</span>
-                        <span className="stat-value cyan">{gpus.length}</span>
-                    </div>
-                    <div className="glass stat-card">
-                        <span className="stat-label">Online</span>
-                        <span className="stat-value green">{gpus.filter(g => g.status === 'online' || g.status === 'busy').length}</span>
-                    </div>
-                    <div className="glass stat-card">
-                        <span className="stat-label">Busy</span>
-                        <span className="stat-value amber">{gpus.filter(g => g.status === 'busy').length}</span>
-                    </div>
-                    <div className="glass stat-card">
-                        <span className="stat-label">Earnings</span>
-                        <span className="stat-value green">₹ {wallet?.balance?.toFixed(2) || '0.00'}</span>
-                    </div>
-                </div>
+  const gpuNameFor = useCallback((id) => {
+    if (!id) return 'Auto (Any)';
+    const g = gpus.find((x) => x.id === id);
+    return g ? g.name : id.slice(0, 8);
+  }, [gpus]);
 
-                {/* Connecting Progress Bar */}
-                {agentConnecting && (
-                    <div className="connecting-bar-wrapper animate-in">
-                        <div className="connecting-bar-content">
-                            <div className="connecting-spinner" />
-                            <span>Connecting to agent…</span>
-                        </div>
-                        <div className="connecting-progress">
-                            <div className="connecting-progress-fill" />
-                        </div>
-                    </div>
-                )}
+  const handleViewLogs = async (jobId) => {
+    setLogModal(jobId);
+    setLogsLoading(true);
+    try {
+      const data = await api.getJobLogs(jobId);
+      setLogs(data.logs || '');
+    } catch (e) {
+      setLogs(`Error fetching logs: ${e.detail || e}`);
+    } finally {
+      setLogsLoading(false);
+    }
+  };
 
-                {/* Live System Metrics */}
-                <div className="section animate-in">
-                    <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                        Live System Metrics
-                        <span className={`ws-indicator ${wsConnected ? 'ws-connected' : 'ws-disconnected'}`} title="Backend connection">
-                            {wsConnected ? '● Backend' : '○ Backend'}
-                        </span>
-                        <span className={`ws-indicator ${liveMetrics ? 'ws-connected' : 'ws-disconnected'}`} title="GPU agent connection">
-                            {liveMetrics ? '● Agent' : '○ Agent'}
-                        </span>
-                        {liveMetrics && (
-                            <span className={`ws-indicator ${liveMetrics.docker_running === false ? 'ws-disconnected' : 'ws-connected'}`} title="Docker daemon on the provider's machine">
-                                {liveMetrics.docker_running === false ? '○ Docker' : '● Docker'}
-                            </span>
-                        )}
-                    </div>
-                    {liveMetrics ? (
-                        <div className="grid-4">
-                            <div className="glass metric-card">
-                                <div className="metric-icon"><FontAwesomeIcon icon={faTemperatureQuarter} /></div>
-                                <div className="metric-info">
-                                    <span className="metric-label">GPU Temp</span>
-                                    <span className={`metric-value ${(liveMetrics.gpu_temp_c || 0) > 80 ? 'red' : (liveMetrics.gpu_temp_c || 0) > 65 ? 'amber' : 'green'}`}>
-                                        {liveMetrics.gpu_temp_c ?? '—'}°C
-                                    </span>
-                                </div>
-                                <div className="metric-bar-wrapper">
-                                    <div className="metric-bar" style={{
-                                        width: `${Math.min((liveMetrics.gpu_temp_c || 0) / 100 * 100, 100)}%`,
-                                        background: (liveMetrics.gpu_temp_c || 0) > 80 ? 'var(--red)' : (liveMetrics.gpu_temp_c || 0) > 65 ? 'var(--amber)' : 'var(--green)'
-                                    }} />
-                                </div>
-                            </div>
-                            <div className="glass metric-card">
-                                <div className="metric-icon"><FontAwesomeIcon icon={faMicrochip} /></div>
-                                <div className="metric-info">
-                                    <span className="metric-label">GPU Usage</span>
-                                    <span className={`metric-value ${(liveMetrics.gpu_util_pct || 0) > 90 ? 'red' : (liveMetrics.gpu_util_pct || 0) > 60 ? 'amber' : 'green'}`}>
-                                        {liveMetrics.gpu_util_pct ?? '—'}%
-                                    </span>
-                                </div>
-                                <div className="metric-bar-wrapper">
-                                    <div className="metric-bar" style={{
-                                        width: `${liveMetrics.gpu_util_pct || 0}%`,
-                                        background: (liveMetrics.gpu_util_pct || 0) > 90 ? 'var(--red)' : (liveMetrics.gpu_util_pct || 0) > 60 ? 'var(--amber)' : 'var(--green)'
-                                    }} />
-                                </div>
-                            </div>
-                            <div className="glass metric-card">
-                                <div className="metric-icon"><FontAwesomeIcon icon={faServer} /></div>
-                                <div className="metric-info">
-                                    <span className="metric-label">CPU Usage</span>
-                                    <span className={`metric-value ${(liveMetrics.cpu_pct || 0) > 90 ? 'red' : (liveMetrics.cpu_pct || 0) > 60 ? 'amber' : 'green'}`}>
-                                        {liveMetrics.cpu_pct ?? '—'}%
-                                    </span>
-                                </div>
-                                <div className="metric-bar-wrapper">
-                                    <div className="metric-bar" style={{
-                                        width: `${liveMetrics.cpu_pct || 0}%`,
-                                        background: (liveMetrics.cpu_pct || 0) > 90 ? 'var(--red)' : (liveMetrics.cpu_pct || 0) > 60 ? 'var(--amber)' : 'var(--green)'
-                                    }} />
-                                </div>
-                            </div>
-                            <div className="glass metric-card">
-                                <div className="metric-icon"><FontAwesomeIcon icon={faMemory} /></div>
-                                <div className="metric-info">
-                                    <span className="metric-label">Memory</span>
-                                    <span className={`metric-value ${(liveMetrics.mem_pct || 0) > 90 ? 'red' : (liveMetrics.mem_pct || 0) > 70 ? 'amber' : 'green'}`}>
-                                        {liveMetrics.mem_pct ?? '—'}%
-                                    </span>
-                                </div>
-                                <div className="metric-bar-wrapper">
-                                    <div className="metric-bar" style={{
-                                        width: `${liveMetrics.mem_pct || 0}%`,
-                                        background: (liveMetrics.mem_pct || 0) > 90 ? 'var(--red)' : (liveMetrics.mem_pct || 0) > 70 ? 'var(--amber)' : 'var(--green)'
-                                    }} />
-                                </div>
-                            </div>
-                        </div>
-                    ) : (
-                        <div className="glass" style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                            {!wsConnected
-                                ? 'WebSocket disconnected. Metrics will appear once the backend is online.'
-                                : gpus.length === 0
-                                    ? 'Register a GPU to see live metrics.'
-                                    : 'Waiting for agent metrics… Make sure the GPU agent is running and connected.'}
-                        </div>
-                    )}
-                </div>
+  const handleStopJob = (job) => {
+    setConfirm({
+      title: 'Stop Workload?',
+      msg: 'This cannot be undone. Are you sure you want to stop this workload?',
+      confirmLabel: 'Stop Workload',
+      danger: true,
+      onOk: async () => {
+        try {
+          await api.cancelJob(job.id);
+          notify('Workload stopped.', 'success');
+          load();
+        } catch (e) { notify(e.detail || 'Could not stop workload.', 'error'); }
+      },
+    });
+  };
 
-                <div className="grid-2">
-                    {/* GPU List */}
-                    <div className="section animate-in">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                            <div className="section-title" style={{ margin: 0 }}>My GPUs</div>
-                        </div>
-                        {gpus.length === 0 ? (
-                            <div className="glass" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                No GPUs registered yet. Click "Register GPU" to get started.
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {gpus.map(gpu => (
-                                    <div key={gpu.id} className="glass" style={{ padding: '20px' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <div>
-                                                <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '4px' }}>
-                                                    {gpu.name}
-                                                </div>
-                                                <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                                                    {gpu.vram_mb} MB VRAM · CUDA {gpu.cuda_version || 'N/A'}
-                                                </div>
-                                                <div style={{ marginTop: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                                    {statusBadge(gpu.status)}
-                                                    {metrics[gpu.id]?.docker_running === false && (
-                                                        <span className="badge badge-busy" title="Docker isn't running on this provider's machine">
-                                                            ⚠ Docker not running
-                                                        </span>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <button
-                                                className={`btn btn-small ${gpu.status === 'online' ? 'btn-danger' : 'btn-primary'}`}
-                                                onClick={() => toggleStatus(gpu)}>
-                                                {gpu.status === 'online' ? 'Go Offline' : 'Go Online'}
-                                            </button>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+  const handleDeleteJob = (job) => {
+    setConfirm({
+      title: 'Delete Local Files?',
+      msg: 'Cached logs and temporary execution files will be permanently removed from this machine.',
+      confirmLabel: 'Delete Files',
+      danger: true,
+      onOk: async () => {
+        try {
+          await api.deleteJob(job.id);
+          notify('Local files deleted.', 'success');
+          load();
+        } catch (e) { notify(e.detail || 'Could not delete files.', 'error'); }
+      },
+    });
+  };
 
-                    {/* Earnings */}
-                    <div className="section animate-in">
-                        <div className="section-title">Earnings</div>
-                        <div className="glass" style={{ padding: '24px' }}>
-                            <div className="wallet-balance">
-                                <span className="currency">₹ </span>
-                                {wallet?.balance?.toFixed(2) || '0.00'}
-                            </div>
-                            <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginTop: '8px' }}>
-                                You earn credits when your GPU runs training jobs for clients.
-                            </p>
-
-                            {transactions.length > 0 && (
-                                <div style={{ marginTop: '16px' }}>
-                                    <div className="section-title">Transaction History</div>
-                                    <div className="table-container">
-                                        <table>
-                                            <thead><tr><th>Type</th><th>Amount</th><th>Date</th></tr></thead>
-                                            <tbody>
-                                                {transactions.slice(0, 10).map(t => (
-                                                    <tr key={t.id}>
-                                                        <td>{t.type}</td>
-                                                        <td style={{ color: t.type === 'credit' ? 'var(--green)' : 'var(--red)' }}>
-                                                            {t.type === 'credit' ? '+' : '-'}{t.amount.toFixed(2)}
-                                                        </td>
-                                                        <td>{new Date(t.created_at).toLocaleDateString()}</td>
-                                                    </tr>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                </div>
-
-                {/* Agent Logs Terminal */}
-                <div className="section animate-in">
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div className="section-title" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                            📋 Job Logs
-                            <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 400 }}>
-                                {agentLogs.length} lines
-                            </span>
-                        </div>
-                        <button
-                            className="btn btn-small"
-                            style={{ background: 'var(--glass-bg)', color: 'var(--text-secondary)', border: '1px solid var(--border)' }}
-                            onClick={() => setAgentLogs([])}
-                        >
-                            Clear
-                        </button>
-                    </div>
-                    <div className="log-terminal">
-                        {agentLogs.length === 0 ? (
-                            <div className="log-empty">
-                                No logs yet. Logs will appear here when the agent is running.
-                            </div>
-                        ) : (
-                            agentLogs.map((log, i) => (
-                                <div key={i} className={`log-line ${log.isJob ? 'log-job' : ''} ${log.isStatus ? 'log-status' : ''}`}>
-                                    <span className="log-time">{log.time}</span>
-                                    <span className="log-text">{log.text}</span>
-                                </div>
-                            ))
-                        )}
-                    </div>
-                </div>
-
-                {/* Register GPU Modal */}
-                {showRegister && (
-                    <div className="modal-overlay" onClick={() => setShowRegister(false)}>
-                        <div className="modal glass-elevated" onClick={e => e.stopPropagation()}>
-                            <div className="modal-header">
-                                <h3>Register New GPU</h3>
-                                <button className="modal-close" onClick={() => setShowRegister(false)}>×</button>
-                            </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                                <div className="form-group">
-                                    <label>GPU Name</label>
-                                    <input className="input" placeholder="e.g. RTX 4090"
-                                        value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
-                                </div>
-                                <div className="form-group">
-                                    <label>VRAM (MB)</label>
-                                    <input className="input" type="number" placeholder="e.g. 24576"
-                                        value={form.vram_mb} onChange={e => setForm({ ...form, vram_mb: e.target.value })} />
-                                </div>
-                                <div className="form-group">
-                                    <label>CUDA Version</label>
-                                    <input className="input" placeholder="e.g. 12.3"
-                                        value={form.cuda_version} onChange={e => setForm({ ...form, cuda_version: e.target.value })} />
-                                </div>
-                                <button className="btn btn-primary" onClick={handleRegisterGPU} style={{ width: '100%' }}>
-                                    Register GPU
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-            </main>
+  return (
+    <div className="client-dashboard">
+      <ProviderNavbar wallet={wallet} />
+      
+      <div className="cd-shell">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingBottom: '16px', borderBottom: '1px solid var(--lp-stone-divider)' }}>
+          <div>
+            <h1 className="cd-section-head__title">Overview</h1>
+            <p className="cd-section-head__desc">Your provider node is connected and ready.</p>
+          </div>
+          <ConnectionPipeline 
+            wsConnected={wsConnected} 
+            agentConnected={agentConnected} 
+            dockerHealthy={dockerHealthy} 
+          />
         </div>
-    );
+
+        <SystemMetrics liveMetrics={liveMetrics} />
+
+        <MyGPUs 
+          gpus={gpus} 
+          metrics={metrics} 
+          onToggleStatus={toggleStatus} 
+          onRegisterClick={() => setShowRegister(true)} 
+          onSelectGpu={setSelectedGpuDetails} 
+        />
+
+        <div style={{ marginTop: '32px' }}>
+          <ProviderWorkloads 
+            jobs={jobs}
+            gpuNameFor={gpuNameFor}
+            onViewLogs={handleViewLogs}
+            onStop={handleStopJob}
+            onDelete={handleDeleteJob}
+            onSelectJob={setDrawerJob}
+          />
+        </div>
+      </div>
+
+      {showRegister && (
+        <div className="cd-overlay" onClick={() => setShowRegister(false)} role="dialog">
+            <div className="cd-modal__panel" style={{ position: 'relative', margin: 'auto', padding: '24px', maxWidth: '400px', width: '100%' }} onClick={e => e.stopPropagation()}>
+                <h3 className="cd-modal__title" style={{ marginBottom: '16px' }}>Register New GPU</h3>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div>
+                        <label className="cd-detail-row__label">GPU Name</label>
+                        <input className="cd-input" style={{ width: '100%', marginTop: '4px' }} placeholder="e.g. RTX 4090"
+                            value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                    </div>
+                    <div>
+                        <label className="cd-detail-row__label">VRAM (MB)</label>
+                        <input className="cd-input" style={{ width: '100%', marginTop: '4px' }} type="number" placeholder="e.g. 24576"
+                            value={form.vram_mb} onChange={e => setForm({ ...form, vram_mb: e.target.value })} />
+                    </div>
+                    <div>
+                        <label className="cd-detail-row__label">CUDA Version</label>
+                        <input className="cd-input" style={{ width: '100%', marginTop: '4px' }} placeholder="e.g. 12.3"
+                            value={form.cuda_version} onChange={e => setForm({ ...form, cuda_version: e.target.value })} />
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '8px' }}>
+                        <button className="cd-btn cd-btn--outline" onClick={() => setShowRegister(false)}>Cancel</button>
+                        <button className="cd-btn cd-btn--primary" onClick={handleRegisterGPU}>Register GPU</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+      )}
+
+      {selectedGpuDetails && (
+        <GpuDetailDrawer 
+          gpu={selectedGpuDetails} 
+          metrics={metrics[selectedGpuDetails.id]} 
+          activeJob={jobs.find(j => j.gpu_id === selectedGpuDetails.id && (j.status === 'running' || j.status === 'queued' || j.status === 'pending'))}
+          onClose={() => setSelectedGpuDetails(null)} 
+        />
+      )}
+
+      {drawerJob && (
+        <WorkloadDrawer
+          job={drawerJob}
+          availableGPUs={gpus}
+          onClose={() => setDrawerJob(null)}
+        />
+      )}
+
+      {logModal && (
+        <LogsViewer
+          logs={logs}
+          loading={logsLoading}
+          jobId={logModal}
+          onClose={() => setLogModal(null)}
+        />
+      )}
+
+      {confirm && (
+        <ConfirmDialog
+          title={confirm.title}
+          message={confirm.msg}
+          confirmLabel={confirm.confirmLabel}
+          danger={confirm.danger}
+          onConfirm={() => { confirm.onOk(); setConfirm(null); }}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+
+      <ToastStack toasts={toasts} onDismiss={dismiss} />
+    </div>
+  );
 }

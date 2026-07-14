@@ -2796,7 +2796,8 @@ tbody tr:last-child td {
    .landing-page, so nothing here is hardcoded.
    ══════════════════════════════════════════════════ */
 .lp-docs {
-  padding-top: 120px; /* clear the fixed navbar island */
+  padding-top: 120px;
+  /* clear the fixed navbar island */
 }
 
 /* ── Hero / header ───────────────────────────────── */
@@ -2878,7 +2879,8 @@ tbody tr:last-child td {
 /* ── Sidebar ─────────────────────────────────────── */
 .lp-docs__sidebar {
   position: sticky;
-  top: 100px; /* sit below the fixed navbar */
+  top: 100px;
+  /* sit below the fixed navbar */
 }
 
 .lp-docs__sidebar-inner {
@@ -2934,7 +2936,8 @@ tbody tr:last-child td {
 
 /* ── Content column ──────────────────────────────── */
 .lp-docs__content {
-  min-width: 0; /* allow code windows to shrink within the grid track */
+  min-width: 0;
+  /* allow code windows to shrink within the grid track */
 }
 
 .lp-docs__content-head {
@@ -2964,7 +2967,8 @@ tbody tr:last-child td {
 .lp-docs__step {
   padding: 36px 0;
   border-top: 1px solid var(--lp-stone-divider);
-  scroll-margin-top: 100px; /* anchor target clears the fixed navbar */
+  scroll-margin-top: 100px;
+  /* anchor target clears the fixed navbar */
 }
 
 .lp-docs__step:first-of-type {
@@ -3101,7 +3105,9 @@ tbody tr:last-child td {
   .lp-docs__step {
     padding: 28px 0;
   }
-}/* ════════════════════════════════════════════════════════
+}
+
+/* ════════════════════════════════════════════════════════
    CLIENT DASHBOARD — Light Theme (scoped to .client-dashboard)
    Follows docs/client-db-design.md + docs/client-db-content.md.
    Reuses the shared --lp-* tokens (now defined on :root) so the
@@ -3859,7 +3865,7 @@ tbody tr:last-child td {
 }
 
 .cd-btn--danger {
-  color: #ef4444;
+  color: #b91c1c;
 }
 
 .cd-btn--small {
@@ -4276,9 +4282,20 @@ tbody tr:last-child td {
   background: rgba(34, 197, 94, 0.12);
 }
 
-.cd-status--failed {
+.cd-status--failed,
+.cd-status--error {
   color: #b91c1c;
   background: rgba(239, 68, 68, 0.12);
+}
+
+.cd-status--success {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.12);
+}
+
+.cd-status--warning {
+  color: #d97706; /* Amber color */
+  background: rgba(245, 158, 11, 0.12);
 }
 
 .cd-status--cancelled {
@@ -4814,7 +4831,7 @@ tbody tr:last-child td {
 }
 
 .cd-toast--error {
-  border-left-color: #ef4444;
+  border-left-color: #b91c1c;
 }
 
 .cd-toast--warning {
@@ -4837,7 +4854,7 @@ tbody tr:last-child td {
 }
 
 .cd-toast--error .cd-toast__icon {
-  color: #ef4444;
+  color: #b91c1c;
 }
 
 .cd-toast--warning .cd-toast__icon {
