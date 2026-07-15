@@ -192,6 +192,22 @@ class JobExecutor:
                 else:
                     logger.warning("Requirements download returned HTTP %d — skipping", resp.status_code)
 
+            # Download dataset (optional, always saved as dataset.csv)
+            dataset_url = job.get("dataset_url")
+            if dataset_url:
+                resp = await client.get(dataset_url)
+                if resp.status_code == 200:
+                    (dest / "dataset.csv").write_bytes(resp.content)
+                    logger.info(
+                        "Downloaded dataset.csv (%d bytes) from %s",
+                        len(resp.content), dataset_url,
+                    )
+                else:
+                    logger.warning(
+                        "Dataset download returned HTTP %d — skipping (job will run without dataset)",
+                        resp.status_code,
+                    )
+
     # ──────────────────────────────────────────────
     # Internal — Docker execution
     # ──────────────────────────────────────────────

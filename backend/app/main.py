@@ -82,6 +82,18 @@ async def lifespan(app: FastAPI):
         print("✅ Oracle Cloud Object Storage initialised")
     else:
         print("⚠️  OCI Object Storage not configured — using local filesystem for uploads")
+
+    # Initialize Google Drive integration (backend-only)
+    from app.services.gdrive import init_gdrive
+    init_gdrive(
+        client_id=settings.GOOGLE_CLIENT_ID,
+        client_secret=settings.GOOGLE_CLIENT_SECRET,
+        encryption_key=settings.GDRIVE_ENCRYPTION_KEY,
+    )
+    if settings.GOOGLE_CLIENT_ID and settings.GDRIVE_ENCRYPTION_KEY:
+        print("✅ Google Drive integration initialised")
+    else:
+        print("⚠️  Google Drive not configured — dataset GDrive option will be unavailable")
     
     # Start background cleanup task for expired GPU locks
     cleanup_task = asyncio.create_task(_cleanup_gpu_locks_background())

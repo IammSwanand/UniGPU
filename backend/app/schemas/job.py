@@ -11,6 +11,9 @@ class JobOut(BaseModel):
     gpu_id: Optional[str]
     script_path: str
     requirements_path: Optional[str]
+    # Dataset and artifacts — exposed to client; gdrive_* fields are NOT exposed
+    dataset_path: Optional[str]
+    artifacts_path: Optional[str]
     status: JobStatus
     logs: Optional[str]
     created_at: datetime

@@ -277,6 +277,7 @@ export default function ProviderDashboard() {
         <WorkloadDrawer
           job={drawerJob}
           availableGPUs={gpus}
+          isProvider={true}
           onClose={() => setDrawerJob(null)}
         />
       )}

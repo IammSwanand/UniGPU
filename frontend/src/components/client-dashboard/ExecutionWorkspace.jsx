@@ -1,6 +1,7 @@
 import UploadDropzone from './UploadDropzone';
 import ScriptEditor from './ScriptEditor';
 import GpuPreference from './GpuPreference';
+import DatasetUpload from './DatasetUpload';
 
 /**
  * ExecutionWorkspace — the largest visual component on the dashboard.
@@ -23,6 +24,8 @@ export default function ExecutionWorkspace({
   script, onScript, clearScript, scriptText, onScriptText, scriptPreview, toggleScriptPreview,
   // requirements
   reqs, onReqs, clearReqs, reqText, onReqText, reqPreview, toggleReqPreview,
+  // dataset
+  dataset, onDataset, onClearDataset, gdriveState, onGDriveState,
   // gpu
   selectedGPU, onSelectGPU,
   // submit
@@ -89,6 +92,14 @@ export default function ExecutionWorkspace({
               emptyMsg="Upload a requirements file to preview or edit it."
             />
           )}
+
+          <DatasetUpload
+            dataset={dataset}
+            onDataset={onDataset}
+            onClearDataset={onClearDataset}
+            gdriveState={gdriveState}
+            onGDriveState={onGDriveState}
+          />
 
           <GpuPreference
             availableGPUs={availableGPUs}

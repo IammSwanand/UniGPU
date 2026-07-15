@@ -34,6 +34,18 @@ class Job(Base):
         Enum(JobStatus), default=JobStatus.pending, nullable=False
     )
     logs: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Dataset: either directly uploaded CSV or fetched from Google Drive
+    dataset_path: Mapped[str | None] = mapped_column(String, nullable=True)
+
+    # Google Drive (backend-only): stored when client chooses GDrive option.
+    # The provider/agent never sees these fields — they receive only a dataset_url.
+    gdrive_file_id: Mapped[str | None] = mapped_column(String, nullable=True)
+    gdrive_refresh_token_enc: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+    # Output artifacts uploaded by the agent after job completion
+    artifacts_path: Mapped[str | None] = mapped_column(String, nullable=True)
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )

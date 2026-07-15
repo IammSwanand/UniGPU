@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { IconClose, IconCheck } from './icons';
 import { statusInfo } from './utils';
+import ArtifactsPanel from './ArtifactsPanel';
 
 /**
  * WorkloadDrawer — right-side drawer opened by clicking a row in the
@@ -27,26 +28,33 @@ const TABS = [
   { key: 'timeline', label: 'Timeline', live: false },
   { key: 'environment', label: 'Environment', live: false },
   { key: 'gpu', label: 'GPU', live: true },
-  { key: 'artifacts', label: 'Artifacts', live: false },
+  { key: 'logs', label: 'Logs', live: true },
+  { key: 'artifacts', label: 'Artifacts', live: true },
   { key: 'billing', label: 'Billing', live: false },
 ];
 
-export default function WorkloadDrawer({ job, onClose, availableGPUs = [] }) {
+export default function WorkloadDrawer({ job, onClose, availableGPUs = [], isProvider = false }) {
   if (!job) return null;
   // Mount a fresh panel per job (keyed by id) so internal tab state resets
   // automatically — no setState-in-effect needed.
   return (
-    <DrawerPanel
-      key={job.id}
-      job={job}
-      onClose={onClose}
-      availableGPUs={availableGPUs}
+    <WorkloadDrawerInner 
+      key={job.id} 
+      job={job} 
+      onClose={onClose} 
+      availableGPUs={availableGPUs} 
+      isProvider={isProvider}
     />
   );
 }
 
-function DrawerPanel({ job, onClose, availableGPUs }) {
+function WorkloadDrawerInner({ job, onClose, availableGPUs, isProvider }) {
   const [tab, setTab] = useState('overview');
+
+  const visibleTabs = TABS.filter(t => {
+    if (isProvider && t.key === 'artifacts') return false;
+    return true;
+  });
 
   // Lock body scroll while drawer is open.
   useEffect(() => {
@@ -71,7 +79,7 @@ function DrawerPanel({ job, onClose, availableGPUs }) {
           </div>
           
           <div className="cd-modal__tabs" role="tablist">
-            {TABS.map((t) => (
+            {visibleTabs.map((t) => (
               <button
                 key={t.key}
                 role="tab"
@@ -168,8 +176,43 @@ function DrawerPanel({ job, onClose, availableGPUs }) {
             </div>
           )}
 
+          {/* ── Logs (inline from JobOut) ── */}
+          {tab === 'logs' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {job.logs ? (
+                <pre
+                  style={{
+                    background: 'var(--lp-ink)',
+                    color: '#e2e8f0',
+                    borderRadius: 8,
+                    padding: '12px 14px',
+                    fontSize: 12,
+                    fontFamily: 'monospace',
+                    overflowY: 'auto',
+                    maxHeight: 340,
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-all',
+                  }}
+                >
+                  {job.logs}
+                </pre>
+              ) : (
+                <div className="cd-locked-panel">
+                  <p style={{ color: 'var(--lp-ash-helper)' }}>
+                    {job.status === 'completed' || job.status === 'failed'
+                      ? 'No logs were captured for this job.'
+                      : 'Logs will appear once execution begins.'}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── Artifacts ── */}
+          {tab === 'artifacts' && <ArtifactsPanel job={job} />}
+
           {/* ── All other tabs: Coming soon ── */}
-          {tab !== 'overview' && tab !== 'gpu' && (
+          {tab !== 'overview' && tab !== 'gpu' && tab !== 'logs' && tab !== 'artifacts' && (
             <div className="cd-locked-panel">
               <IconCheck style={{ width: 40, height: 40, margin: '0 auto 12px', opacity: 0.2 }} />
               <p>

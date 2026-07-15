@@ -58,35 +58,43 @@ const api = {
     updateGPU: (id, d) => request('PATCH', `/gpus/${id}/status`, { body: d }),
 
     // Jobs
-    submitJob: (script, requirements, gpuId) => {
-        const files = { script };
-        if (requirements) files.requirements = requirements;
-        // gpu_id is sent as a form field alongside the files
-        const opts = { files };
-        if (gpuId) {
-            // We need to add gpu_id to the FormData manually
-            return (async () => {
-                const fd = new FormData();
-                fd.append('script', script);
-                if (requirements) fd.append('requirements', requirements);
-                fd.append('gpu_id', gpuId);
-                const res = await fetch(`${BASE}/jobs/submit`, {
-                    method: 'POST',
-                    headers: { ...authHeaders() },
-                    body: fd,
-                });
-                const data = await res.json();
-                if (!res.ok) throw { status: res.status, detail: data?.detail || data };
-                return data;
-            })();
-        }
-        return request('POST', '/jobs/submit', { files });
+    submitJob: (script, requirements, gpuId, dataset, gdriveState) => {
+        return (async () => {
+            const fd = new FormData();
+            fd.append('script', script);
+            if (requirements) fd.append('requirements', requirements);
+            if (gpuId) fd.append('gpu_id', gpuId);
+
+            // Dataset: direct CSV upload OR Google Drive (mutually exclusive)
+            if (dataset) {
+                fd.append('dataset', dataset);
+            } else if (gdriveState) {
+                fd.append('gdrive_auth_code', gdriveState.authCode);
+                fd.append('gdrive_file_id', gdriveState.fileId);
+                fd.append('gdrive_redirect_uri', gdriveState.redirectUri);
+            }
+
+            const res = await fetch(`${BASE}/jobs/submit`, {
+                method: 'POST',
+                headers: { ...authHeaders() },
+                body: fd,
+            });
+            const data = await res.json();
+            if (!res.ok) throw { status: res.status, detail: data?.detail || data };
+            return data;
+        })();
     },
     listJobs: () => request('GET', '/jobs/'),
     getJob: (id) => request('GET', `/jobs/${id}`),
     getJobLogs: (id) => request('GET', `/jobs/${id}/logs`),
     cancelJob: (id) => request('POST', `/jobs/${id}/cancel`),
     deleteJob: (id) => request('DELETE', `/jobs/${id}`),
+
+    // Artifacts (produced by the agent when the script writes to /workspace/output/)
+    getArtifactsList: (jobId) => request('GET', `/jobs/${jobId}/artifacts/list`),
+    // Returns a URL string for native browser download (not a fetch call)
+    getArtifactFileUrl: (jobId, filename) => `${BASE}/jobs/${jobId}/artifacts/${encodeURIComponent(filename)}`,
+    getArtifactsZipUrl: (jobId) => `${BASE}/jobs/${jobId}/artifacts`,
 
     // Wallet
     getWallet: () => request('GET', '/wallet/'),

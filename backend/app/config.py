@@ -46,6 +46,18 @@ class Settings(BaseSettings):
     # ── File Storage ──
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads")
 
+    # ── Google Drive OAuth (backend-only — agents never see these) ──
+    # Credentials from Google Cloud Console → APIs & Services → Credentials
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+    GOOGLE_CLIENT_SECRET: str = os.getenv("GOOGLE_CLIENT_SECRET", "")
+
+    # Fernet key for encrypting stored GDrive refresh tokens.
+    # Generate: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    GDRIVE_ENCRYPTION_KEY: str = os.getenv("GDRIVE_ENCRYPTION_KEY", "")
+
+    # ── Dataset upload limits ──
+    MAX_DATASET_SIZE_BYTES: int = int(os.getenv("MAX_DATASET_SIZE_BYTES", str(2 * 1024 ** 3)))  # 2 GB
+
     # ── Oracle Cloud Object Storage (S3-compatible) ──
     # Credentials: OCI Console → Profile → My Profile → Customer Secret Keys
     # Namespace:   OCI Console → Object Storage → top of bucket list page
