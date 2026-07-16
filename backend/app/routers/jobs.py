@@ -84,15 +84,17 @@ async def submit_job(
 
     job_id = str(uuid.uuid4())
 
-    # Save script + requirements (OCI Object Storage or local filesystem)
-    script_path, script_size = await _save_file(script, job_id, script.filename)
-    req_path = None
+    script_content = await script.read()
+    script_size = len(script_content)
+
+    req_content = None
     req_size = 0
     if requirements:
-        req_path, req_size = await _save_file(requirements, job_id, requirements.filename)
+        req_content = await requirements.read()
+        req_size = len(req_content)
 
     # ── Dataset: direct CSV upload ──
-    dataset_path = None
+    dataset_content = None
     dataset_size = 0
     if dataset:
         # Validate CSV extension
@@ -102,18 +104,14 @@ async def submit_job(
                 detail="Only .csv files are accepted for dataset uploads.",
             )
         # Validate size before reading
-        content = await dataset.read()
-        dataset_size = len(content)
+        dataset_content = await dataset.read()
+        dataset_size = len(dataset_content)
         if dataset_size > settings.MAX_DATASET_SIZE_BYTES:
             size_gb = dataset_size / (1024 ** 3)
             raise HTTPException(
                 status_code=413,
                 detail=f"Dataset too large ({size_gb:.2f} GB). Maximum allowed is 2 GB.",
             )
-        # Save as dataset.csv (normalise filename so agent always knows the name)
-        import io as _io
-        dataset_upload = UploadFile(filename="dataset.csv", file=_io.BytesIO(content))
-        dataset_path, _ = await _save_file(dataset_upload, job_id, "dataset.csv")
 
     total_size = script_size + req_size + dataset_size
 
@@ -121,6 +119,22 @@ async def submit_job(
     is_allowed, reason = await check_upload_limit(current_user.id, total_size)
     if not is_allowed:
         raise HTTPException(status_code=429, detail=reason)
+
+    import io as _io
+    script_upload = UploadFile(filename=script.filename, file=_io.BytesIO(script_content))
+    script_path, _ = await _save_file(script_upload, job_id, script.filename)
+    
+    req_path = None
+    if requirements:
+        req_upload = UploadFile(filename=requirements.filename, file=_io.BytesIO(req_content))
+        req_path, _ = await _save_file(req_upload, job_id, requirements.filename)
+        
+    dataset_path = None
+    if dataset:
+        # Save as dataset.csv (normalise filename so agent always knows the name)
+        dataset_upload = UploadFile(filename="dataset.csv", file=_io.BytesIO(dataset_content))
+        dataset_path, _ = await _save_file(dataset_upload, job_id, "dataset.csv")
+
 
     # ── Google Drive: store auth code for background download ──
     gdrive_refresh_token_enc = None
