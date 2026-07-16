@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 import { useToasts } from '../components/client-dashboard/useToasts';
+import { useJobNotifications } from '../components/client-dashboard/useJobNotifications';
 import ToastStack from '../components/client-dashboard/Toast';
 import DashboardNavbar from '../components/client-dashboard/DashboardNavbar';
 import GpuNetworkStrip from '../components/client-dashboard/GpuNetworkStrip';
@@ -65,6 +66,7 @@ export default function ClientDashboard() {
 
   // ── Toasts ──
   const { toasts, notify, dismiss } = useToasts();
+  const { notifications, unreadCount, markAllRead } = useJobNotifications(jobs, notify);
 
   // ══════════════ Data loading ══════════════
   const load = useCallback(async () => {
@@ -254,7 +256,12 @@ export default function ClientDashboard() {
   return (
     <div className="client-dashboard">
       {/* Fixed top navbar */}
-      <DashboardNavbar wallet={wallet} />
+      <DashboardNavbar 
+        wallet={wallet} 
+        notifications={notifications}
+        unreadCount={unreadCount}
+        markAllRead={markAllRead}
+      />
 
       {/* Main content shell, padded below the fixed nav */}
       <div className="cd-shell">

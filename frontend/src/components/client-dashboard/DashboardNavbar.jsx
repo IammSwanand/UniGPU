@@ -40,7 +40,7 @@ function LogoMark() {
   );
 }
 
-export default function DashboardNavbar({ wallet }) {
+export default function DashboardNavbar({ wallet, notifications = [], unreadCount = 0, markAllRead = () => {} }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
@@ -122,20 +122,32 @@ export default function DashboardNavbar({ wallet }) {
             className="cd-icon-btn"
             aria-label="Notifications"
             aria-expanded={openMenu === 'notif'}
-            onClick={() => setOpenMenu(openMenu === 'notif' ? null : 'notif')}
+            onClick={() => {
+              if (openMenu !== 'notif') markAllRead();
+              setOpenMenu(openMenu === 'notif' ? null : 'notif');
+            }}
           >
             <IconBell />
-            {/* Unread dot is decorative; real notifications are Coming soon */}
-            <span className="cd-unread-dot" aria-hidden="true" />
+            {unreadCount > 0 && <span className="cd-unread-dot" aria-hidden="true" />}
             {openMenu === 'notif' && (
               <div className="cd-menu" role="dialog" aria-label="Notifications">
                 <div className="cd-menu__head">Notifications</div>
-                <div className="cd-menu__empty">
-                  You&apos;re all caught up.
-                  <div style={{ marginTop: 10 }}>
-                    <span className="cd-coming">Coming soon</span>
+                {notifications.length === 0 ? (
+                  <div className="cd-menu__empty">You&apos;re all caught up.</div>
+                ) : (
+                  <div style={{ maxHeight: 300, overflowY: 'auto' }}>
+                    {notifications.map(n => (
+                      <div key={n.id} style={{ padding: '12px 16px', borderBottom: '1px solid var(--lp-stone-divider)', textAlign: 'left' }}>
+                        <div style={{ fontSize: 13, fontWeight: 500, color: '#0f172a' }}>
+                          Workload &lsquo;{n.script}&rsquo; <span style={{ color: n.status === 'completed' ? '#10b981' : '#ef4444' }}>{n.status}</span>
+                        </div>
+                        <div style={{ fontSize: 11, color: 'var(--lp-ash-helper)', marginTop: 4 }}>
+                          {n.timestamp.toLocaleTimeString()}
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                )}
               </div>
             )}
           </button>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from '../context/AuthContext';
 import api from '../api/client';
 import { useToasts } from '../components/client-dashboard/useToasts';
+import { useJobNotifications } from '../components/client-dashboard/useJobNotifications';
 import ToastStack from '../components/client-dashboard/Toast';
 
 import ProviderNavbar from '../components/provider-dashboard/ProviderNavbar';
@@ -45,6 +46,7 @@ export default function ProviderDashboard() {
   const [drawerJob, setDrawerJob] = useState(null);
   const [confirm, setConfirm] = useState(null);
   const { toasts, notify, dismiss } = useToasts();
+  const { notifications, unreadCount, markAllRead } = useJobNotifications(jobs, notify);
 
   const load = useCallback(async () => {
     try {
@@ -198,7 +200,12 @@ export default function ProviderDashboard() {
 
   return (
     <div className="client-dashboard">
-      <ProviderNavbar wallet={wallet} />
+      <ProviderNavbar 
+        wallet={wallet}
+        notifications={notifications}
+        unreadCount={unreadCount}
+        markAllRead={markAllRead}
+      />
       
       <div className="cd-shell">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', paddingBottom: '16px', borderBottom: '1px solid var(--lp-stone-divider)' }}>
