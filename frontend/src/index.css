@@ -4602,6 +4602,25 @@ tbody tr:last-child td {
   padding: 64px 32px 32px 32px;
 }
 
+.cd-modal__body::-webkit-scrollbar,
+.cd-table__scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.cd-modal__body::-webkit-scrollbar-track,
+.cd-table__scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.cd-modal__body::-webkit-scrollbar-thumb,
+.cd-table__scroll::-webkit-scrollbar-thumb {
+  background: rgba(148, 163, 184, 0.3);
+  border-radius: 4px;
+}
+.cd-modal__body::-webkit-scrollbar-thumb:hover,
+.cd-table__scroll::-webkit-scrollbar-thumb:hover {
+  background: rgba(148, 163, 184, 0.5);
+}
+
 .cd-modal__footer {
   padding: 16px 24px;
   border-top: 1px solid var(--lp-stone-divider);

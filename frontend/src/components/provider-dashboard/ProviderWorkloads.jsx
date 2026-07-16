@@ -22,7 +22,7 @@ function ScriptName({ job }) {
  * per-row three-dot menu.
  *
  * Columns: Script · Status · GPU · Created · Duration · Cost · Actions.
- * Duration and Cost are Coming soon (backend exposes no per-job billing
+ * Duration is Coming soon.
  * summary until completion and no duration estimate). They render as muted
  * placeholders rather than fabricated values.
  *
@@ -175,7 +175,9 @@ export default function ProviderWorkloads({
                           <IconEye style={{ width: '14px', height: '14px', marginRight: '4px' }} /> View
                         </button>
                       </td>
-                      <td data-label="Cost" style={{ color: 'var(--lp-ash-helper)' }}>—</td>
+                      <td data-label="Cost" style={{ color: job.cost != null ? 'inherit' : 'var(--lp-ash-helper)' }}>
+                        {job.cost != null ? `₹${job.cost.toFixed(4)}` : '—'}
+                      </td>
                       <td data-label="" className="cd-row-actions" onClick={(e) => e.stopPropagation()}>
                         <button
                           className="cd-row-trigger"

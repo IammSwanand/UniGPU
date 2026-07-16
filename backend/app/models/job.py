@@ -2,7 +2,7 @@ import uuid
 import enum
 from datetime import datetime, timezone
 
-from sqlalchemy import String, Text, Enum, DateTime, ForeignKey
+from sqlalchemy import String, Text, Enum, DateTime, ForeignKey, Float, Integer
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 
@@ -50,6 +50,10 @@ class Job(Base):
     completed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True), nullable=True
     )
+    
+    # Billing
+    duration_seconds: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    cost: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     # relationships
     client = relationship("User", back_populates="jobs")

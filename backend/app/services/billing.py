@@ -23,6 +23,9 @@ async def charge_client(db: AsyncSession, job: Job) -> bool:
 
     duration = (job.completed_at - job.started_at).total_seconds()
     cost = calculate_cost(duration)
+    
+    job.duration_seconds = int(duration)
+    job.cost = cost
 
     if cost <= 0:
         return True

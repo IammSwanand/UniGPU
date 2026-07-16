@@ -19,6 +19,9 @@ class JobOut(BaseModel):
     created_at: datetime
     started_at: Optional[datetime]
     completed_at: Optional[datetime]
+    
+    duration_seconds: Optional[int]
+    cost: Optional[float]
 
     class Config:
         from_attributes = True

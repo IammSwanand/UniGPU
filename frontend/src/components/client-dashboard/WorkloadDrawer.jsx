@@ -126,6 +126,14 @@ function WorkloadDrawerInner({ job, onClose, availableGPUs, isProvider }) {
                 <span className="cd-detail-row__label">Job ID</span>
                 <span className="cd-detail-row__value cd-detail-row__value--mono">{job.id}</span>
               </div>
+              <div className="cd-detail-row">
+                <span className="cd-detail-row__label">Duration</span>
+                <span className="cd-detail-row__value">{job.duration_seconds != null ? `${job.duration_seconds}s` : '—'}</span>
+              </div>
+              <div className="cd-detail-row">
+                <span className="cd-detail-row__label">Cost</span>
+                <span className="cd-detail-row__value">{job.cost != null ? `₹${job.cost.toFixed(4)}` : '—'}</span>
+              </div>
             </div>
           )}
 
