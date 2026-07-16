@@ -42,33 +42,35 @@ STATUS_COLORS = {
 
 def _create_icon_image(color: str = "#6366f1", size: int = 64) -> "Image.Image":
     """
-    Generate a simple tray icon: a filled circle with 'U' letter on it.
-    Color indicates status.
+    Generate a tray icon by loading the agent logo and overlaying a status indicator.
     """
-    img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    try:
+        from src.gui import get_icon_path
+        icon_path = get_icon_path()
+        base_img = Image.open(icon_path).convert("RGBA")
+        base_img = base_img.resize((size, size), Image.Resampling.LANCZOS)
+    except Exception as e:
+        logger.error(f"Failed to load icon: {e}")
+        base_img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+
+    img = base_img.copy()
     draw = ImageDraw.Draw(img)
 
-    # Background circle
-    padding = 4
+    # Status circle in bottom right corner
+    radius = size // 5
+    margin = size // 16
+    cx, cy = size - radius - margin, size - radius - margin
+
+    # White border for visibility
     draw.ellipse(
-        [padding, padding, size - padding, size - padding],
+        [cx - radius - 2, cy - radius - 2, cx + radius + 2, cy + radius + 2],
+        fill="white"
+    )
+    # Fill color for status
+    draw.ellipse(
+        [cx - radius, cy - radius, cx + radius, cy + radius],
         fill=color,
     )
-
-    # 'U' letter in center
-    try:
-        font = ImageFont.truetype("segoeui.ttf", size // 2)
-    except (IOError, OSError):
-        try:
-            font = ImageFont.truetype("arial.ttf", size // 2)
-        except (IOError, OSError):
-            font = ImageFont.load_default()
-
-    bbox = draw.textbbox((0, 0), "U", font=font)
-    tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
-    tx = (size - tw) // 2
-    ty = (size - th) // 2 - 2
-    draw.text((tx, ty), "U", fill="white", font=font)
 
     return img
 

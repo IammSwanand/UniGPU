@@ -64,10 +64,10 @@ class SetupWizard:
         # Track labels that need dynamic wraplength on resize
         self._dynamic_labels: list[tk.Label] = []
 
-        # Try to set icon
+        # Try to set window icon
         try:
-            from pathlib import Path
-            icon = Path(__file__).parent / "assets" / "icon.ico"
+            from src.gui import get_icon_path
+            icon = get_icon_path()
             if icon.exists():
                 self.root.iconbitmap(str(icon))
         except Exception:

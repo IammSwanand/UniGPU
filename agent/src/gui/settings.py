@@ -41,8 +41,8 @@ class SettingsWindow:
 
         # Try to set icon
         try:
-            from pathlib import Path
-            icon = Path(__file__).parent / "assets" / "icon.ico"
+            from src.gui import get_icon_path
+            icon = get_icon_path()
             if icon.exists():
                 self.win.iconbitmap(str(icon))
         except Exception:
