@@ -25,7 +25,7 @@ export default function ExecutionWorkspace({
   // requirements
   reqs, onReqs, clearReqs, reqText, onReqText, reqPreview, toggleReqPreview,
   // dataset
-  dataset, onDataset, onClearDataset, gdriveState, onGDriveState,
+  dataset, onDataset, onClearDataset,
   // gpu
   selectedGPU, onSelectGPU,
   // submit
@@ -97,8 +97,6 @@ export default function ExecutionWorkspace({
             dataset={dataset}
             onDataset={onDataset}
             onClearDataset={onClearDataset}
-            gdriveState={gdriveState}
-            onGDriveState={onGDriveState}
           />
 
           <GpuPreference

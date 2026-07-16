@@ -5092,19 +5092,7 @@ tbody tr:last-child td {
   flex-shrink: 0;
 }
 
-/* Google Drive tab */
-.cd-gdrive__connect {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
 
-.cd-gdrive__desc {
-  font-size: 12px;
-  color: var(--lp-ash-helper);
-  line-height: 1.55;
-  margin: 0;
-}
 
 /* Button modifiers */
 .cd-btn--small {

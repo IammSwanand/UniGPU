@@ -78,7 +78,18 @@ class LogStreamer:
                 await asyncio.sleep(self.batch_interval)
 
         except asyncio.CancelledError:
-            logger.debug("Log stream cancelled for job %s", job_id)
+            logger.debug("Log stream cancelled for job %s, flushing remaining logs", job_id)
+            # Drain and flush any remaining logs in the queue before exiting
+            lines = []
+            while not queue.empty():
+                try:
+                    line = queue.get_nowait()
+                    if line is not None:
+                        lines.append(line)
+                except asyncio.QueueEmpty:
+                    break
+            if lines:
+                await self._flush(job_id, lines)
         except Exception as exc:
             logger.error("Log streaming error for job %s: %s", job_id, exc)
         finally:

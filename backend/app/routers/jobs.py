@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.database import get_db
-from app.deps import get_current_user, require_role, get_current_user_optional_query
+from app.deps import get_current_user, require_role
 from app.config import get_settings
 from app.models.user import User
 from app.models.job import Job, JobStatus
@@ -70,10 +70,6 @@ async def submit_job(
     gpu_id: str | None = Form(None),
     # ── Dataset (CSV direct upload) ──
     dataset: UploadFile | None = File(None),
-    # ── Google Drive (backend-only OAuth) ──
-    gdrive_auth_code: str | None = Form(None),
-    gdrive_file_id: str | None = Form(None),
-    gdrive_redirect_uri: str | None = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("client", "admin")),
 ):
@@ -135,39 +131,12 @@ async def submit_job(
         dataset_upload = UploadFile(filename="dataset.csv", file=_io.BytesIO(dataset_content))
         dataset_path, _ = await _save_file(dataset_upload, job_id, "dataset.csv")
 
-
-    # ── Google Drive: store auth code for background download ──
-    gdrive_refresh_token_enc = None
-    if gdrive_auth_code and gdrive_file_id:
-        if not gdrive_redirect_uri:
-            raise HTTPException(
-                status_code=400,
-                detail="gdrive_redirect_uri is required when using Google Drive.",
-            )
-        from app.services.gdrive import get_gdrive
-        gdrive = get_gdrive()
-        if not gdrive or not gdrive.is_configured:
-            raise HTTPException(
-                status_code=503,
-                detail="Google Drive integration is not configured on this server.",
-            )
-        try:
-            token_data = gdrive.exchange_code(gdrive_auth_code, gdrive_redirect_uri)
-            gdrive_refresh_token_enc = gdrive.encrypt_token(token_data["refresh_token"])
-        except Exception as exc:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Google Drive authentication failed: {exc}",
-            )
-
     job = Job(
         id=job_id,
         client_id=current_user.id,
         script_path=script_path,
         requirements_path=req_path,
         dataset_path=dataset_path,
-        gdrive_file_id=gdrive_file_id if gdrive_refresh_token_enc else None,
-        gdrive_refresh_token_enc=gdrive_refresh_token_enc,
         status=JobStatus.pending,
     )
     db.add(job)
@@ -175,15 +144,6 @@ async def submit_job(
 
     # Record successful submission
     await record_job_submission(current_user.id, total_size)
-
-    # ── If GDrive dataset requested, queue background download task ──
-    # The job stays pending until the Celery task downloads the file and
-    # updates dataset_path, then triggers GPU matching.
-    if gdrive_refresh_token_enc and gdrive_file_id:
-        await db.commit()
-        from app.worker.tasks import download_gdrive_dataset
-        download_gdrive_dataset.delay(job_id)
-        return job
 
     # ── Match with a GPU and dispatch ──
     from app.services.matching import find_available_gpu_and_lock
@@ -204,23 +164,23 @@ async def submit_job(
             if gpu.locked_until is None or gpu.locked_until <= now:
                 gpu.locked_by_job_id = job_id
                 gpu.locked_until = now + timedelta(seconds=30)
-                print(f"🔒 Locked GPU {gpu_id} for job {job_id}")
+                print(f" Locked GPU {gpu_id} for job {job_id}")
             else:
-                print(f"🔐 GPU {gpu_id} is already locked")
+                print(f" GPU {gpu_id} is already locked")
                 gpu = None
         else:
-            print(f"⚠️  Requested GPU {gpu_id} not available (offline or not found)")
+            print(f"  Requested GPU {gpu_id} not available (offline or not found)")
             gpu = None
 
         if not gpu:
-            print("🔄 Falling back to auto-match...")
+            print(" Falling back to auto-match...")
             gpu = await find_available_gpu_and_lock(db, job_id, min_vram=0)
     else:
-        print("🔄 No GPU selected, auto-matching...")
+        print(" No GPU selected, auto-matching...")
         gpu = await find_available_gpu_and_lock(db, job_id, min_vram=0)
 
-    print(f"🎯 Matched GPU: {gpu.id if gpu else 'NONE'}")
-    print(f"🔌 Connected GPUs: {manager.get_active_gpu_ids()}")
+    print(f" Matched GPU: {gpu.id if gpu else 'NONE'}")
+    print(f" Connected GPUs: {manager.get_active_gpu_ids()}")
 
     if gpu and manager.is_connected(gpu.id):
         job.gpu_id = gpu.id
@@ -242,7 +202,7 @@ async def submit_job(
 
         await db.commit()
 
-        print(f"🚀 Dispatching job {job_id} to GPU {gpu.id}")
+        print(f" Dispatching job {job_id} to GPU {gpu.id}")
         await manager.send_to_gpu(gpu.id, {
             "type": "assign_job",
             "job_id": job_id,
@@ -251,7 +211,7 @@ async def submit_job(
             "dataset_url": dataset_url,
         })
     else:
-        print(f"❌ Cannot dispatch — GPU found: {gpu is not None}, Connected: {manager.is_connected(gpu.id) if gpu else 'N/A'}")
+        print(f" Cannot dispatch — GPU found: {gpu is not None}, Connected: {manager.is_connected(gpu.id) if gpu else 'N/A'}")
         await db.commit()
 
     return job
@@ -497,7 +457,7 @@ async def download_artifact_file(
     job_id: str,
     filename: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user_optional_query),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Download a single file extracted from the artifacts zip.
@@ -542,7 +502,7 @@ async def download_artifact_file(
 async def download_artifacts_zip(
     job_id: str,
     db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user_optional_query),
+    current_user: User = Depends(get_current_user),
 ):
     """
     Download the full artifacts zip (all output files bundled together).

@@ -52,7 +52,6 @@ export default function ClientDashboard() {
   const [reqPreview, setReqPreview] = useState(false);
   // Dataset
   const [dataset, setDataset] = useState(null);
-  const [gdriveState, setGdriveState] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   // ── Modal / drawer state ──
@@ -119,7 +118,6 @@ export default function ClientDashboard() {
     setReqText('');
     setReqPreview(false);
     setDataset(null);
-    setGdriveState(null);
   }, []);
 
   // ══════════════ Submit workload ══════════════
@@ -132,7 +130,7 @@ export default function ClientDashboard() {
       if (reqs) {
         finalReqs = new File([reqText], reqs.name, { type: reqs.type || 'text/plain' });
       }
-      await api.submitJob(finalScript, finalReqs, selectedGPU || undefined, dataset, gdriveState);
+      await api.submitJob(finalScript, finalReqs, selectedGPU || undefined, dataset);
       // Reset workspace
       setScript(null);
       setScriptText('');
@@ -141,7 +139,6 @@ export default function ClientDashboard() {
       setReqText('');
       setReqPreview(false);
       setDataset(null);
-      setGdriveState(null);
       setSelectedGPU('');
       notify('Workload submitted successfully.', 'success');
       await load();
@@ -153,7 +150,7 @@ export default function ClientDashboard() {
     } finally {
       setSubmitting(false);
     }
-  }, [script, scriptText, reqs, reqText, selectedGPU, dataset, gdriveState, notify, load]);
+  }, [script, scriptText, reqs, reqText, selectedGPU, dataset, notify, load]);
 
   // ══════════════ Reset workspace ══════════════
   const handleReset = useCallback(() => {
@@ -287,8 +284,6 @@ export default function ClientDashboard() {
           dataset={dataset}
           onDataset={setDataset}
           onClearDataset={() => setDataset(null)}
-          gdriveState={gdriveState}
-          onGDriveState={setGdriveState}
           selectedGPU={selectedGPU}
           onSelectGPU={setSelectedGPU}
           submitting={submitting}

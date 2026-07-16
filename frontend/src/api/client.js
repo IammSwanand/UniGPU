@@ -58,20 +58,15 @@ const api = {
     updateGPU: (id, d) => request('PATCH', `/gpus/${id}/status`, { body: d }),
 
     // Jobs
-    submitJob: (script, requirements, gpuId, dataset, gdriveState) => {
+    submitJob: (script, requirements, gpuId, dataset) => {
         return (async () => {
             const fd = new FormData();
             fd.append('script', script);
             if (requirements) fd.append('requirements', requirements);
             if (gpuId) fd.append('gpu_id', gpuId);
 
-            // Dataset: direct CSV upload OR Google Drive (mutually exclusive)
             if (dataset) {
                 fd.append('dataset', dataset);
-            } else if (gdriveState) {
-                fd.append('gdrive_auth_code', gdriveState.authCode);
-                fd.append('gdrive_file_id', gdriveState.fileId);
-                fd.append('gdrive_redirect_uri', gdriveState.redirectUri);
             }
 
             const res = await fetch(`${BASE}/jobs/submit`, {

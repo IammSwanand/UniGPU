@@ -1,6 +1,5 @@
 import { useState, useRef } from 'react';
 import { IconUpload, IconFile, IconTrash } from './icons';
-import { useGDriveAuth } from './useGDriveAuth';
 
 const MAX_SIZE_BYTES = 2 * 1024 ** 3; // 2 GB
 
@@ -17,36 +16,12 @@ const MAX_SIZE_BYTES = 2 * 1024 ** 3; // 2 GB
  *  - dataset         : File | null
  *  - onDataset(File) : set the direct-upload file
  *  - onClearDataset(): clear the direct-upload file
- *  - gdriveState     : { authCode, fileId, fileName, redirectUri } | null
- *  - onGDriveState   : setter for gdrive state (from useGDriveAuth)
  */
 export default function DatasetUpload({
   dataset, onDataset, onClearDataset,
-  gdriveState, onGDriveState,
 }) {
-  const [tab, setTab] = useState('upload'); // 'upload' | 'gdrive'
   const [sizeError, setSizeError] = useState('');
   const inputRef = useRef(null);
-
-  // Google Drive hook (manages OAuth popup + Picker)
-  const gdrive = useGDriveAuth();
-
-  // Sync gdrive state up to parent
-  if (gdrive.gdriveState !== gdriveState && gdrive.gdriveState !== null) {
-    onGDriveState(gdrive.gdriveState);
-  }
-
-  const handleTabChange = (t) => {
-    setTab(t);
-    setSizeError('');
-    // Switching tabs clears the other mode
-    if (t === 'upload') {
-      gdrive.disconnect();
-      onGDriveState(null);
-    } else {
-      onClearDataset();
-    }
-  };
 
   const handleFile = (f) => {
     if (!f) return;
@@ -67,16 +42,7 @@ export default function DatasetUpload({
     handleFile(e.dataTransfer.files?.[0]);
   };
 
-  const handleGDriveConnect = async () => {
-    onGDriveState(null);
-    await gdrive.connect();
-    if (gdrive.gdriveState) onGDriveState(gdrive.gdriveState);
-  };
 
-  const handleGDriveDisconnect = () => {
-    gdrive.disconnect();
-    onGDriveState(null);
-  };
 
   return (
     <div className="cd-dataset">
@@ -85,36 +51,7 @@ export default function DatasetUpload({
         Provide a dataset your script can read from <code>/workspace/input/dataset.csv</code>.
       </span>
 
-      {/* Tab toggle */}
-      <div className="cd-dataset__tabs">
-        <button
-          className={`cd-dataset__tab ${tab === 'upload' ? 'cd-dataset__tab--active' : ''}`}
-          onClick={() => handleTabChange('upload')}
-          type="button"
-        >
-          <IconUpload style={{ width: 14, height: 14 }} />
-          Direct Upload
-        </button>
-        <button
-          className={`cd-dataset__tab ${tab === 'gdrive' ? 'cd-dataset__tab--active' : ''}`}
-          onClick={() => handleTabChange('gdrive')}
-          type="button"
-        >
-          <svg style={{ width: 14, height: 14, flexShrink: 0 }} viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-            <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-            <path d="M43.65 25L29.9 1.2C28.55 2 27.4 3.1 26.6 4.5L1.2 48.35c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
-            <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/>
-            <path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.95 0H34.35c-1.55 0-3.1.45-4.45 1.2z" fill="#00832d"/>
-            <path d="M59.8 52.85H27.5L13.75 76.8c1.35.8 2.9 1.2 4.45 1.2h50.6c1.55 0 3.1-.45 4.45-1.2z" fill="#2684fc"/>
-            <path d="M73.4 26.45l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l16.15 27.85h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-          </svg>
-          Google Drive
-        </button>
-      </div>
 
-      {/* Direct Upload Tab */}
-      {tab === 'upload' && (
-        <div>
           {dataset ? (
             <div className="cd-file">
               <span className="cd-file__icon"><IconFile /></span>
@@ -136,8 +73,6 @@ export default function DatasetUpload({
                   <IconTrash style={{ width: 16, height: 16 }} />
                 </button>
               </div>
-              <input ref={inputRef} type="file" accept=".csv" hidden
-                onChange={(e) => handleFile(e.target.files?.[0])} />
             </div>
           ) : (
             <div
@@ -160,82 +95,9 @@ export default function DatasetUpload({
             <p style={{ color: '#ef4444', fontSize: '12px', marginTop: '6px' }}>{sizeError}</p>
           )}
           <input ref={inputRef} type="file" accept=".csv" hidden
+            onClick={(e) => { e.target.value = null; }}
             onChange={(e) => handleFile(e.target.files?.[0])} />
-        </div>
-      )}
 
-      {/* Google Drive Tab */}
-      {tab === 'gdrive' && (
-        <div className="cd-gdrive">
-          {gdriveState ? (
-            /* Connected — show selected file */
-            <div className="cd-file">
-              <span className="cd-file__icon">
-                <svg style={{ width: 20, height: 20 }} viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                  <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                  <path d="M43.65 25L29.9 1.2C28.55 2 27.4 3.1 26.6 4.5L1.2 48.35c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
-                  <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/>
-                  <path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.95 0H34.35c-1.55 0-3.1.45-4.45 1.2z" fill="#00832d"/>
-                  <path d="M59.8 52.85H27.5L13.75 76.8c1.35.8 2.9 1.2 4.45 1.2h50.6c1.55 0 3.1-.45 4.45-1.2z" fill="#2684fc"/>
-                  <path d="M73.4 26.45l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l16.15 27.85h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-                </svg>
-              </span>
-              <div className="cd-file__meta">
-                <div className="cd-file__name" title={gdriveState.fileName}>{gdriveState.fileName}</div>
-                <div className="cd-file__ok">✓ Selected from Google Drive</div>
-              </div>
-              <div className="cd-file__actions">
-                <button className="cd-btn cd-btn--outline cd-btn--small" onClick={handleGDriveConnect}>
-                  Change
-                </button>
-                <button
-                  className="cd-btn cd-btn--outline cd-btn--danger"
-                  style={{ padding: '6px', minWidth: 'auto', borderRadius: '50%' }}
-                  onClick={handleGDriveDisconnect}
-                  aria-label="Remove Google Drive dataset"
-                >
-                  <IconTrash style={{ width: 16, height: 16 }} />
-                </button>
-              </div>
-            </div>
-          ) : (
-            /* Not connected */
-            <div className="cd-gdrive__connect">
-              <p className="cd-gdrive__desc">
-                Select a CSV file from your Google Drive. The backend fetches it securely —
-                the provider never sees your Google credentials.
-              </p>
-              {gdrive.error && (
-                <p style={{ color: '#ef4444', fontSize: '12px', marginBottom: '10px' }}>
-                  {gdrive.error}
-                </p>
-              )}
-              <button
-                className="cd-btn cd-btn--outline"
-                onClick={handleGDriveConnect}
-                disabled={gdrive.loading}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px' }}
-              >
-                {gdrive.loading ? (
-                  <>Connecting…</>
-                ) : (
-                  <>
-                    <svg style={{ width: 18, height: 18, flexShrink: 0 }} viewBox="0 0 87.3 78" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M6.6 66.85l3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8H5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
-                      <path d="M43.65 25L29.9 1.2C28.55 2 27.4 3.1 26.6 4.5L1.2 48.35c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
-                      <path d="M73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5H59.8l5.85 11.5z" fill="#ea4335"/>
-                      <path d="M43.65 25L57.4 1.2C56.05.4 54.5 0 52.95 0H34.35c-1.55 0-3.1.45-4.45 1.2z" fill="#00832d"/>
-                      <path d="M59.8 52.85H27.5L13.75 76.8c1.35.8 2.9 1.2 4.45 1.2h50.6c1.55 0 3.1-.45 4.45-1.2z" fill="#2684fc"/>
-                      <path d="M73.4 26.45l-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3L43.65 25l16.15 27.85h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
-                    </svg>
-                    Connect Google Drive
-                  </>
-                )}
-              </button>
-            </div>
-          )}
-        </div>
-      )}
     </div>
   );
 }

@@ -178,9 +178,9 @@ class UniGPUAgent:
         self.config.agent_token = new_token
         try:
             self.config.save()
-            logger.info("✅ Refreshed and saved agent token before startup")
+            logger.info(" Refreshed and saved agent token before startup")
         except Exception as exc:
-            logger.warning("⚠️  Refreshed token but failed to save config: %s", exc)
+            logger.warning("  Refreshed token but failed to save config: %s", exc)
 
     async def stop(self) -> None:
         """Graceful shutdown."""
@@ -197,7 +197,7 @@ class UniGPUAgent:
         """Handle control commands from the dashboard (stop)."""
         action = msg.get("action")
         if action == "stop":
-            logger.info("⏹️  Stop command received from dashboard")
+            logger.info("  Stop command received from dashboard")
             await self.stop()
         else:
             logger.warning("Unknown control action: %s", action)
@@ -267,7 +267,7 @@ class UniGPUAgent:
                     )
                     uploaded = await uploader.upload(job_id, result.output_dir)
                     if uploaded:
-                        logger.info("✅ Artifacts uploaded for job %s", job_id)
+                        logger.info(" Artifacts uploaded for job %s", job_id)
                     else:
                         logger.debug("No artifacts to upload for job %s (output dir empty)", job_id)
                 except Exception as exc:
