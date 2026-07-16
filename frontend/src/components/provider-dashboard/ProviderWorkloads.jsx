@@ -62,6 +62,10 @@ export default function ProviderWorkloads({
       list.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
     } else if (sort === 'status') {
       list.sort((a, b) => a.status.localeCompare(b.status));
+    } else if (sort === 'cost') {
+      list.sort((a, b) => (b.cost || 0) - (a.cost || 0));
+    } else if (sort === 'duration') {
+      list.sort((a, b) => (b.duration_seconds || 0) - (a.duration_seconds || 0));
     } else {
       // newest (default)
       list.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -113,8 +117,8 @@ export default function ProviderWorkloads({
           <option value="default" disabled hidden>Sort workloads</option>
           <option value="newest">Newest</option>
           <option value="oldest">Oldest</option>
-          <option value="duration" disabled>Duration (Coming soon)</option>
-          <option value="cost" disabled>Cost (Coming soon)</option>
+          <option value="duration">Duration (High to Low)</option>
+          <option value="cost">Cost (High to Low)</option>
         </select>
       </div>
 
