@@ -38,7 +38,7 @@ class ArtifactUploader:
 
         if not output_path.exists() or not any(output_path.iterdir()):
             logger.info("No output artifacts for job %s — skipping upload", job_id)
-            return True  # Not an error
+            return False  # Not an error
 
         archive_path: Optional[str] = None
 
