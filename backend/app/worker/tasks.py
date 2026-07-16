@@ -77,12 +77,18 @@ async def _process_job_async(job_id: str):
                 if job.requirements_path:
                     req_name = Path(job.requirements_path).name
                     req_url = f"/jobs/{job.id}/download/{req_name}"
+                
+                dataset_url = None
+                if job.dataset_path:
+                    ds_name = Path(job.dataset_path).name
+                    dataset_url = f"/jobs/{job.id}/download/{ds_name}"
 
                 await manager.send_to_gpu(gpu.id, {
                     "type": "assign_job",
                     "job_id": job.id,
                     "script_url": script_url,
                     "requirements_url": req_url,
+                    "dataset_url": dataset_url,
                 })
     finally:
         await engine.dispose()
