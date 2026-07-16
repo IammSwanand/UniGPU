@@ -116,7 +116,39 @@ async def _check_heartbeats_async():
             for gpu in stale_gpus:
                 gpu.status = GPUStatus.offline
                 print(f"GPU {gpu.id} ({gpu.name}) marked offline -- stale heartbeat")
-            if stale_gpus:
+                
+                # Mark associated running/queued jobs as failed
+                job_result = await db.execute(
+                    select(Job).where(
+                        Job.gpu_id == gpu.id,
+                        Job.status.in_([JobStatus.queued, JobStatus.running])
+                    )
+                )
+                orphaned_jobs = job_result.scalars().all()
+                for job in orphaned_jobs:
+                    job.status = JobStatus.failed
+                    job.completed_at = datetime.now(timezone.utc)
+                    job.logs = (job.logs or "") + "\n[System] GPU provider disconnected abruptly. Job failed."
+                    print(f"Job {job.id} marked as failed due to provider disconnect")
+                    
+                    
+            # Check for jobs running longer than 12 hours
+            job_cutoff = datetime.now(timezone.utc) - timedelta(hours=12)
+            stale_jobs_result = await db.execute(
+                select(Job).where(
+                    Job.status == JobStatus.running,
+                    Job.started_at.isnot(None),
+                    Job.started_at < job_cutoff
+                )
+            )
+            stale_running_jobs = stale_jobs_result.scalars().all()
+            for job in stale_running_jobs:
+                job.status = JobStatus.failed
+                job.completed_at = datetime.now(timezone.utc)
+                job.logs = (job.logs or "") + "\n[System] Job exceeded maximum execution time of 12 hours. Forcefully terminated."
+                print(f"Job {job.id} marked as failed due to 12-hour timeout")
+
+            if stale_gpus or stale_running_jobs:
                 await db.commit()
     finally:
         await engine.dispose()
