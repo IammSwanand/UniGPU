@@ -143,7 +143,7 @@ export default function ProviderDashboard() {
   const activeGpuId = gpus.find(g => g.status === 'online' || g.status === 'busy')?.id;
   const liveMetrics = activeGpuId ? metrics[activeGpuId] : null;
   const agentConnected = !!liveMetrics;
-  const dockerHealthy = liveMetrics?.docker_running !== false;
+  const dockerHealthy = agentConnected && liveMetrics.docker_running === true;
 
   const gpuNameFor = useCallback((id) => {
     if (!id) return 'Auto (Any)';
