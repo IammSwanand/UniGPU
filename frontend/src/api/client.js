@@ -83,7 +83,6 @@ const api = {
     getJob: (id) => request('GET', `/jobs/${id}`),
     getJobLogs: (id) => request('GET', `/jobs/${id}/logs`),
     cancelJob: (id) => request('POST', `/jobs/${id}/cancel`),
-    deleteJob: (id) => request('DELETE', `/jobs/${id}`),
 
     // Artifacts (produced by the agent when the script writes to /workspace/output/)
     getArtifactsList: (jobId) => request('GET', `/jobs/${jobId}/artifacts/list`),

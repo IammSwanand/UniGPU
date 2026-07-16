@@ -182,22 +182,6 @@ export default function ProviderDashboard() {
     });
   };
 
-  const handleDeleteJob = (job) => {
-    setConfirm({
-      title: 'Delete Local Files?',
-      msg: 'Cached logs and temporary execution files will be permanently removed from this machine.',
-      confirmLabel: 'Delete Files',
-      danger: true,
-      onOk: async () => {
-        try {
-          await api.deleteJob(job.id);
-          notify('Local files deleted.', 'success');
-          load();
-        } catch (e) { notify(e.detail || 'Could not delete files.', 'error'); }
-      },
-    });
-  };
-
   return (
     <div className="client-dashboard">
       <ProviderNavbar 
@@ -236,7 +220,6 @@ export default function ProviderDashboard() {
             gpuNameFor={gpuNameFor}
             onViewLogs={handleViewLogs}
             onStop={handleStopJob}
-            onDelete={handleDeleteJob}
             onSelectJob={setDrawerJob}
           />
         </div>

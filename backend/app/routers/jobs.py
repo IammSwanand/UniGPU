@@ -578,46 +578,46 @@ async def cancel_job(
     return job
 
 
-@router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
-async def delete_job(
-    job_id: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """Delete a completed, failed, or cancelled job."""
-    result = await db.execute(select(Job).where(Job.id == job_id))
-    job = result.scalar_one_or_none()
-    if not job:
-        raise HTTPException(status_code=404, detail="Job not found")
+# @router.delete("/{job_id}", status_code=status.HTTP_204_NO_CONTENT)
+# async def delete_job(
+#     job_id: str,
+#     db: AsyncSession = Depends(get_db),
+#     current_user: User = Depends(get_current_user),
+# ):
+#     """Delete a completed, failed, or cancelled job."""
+#     result = await db.execute(select(Job).where(Job.id == job_id))
+#     job = result.scalar_one_or_none()
+#     if not job:
+#         raise HTTPException(status_code=404, detail="Job not found")
         
-    is_provider = False
-    if job.gpu_id:
-        gpu_result = await db.execute(select(GPU).where(GPU.id == job.gpu_id))
-        gpu = gpu_result.scalar_one_or_none()
-        if gpu and gpu.provider_id == current_user.id:
-            is_provider = True
+#     is_provider = False
+#     if job.gpu_id:
+#         gpu_result = await db.execute(select(GPU).where(GPU.id == job.gpu_id))
+#         gpu = gpu_result.scalar_one_or_none()
+#         if gpu and gpu.provider_id == current_user.id:
+#             is_provider = True
 
-    if current_user.role.value != "admin" and not is_provider:
-        raise HTTPException(status_code=403, detail="Access denied")
+#     if current_user.role.value != "admin" and not is_provider:
+#         raise HTTPException(status_code=403, detail="Access denied")
 
-    if job.status.value in ("queued", "running"):
-        raise HTTPException(status_code=400, detail="Stop the job before deleting it")
+#     if job.status.value in ("queued", "running"):
+#         raise HTTPException(status_code=400, detail="Stop the job before deleting it")
 
-    # ── Clean up stored files ──
-    if settings.oci_storage_enabled:
-        # Delete from Oracle Cloud Object Storage
-        from app.services.storage import get_storage
-        storage = get_storage()
-        if job.script_path:
-            storage.delete(job.script_path)
-        if job.requirements_path:
-            storage.delete(job.requirements_path)
-    else:
-        # Delete from local filesystem
-        import shutil
-        job_dir = os.path.join(settings.UPLOAD_DIR, job_id)
-        if os.path.isdir(job_dir):
-            shutil.rmtree(job_dir, ignore_errors=True)
+#     # ── Clean up stored files ──
+#     if settings.oci_storage_enabled:
+#         # Delete from Oracle Cloud Object Storage
+#         from app.services.storage import get_storage
+#         storage = get_storage()
+#         if job.script_path:
+#             storage.delete(job.script_path)
+#         if job.requirements_path:
+#             storage.delete(job.requirements_path)
+#     else:
+#         # Delete from local filesystem
+#         import shutil
+#         job_dir = os.path.join(settings.UPLOAD_DIR, job_id)
+#         if os.path.isdir(job_dir):
+#             shutil.rmtree(job_dir, ignore_errors=True)
 
-    await db.delete(job)
-    await db.commit()
+#     await db.delete(job)
+#     await db.commit()

@@ -35,11 +35,10 @@ function ScriptName({ job }) {
  *  - gpuNameFor(id|null) : resolves a gpu_id to a display name
  *  - onViewLogs(job)     : open the logs viewer
  *  - onStop(job)         : cancel a queued/running job
- *  - onDelete(job)       : delete a job
  *  - onSelectJob(job)    : open the details drawer
  */
 export default function ProviderWorkloads({
-  jobs, gpuNameFor, onViewLogs, onStop, onDelete, onSelectJob,
+  jobs, gpuNameFor, onViewLogs, onSelectJob,
 }) {
   const [filter, setFilter] = useState('All');
   const [query, setQuery] = useState('');
@@ -183,14 +182,6 @@ export default function ProviderWorkloads({
                         {job.cost != null ? `₹${job.cost.toFixed(4)}` : '—'}
                       </td>
                       <td data-label="" className="cd-row-actions" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          className="cd-row-trigger"
-                          aria-label={`Delete ${job.id.slice(0, 8)}`}
-                          style={{ color: '#ef4444', width: '20px', height: '20px', marginRight: '15px' }}
-                          onClick={() => onDelete(job)}
-                        >
-                          <IconTrash />
-                        </button>
                       </td>
                     </tr>
                   );

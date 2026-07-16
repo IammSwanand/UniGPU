@@ -221,30 +221,6 @@ export default function ClientDashboard() {
     });
   }, [notify, load]);
 
-  const handleDelete = useCallback((job) => {
-    setConfirm({
-      title: 'Delete Workload?',
-      message: 'This action permanently removes the workload history from your dashboard.',
-      confirmLabel: 'Delete',
-      cancelLabel: 'Cancel',
-      danger: true,
-      onOk: async () => {
-        setConfirm(null);
-        try {
-          // If still running/queued, cancel first.
-          if (['queued', 'running', 'pending'].includes(job.status)) {
-            await api.cancelJob(job.id);
-          }
-          await api.deleteJob(job.id);
-          notify('Workload deleted.', 'info');
-          await load();
-        } catch (e) {
-          notify(e.detail || 'Failed to delete workload.', 'error');
-        }
-      },
-    });
-  }, [notify, load]);
-
   // ══════════════ Helpers ══════════════
   const gpuNameFor = useCallback((gpuId) => {
     if (!gpuId) return 'Auto';
@@ -304,7 +280,6 @@ export default function ClientDashboard() {
           gpuNameFor={gpuNameFor}
           onViewLogs={fetchLogs}
           onStop={handleStop}
-          onDelete={handleDelete}
           onSelectJob={setDrawerJob}
         />
 

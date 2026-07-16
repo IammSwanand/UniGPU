@@ -35,11 +35,10 @@ function ScriptName({ job }) {
  *  - gpuNameFor(id|null) : resolves a gpu_id to a display name
  *  - onViewLogs(job)     : open the logs viewer
  *  - onStop(job)         : cancel a queued/running job
- *  - onDelete(job)       : delete a job
  *  - onSelectJob(job)    : open the details drawer
  */
 export default function RecentWorkloads({
-  jobs, gpuNameFor, onViewLogs, onStop, onDelete, onSelectJob,
+  jobs, gpuNameFor, onViewLogs, onStop, onSelectJob,
 }) {
   const [filter, setFilter] = useState('All');
   const [query, setQuery] = useState('');
@@ -221,15 +220,6 @@ export default function RecentWorkloads({
                             )}
                             <button className="cd-menu__item" role="menuitem" disabled title="Coming soon">
                               <IconPlay /> Run Again <span className="cd-coming" style={{ marginLeft: 'auto' }}>Soon</span>
-                            </button>
-                            <div className="cd-menu__divider" />
-                            <button
-                              className="cd-menu__item"
-                              role="menuitem"
-                              style={{ color: '#ef4444' }}
-                              onClick={() => { setOpenRow(null); onDelete(job); }}
-                            >
-                              <IconTrash /> Delete
                             </button>
                           </div>
                         )}
