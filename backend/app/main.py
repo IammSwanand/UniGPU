@@ -34,7 +34,7 @@ limiter = Limiter(key_func=_get_rate_limit_key)
 async def lifespan(app: FastAPI):
     # ── Startup ──
     os.makedirs("uploads", exist_ok=True)
-    print("✅ Upload directory ready")
+    print(" Upload directory ready")
     
     # Apply Alembic migrations, then ensure any new tables exist
     from app.database import engine, Base, run_migrations
@@ -42,9 +42,9 @@ async def lifespan(app: FastAPI):
 
     try:
         await run_migrations()
-        print("✅ Database migrations applied")
+        print(" Database migrations applied")
     except Exception as e:
-        print(f"⚠️  Migration warning: {e}")
+        print(f"  Migration warning: {e}")
 
     async with engine.begin() as conn:
         # Create tables with error handling for existing ENUMs
@@ -53,21 +53,21 @@ async def lifespan(app: FastAPI):
         except Exception as e:
             # Ignore if types already exist
             if "already exists" not in str(e):
-                print(f"⚠️  Database creation warning: {e}")
+                print(f"  Database creation warning: {e}")
         
         # Enable UUID extension if not exists
         try:
             await conn.execute(text("CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\";"))
         except:
             pass  # Extension might already exist or be unavailable
-    print("✅ Database tables initialized")
+    print(" Database tables initialized")
     
     # Initialize Redis rate limiter with REDIS_URL from environment
     from app.redis_rate_limiter import get_rate_limiter
     redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    print(f"🔴 Initializing Redis rate limiter: {redis_url}")
+    print(f" Initializing Redis rate limiter: {redis_url}")
     get_rate_limiter(redis_url)  # Initialize the singleton with proper Redis URL
-    print("✅ Redis rate limiter initialized")
+    print(" Redis rate limiter initialized")
     
     # Initialize Oracle Cloud Object Storage
     if settings.oci_storage_enabled:
@@ -79,14 +79,14 @@ async def lifespan(app: FastAPI):
             access_key=settings.OCI_ACCESS_KEY,
             secret_key=settings.OCI_SECRET_KEY,
         )
-        print("✅ Oracle Cloud Object Storage initialised")
+        print(" Oracle Cloud Object Storage initialised")
     else:
-        print("⚠️  OCI Object Storage not configured — using local filesystem for uploads")
-    
+        print("  OCI Object Storage not configured — using local filesystem for uploads")
+
     # Start background cleanup task for expired GPU locks
     cleanup_task = asyncio.create_task(_cleanup_gpu_locks_background())
     app.state.cleanup_task = cleanup_task
-    print("✅ GPU lock cleanup task started")
+    print(" GPU lock cleanup task started")
     
     yield
     
@@ -94,7 +94,7 @@ async def lifespan(app: FastAPI):
     # Cancel the cleanup task
     if hasattr(app.state, "cleanup_task"):
         app.state.cleanup_task.cancel()
-    print("👋 Shutting down UniGPU backend")
+    print(" Shutting down UniGPU backend")
 
 
 async def _cleanup_gpu_locks_background():
@@ -108,19 +108,19 @@ async def _cleanup_gpu_locks_background():
             async with AsyncSessionLocal() as session:
                 cleaned_count = await cleanup_expired_locks(session)
                 if cleaned_count > 0:
-                    print(f"🧹 Cleaned up {cleaned_count} expired GPU lock(s)")
+                    print(f" Cleaned up {cleaned_count} expired GPU lock(s)")
         except asyncio.CancelledError:
-            print("🧹 GPU lock cleanup task cancelled")
+            print(" GPU lock cleanup task cancelled")
             break
         except Exception as e:
-            print(f"⚠️  Error in GPU lock cleanup: {e}")
+            print(f"  Error in GPU lock cleanup: {e}")
             # Continue running even if there's an error
 
 
 # ── Create FastAPI app with conditional docs ──
 app = FastAPI(
     title="UniGPU",
-    description="Centralized peer-to-peer GPU sharing platform",
+    description="GPU Compute platform",
     version="0.1.0",
     lifespan=lifespan,
     # Disable Swagger UI, ReDoc, and OpenAPI schema in production

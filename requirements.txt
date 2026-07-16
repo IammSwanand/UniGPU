@@ -9,7 +9,7 @@ redis
 celery
 python-multipart
 pyinstaller
-dotenv
+python-dotenv
 docker
 httpx
 psutil

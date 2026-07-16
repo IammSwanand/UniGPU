@@ -77,12 +77,18 @@ async def _process_job_async(job_id: str):
                 if job.requirements_path:
                     req_name = Path(job.requirements_path).name
                     req_url = f"/jobs/{job.id}/download/{req_name}"
+                
+                dataset_url = None
+                if job.dataset_path:
+                    ds_name = Path(job.dataset_path).name
+                    dataset_url = f"/jobs/{job.id}/download/{ds_name}"
 
                 await manager.send_to_gpu(gpu.id, {
                     "type": "assign_job",
                     "job_id": job.id,
                     "script_url": script_url,
                     "requirements_url": req_url,
+                    "dataset_url": dataset_url,
                 })
     finally:
         await engine.dispose()
@@ -110,10 +116,44 @@ async def _check_heartbeats_async():
             for gpu in stale_gpus:
                 gpu.status = GPUStatus.offline
                 print(f"GPU {gpu.id} ({gpu.name}) marked offline -- stale heartbeat")
-            if stale_gpus:
+                
+                # Mark associated running/queued jobs as failed
+                job_result = await db.execute(
+                    select(Job).where(
+                        Job.gpu_id == gpu.id,
+                        Job.status.in_([JobStatus.queued, JobStatus.running])
+                    )
+                )
+                orphaned_jobs = job_result.scalars().all()
+                for job in orphaned_jobs:
+                    job.status = JobStatus.failed
+                    job.completed_at = datetime.now(timezone.utc)
+                    job.logs = (job.logs or "") + "\n[System] GPU provider disconnected abruptly. Job failed."
+                    print(f"Job {job.id} marked as failed due to provider disconnect")
+                    
+                    
+            # Check for jobs running longer than 12 hours
+            job_cutoff = datetime.now(timezone.utc) - timedelta(hours=12)
+            stale_jobs_result = await db.execute(
+                select(Job).where(
+                    Job.status == JobStatus.running,
+                    Job.started_at.isnot(None),
+                    Job.started_at < job_cutoff
+                )
+            )
+            stale_running_jobs = stale_jobs_result.scalars().all()
+            for job in stale_running_jobs:
+                job.status = JobStatus.failed
+                job.completed_at = datetime.now(timezone.utc)
+                job.logs = (job.logs or "") + "\n[System] Job exceeded maximum execution time of 12 hours. Forcefully terminated."
+                print(f"Job {job.id} marked as failed due to 12-hour timeout")
+
+            if stale_gpus or stale_running_jobs:
                 await db.commit()
     finally:
         await engine.dispose()
+
+
 
 
 @celery_app.task(name="app.worker.tasks.cleanup_stale_job_files")
@@ -157,9 +197,15 @@ async def _cleanup_stale_job_files_async():
                             storage.delete(job.script_path)
                         if job.requirements_path:
                             storage.delete(job.requirements_path)
+                        if job.dataset_path:
+                            storage.delete(job.dataset_path)
+                        if job.artifacts_path:
+                            storage.delete(job.artifacts_path)
                         # Clear paths so this job isn't processed again
                         job.script_path = None
                         job.requirements_path = None
+                        job.dataset_path = None
+                        job.artifacts_path = None
                         deleted_count += 1
                     except Exception as exc:
                         print(f"[cleanup] Failed to delete files for job {job.id}: {exc}")
@@ -172,6 +218,8 @@ async def _cleanup_stale_job_files_async():
                             shutil.rmtree(job_dir, ignore_errors=True)
                         job.script_path = None
                         job.requirements_path = None
+                        job.dataset_path = None
+                        job.artifacts_path = None
                         deleted_count += 1
                     except Exception as exc:
                         print(f"[cleanup] Failed to delete local files for job {job.id}: {exc}")

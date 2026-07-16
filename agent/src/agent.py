@@ -178,9 +178,9 @@ class UniGPUAgent:
         self.config.agent_token = new_token
         try:
             self.config.save()
-            logger.info("✅ Refreshed and saved agent token before startup")
+            logger.info(" Refreshed and saved agent token before startup")
         except Exception as exc:
-            logger.warning("⚠️  Refreshed token but failed to save config: %s", exc)
+            logger.warning("  Refreshed token but failed to save config: %s", exc)
 
     async def stop(self) -> None:
         """Graceful shutdown."""
@@ -197,7 +197,7 @@ class UniGPUAgent:
         """Handle control commands from the dashboard (stop)."""
         action = msg.get("action")
         if action == "stop":
-            logger.info("⏹️  Stop command received from dashboard")
+            logger.info("  Stop command received from dashboard")
             await self.stop()
         else:
             logger.warning("Unknown control action: %s", action)
@@ -254,6 +254,24 @@ class UniGPUAgent:
                 final_status = "failed"  # timeout, error → backend expects "failed"
 
             await self.ws.send_job_status(job_id, final_status)
+
+            # Upload output artifacts (if any) — only if the script wrote files to /workspace/output/.
+            # The uploader silently skips if the output directory is empty, so no artifacts
+            # are produced unless the script explicitly writes there.
+            if result.output_dir:
+                try:
+                    from src.core.uploader import ArtifactUploader
+                    uploader = ArtifactUploader(
+                        backend_http_url=self.config.backend_http_url,
+                        agent_token=self.config.agent_token,
+                    )
+                    uploaded = await uploader.upload(job_id, result.output_dir)
+                    if uploaded:
+                        logger.info(" Artifacts uploaded for job %s", job_id)
+                    else:
+                        logger.debug("No artifacts to upload for job %s (output dir empty)", job_id)
+                except Exception as exc:
+                    logger.warning("Artifact upload error for job %s: %s", job_id, exc)
 
             logger.info(
                 "Job %s finished — status=%s, exit=%d, time=%.1fs",

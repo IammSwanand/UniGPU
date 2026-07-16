@@ -38,7 +38,7 @@ class ArtifactUploader:
 
         if not output_path.exists() or not any(output_path.iterdir()):
             logger.info("No output artifacts for job %s — skipping upload", job_id)
-            return True  # Not an error
+            return False  # Not an error
 
         archive_path: Optional[str] = None
 
@@ -85,7 +85,7 @@ class ArtifactUploader:
 
     async def _upload_file(self, job_id: str, archive_path: str) -> bool:
         """Upload the archive to the backend endpoint."""
-        url = f"{self.backend_http_url}/api/jobs/{job_id}/artifacts"
+        url = f"{self.backend_http_url}/jobs/{job_id}/artifacts"
         headers = {"Authorization": f"Bearer {self.agent_token}"}
 
         async with httpx.AsyncClient(timeout=300) as client:

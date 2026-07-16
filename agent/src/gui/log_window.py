@@ -29,10 +29,10 @@ class LogWindow:
         self.win.minsize(640, 420)
         self.win.configure(bg=BG)
 
+        # Set icon if available
         try:
-            from pathlib import Path
-
-            icon = Path(__file__).parent / "assets" / "icon.ico"
+            from src.gui import get_icon_path
+            icon = get_icon_path()
             if icon.exists():
                 self.win.iconbitmap(str(icon))
         except Exception:

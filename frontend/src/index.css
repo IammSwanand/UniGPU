@@ -4964,3 +4964,256 @@ tbody tr:last-child td {
     display: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   Dataset Upload Component
+   ═══════════════════════════════════════════════════════════════ */
+
+.cd-dataset {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.cd-field__label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lp-cloud-label);
+  letter-spacing: 0.01em;
+}
+
+.cd-field__optional {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--lp-ash-helper);
+  margin-left: 4px;
+}
+
+.cd-field__hint {
+  font-size: 12px;
+  color: var(--lp-ash-helper);
+  line-height: 1.5;
+}
+
+.cd-field__hint code {
+  background: var(--lp-ink);
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--lp-royal-signal);
+}
+
+/* Tab toggle */
+.cd-dataset__tabs {
+  display: flex;
+  gap: 4px;
+  background: var(--lp-ink);
+  border: 1px solid var(--lp-stone-divider);
+  border-radius: 8px;
+  padding: 3px;
+}
+
+.cd-dataset__tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--lp-ash-helper);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cd-dataset__tab:hover {
+  color: var(--lp-cloud-label);
+  background: var(--lp-coal);
+}
+
+.cd-dataset__tab--active {
+  background: var(--lp-coal) !important;
+  color: var(--lp-cloud-label) !important;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+}
+
+/* File card (shared by script/req/dataset/artifact) */
+.cd-file {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--lp-ink);
+  border: 1px solid var(--lp-stone-divider);
+  border-radius: 8px;
+}
+
+.cd-file__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(20, 90, 255, 0.1);
+  border-radius: 6px;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.cd-file__meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.cd-file__name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lp-cloud-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cd-file__ok {
+  font-size: 11px;
+  color: #22c55e;
+  margin-top: 2px;
+}
+
+.cd-file__actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+
+
+/* Button modifiers */
+.cd-btn--small {
+  padding: 5px 10px !important;
+  font-size: 12px !important;
+  min-height: unset !important;
+}
+
+.cd-btn--danger {
+  color: #ef4444 !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.cd-btn--danger:hover {
+  background: rgba(239, 68, 68, 0.08) !important;
+  border-color: #ef4444 !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   ArtifactsPanel & Locked Panel
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Shared locked/empty state */
+.cd-locked-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 20px;
+  color: var(--lp-ash-helper);
+  font-size: 14px;
+  gap: 4px;
+}
+
+.cd-locked-panel code {
+  background: var(--lp-ink);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--lp-royal-signal);
+}
+
+/* Artifacts panel container */
+.cd-artifacts {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cd-artifacts__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 4px;
+}
+
+.cd-artifacts__count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--lp-cloud-label);
+}
+
+/* File card grid */
+.cd-artifact-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cd-artifact-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: var(--lp-ink);
+  border: 1px solid var(--lp-stone-divider);
+  border-radius: 8px;
+  transition: border-color 0.15s;
+}
+
+.cd-artifact-card:hover {
+  border-color: var(--lp-royal-signal);
+}
+
+.cd-artifact-card__icon {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.cd-artifact-card__meta {
+  flex: 1;
+  min-width: 0;
+}
+
+.cd-artifact-card__name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--lp-cloud-label);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.cd-artifact-card__size {
+  font-size: 11px;
+  color: var(--lp-ash-helper);
+  margin-top: 2px;
+}
+
+/* Skeleton */
+.cd-artifact-card--skeleton {
+  animation: cd-pulse 1.4s ease-in-out infinite;
+}
+
+@keyframes cd-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}

@@ -50,6 +50,8 @@ export default function ClientDashboard() {
   const [reqs, setReqs] = useState(null);
   const [reqText, setReqText] = useState('');
   const [reqPreview, setReqPreview] = useState(false);
+  // Dataset
+  const [dataset, setDataset] = useState(null);
   const [submitting, setSubmitting] = useState(false);
 
   // ── Modal / drawer state ──
@@ -115,6 +117,7 @@ export default function ClientDashboard() {
     setReqs(null);
     setReqText('');
     setReqPreview(false);
+    setDataset(null);
   }, []);
 
   // ══════════════ Submit workload ══════════════
@@ -127,7 +130,7 @@ export default function ClientDashboard() {
       if (reqs) {
         finalReqs = new File([reqText], reqs.name, { type: reqs.type || 'text/plain' });
       }
-      await api.submitJob(finalScript, finalReqs, selectedGPU || undefined);
+      await api.submitJob(finalScript, finalReqs, selectedGPU || undefined, dataset);
       // Reset workspace
       setScript(null);
       setScriptText('');
@@ -135,6 +138,7 @@ export default function ClientDashboard() {
       setReqs(null);
       setReqText('');
       setReqPreview(false);
+      setDataset(null);
       setSelectedGPU('');
       notify('Workload submitted successfully.', 'success');
       await load();
@@ -146,7 +150,7 @@ export default function ClientDashboard() {
     } finally {
       setSubmitting(false);
     }
-  }, [script, scriptText, reqs, reqText, selectedGPU, notify, load]);
+  }, [script, scriptText, reqs, reqText, selectedGPU, dataset, notify, load]);
 
   // ══════════════ Reset workspace ══════════════
   const handleReset = useCallback(() => {
@@ -277,6 +281,9 @@ export default function ClientDashboard() {
           onReqText={setReqText}
           reqPreview={reqPreview}
           toggleReqPreview={() => setReqPreview((v) => !v)}
+          dataset={dataset}
+          onDataset={setDataset}
+          onClearDataset={() => setDataset(null)}
           selectedGPU={selectedGPU}
           onSelectGPU={setSelectedGPU}
           submitting={submitting}

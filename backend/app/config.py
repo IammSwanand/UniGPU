@@ -46,6 +46,9 @@ class Settings(BaseSettings):
     # ── File Storage ──
     UPLOAD_DIR: str = os.getenv("UPLOAD_DIR", "uploads")
 
+    # ── Dataset upload limits ──
+    MAX_DATASET_SIZE_BYTES: int = int(os.getenv("MAX_DATASET_SIZE_BYTES", str(2 * 1024 ** 3)))  # 2 GB
+
     # ── Oracle Cloud Object Storage (S3-compatible) ──
     # Credentials: OCI Console → Profile → My Profile → Customer Secret Keys
     # Namespace:   OCI Console → Object Storage → top of bucket list page
