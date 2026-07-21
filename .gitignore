@@ -30,4 +30,4 @@ docker-compose.prodtest.yml
 
 PROJECT_CONTEXT.md
 
-.zcode/
+docs\private
