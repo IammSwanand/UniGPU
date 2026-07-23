@@ -5,10 +5,10 @@ import { useAuth } from '../../context/AuthContext';
 
 const NAV_LINKS = [
   { label: 'Home', href: '#top' },
-  { label: 'Features', href: '#features' },
   { label: 'How It Works', href: '#how-it-works' },
+  { label: 'Marketplace', href: '#marketplace' },
+  { label: 'Security', href: '#security' },
   { label: 'Pricing', href: '#pricing' },
-  { label: 'FAQ', href: '#faq' },
 ];
 
 function LogoMark() {

@@ -1,97 +1,126 @@
+import { useEffect, useRef, useState, lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import StatusChip from './StatusChip';
-import CodeWindow from './CodeWindow';
+import useTiltOnCursor from '../../hooks/useTiltOnCursor';
+import { useIsMobile } from '../../hooks/useReducedMotion';
+import { SCROLL_TINTS } from '../../lib/lerpColor';
 
-const containerVariants = {
-  hidden: {},
-  show: { transition: { staggerChildren: 0.1 } },
-};
+gsap.registerPlugin(ScrollTrigger);
 
-const childVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: { opacity: 1, y: 0, transition: { duration: 0.45, ease: 'easeOut' } },
-};
-
-function HeroTerminal() {
-  return (
-    <CodeWindow filename="terminal" animate={true}>
-      <span className="lp-tok-prompt">$ </span>
-      <span className="lp-tok-keyword">unigpu</span>
-      <span className="lp-tok-string"> submit train.py</span>
-      {'\n\n'}
-      <span className="lp-tok-success">✓ </span>
-      <span className="lp-tok-output">Upload complete</span>
-      {'\n'}
-      <span className="lp-tok-success">✓ </span>
-      <span className="lp-tok-output">Matching available GPU...</span>
-      {'\n'}
-      <span className="lp-tok-success">✓ </span>
-      <span className="lp-tok-output">NVIDIA RTX 4060 selected</span>
-      {'\n'}
-      <span className="lp-tok-success">✓ </span>
-      <span className="lp-tok-output">Container started</span>
-      {'\n\n'}
-      <span className="lp-tok-comment">Streaming logs...</span>
-      {'\n\n'}
-      <span className="lp-tok-muted">Epoch 1/20     </span>
-      <span className="lp-tok-output">Loss: </span>
-      <span className="lp-tok-keyword">0.038</span>
-      {'  '}
-      <span className="lp-tok-output">Accuracy: </span>
-      <span className="lp-tok-keyword">97.4%</span>
-      {'\n\n'}
-      <span className="lp-tok-success">✓ </span>
-      <span className="lp-tok-string">Training Complete</span>
-      {'  '}
-      <span className="lp-tok-muted">Execution Time: </span>
-      <span className="lp-tok-output">11m 42s</span>
-    </CodeWindow>
-  );
-}
+const GpuCard3D = lazy(() => import('./GpuCard3D'));
+const Globe3D = lazy(() => import('./Globe3D'));
 
 export default function HeroSection() {
+  const sectionRef = useRef(null);
+  const contentRef = useRef(null);
+  const visualRef = useRef(null);
+  const tiltRef = useTiltOnCursor(true);
+  const isMobile = useIsMobile();
+  const [mounted3d, setMounted3d] = useState(false);
+  const [scrollProgress, setScrollProgress] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setMounted3d(true), 120);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (isMobile) return undefined;
+
+    const ctx = gsap.context(() => {
+      ScrollTrigger.create({
+        trigger: sectionRef.current,
+        start: 'top top',
+        end: 'bottom top',
+        scrub: true,
+        onUpdate: (self) => setScrollProgress(self.progress),
+      });
+
+      if (visualRef.current) {
+        gsap.to(visualRef.current, {
+          scrollTrigger: {
+            trigger: sectionRef.current,
+            start: 'top top',
+            end: 'bottom top',
+            scrub: true,
+          },
+          y: 80,
+          opacity: 0.3,
+          scale: 0.85,
+          ease: 'none',
+        });
+      }
+
+      if (contentRef.current) {
+        gsap.from(contentRef.current.children, {
+          y: 28,
+          opacity: 0,
+          duration: 0.7,
+          stagger: 0.12,
+          ease: 'power2.out',
+        });
+      }
+    }, sectionRef);
+
+    return () => ctx.revert();
+  }, [isMobile]);
+
   return (
-    <section id="top" className="lp-hero" aria-label="Hero">
-      <div className="lp-hero__band">
-        <motion.div
-          className="lp-hero__inner"
-          variants={containerVariants}
-          initial="hidden"
-          animate="show"
-        >
-          {/* Eyebrow chip */}
-          <motion.div className="lp-hero__chip-row" variants={childVariants}>
+    <section
+      ref={sectionRef}
+      id="top"
+      className="lp-hero-v2"
+      data-bg-tint={SCROLL_TINTS.canvas}
+      aria-label="Hero"
+    >
+      <div className="lp-hero-v2__band">
+        <div ref={contentRef} className="lp-hero-v2__content">
+          <div className="lp-hero-v2__chip-row">
             <StatusChip variant="active">Peer-to-Peer GPU Compute</StatusChip>
-          </motion.div>
+          </div>
 
-          {/* Headline */}
-          <motion.h1 className="lp-hero__headline" variants={childVariants}>
-            Turn Idle GPUs into{' '}
-            <span className="lp-hero__headline-accent">Shared Compute.</span>
-          </motion.h1>
+          <h1 className="lp-hero-v2__headline">
+            Idle GPUs.{' '}
+            <span className="lp-hero-v2__accent">Real compute.</span>
+          </h1>
 
-          {/* Subhead */}
-          <motion.p className="lp-hero__subhead" variants={childVariants}>
-            Submit Python workloads and execute them on idle GPUs contributed by students.
-            Secure Docker containers, live execution logs, automatic scheduling, and
-            usage-based billing — all from one platform.
-          </motion.p>
+          <p className="lp-hero-v2__subhead">
+            Submit Python and CUDA workloads to idle GPUs shared by students and
+            developers — Docker-sandboxed, scheduled automatically, billed by the second.
+          </p>
 
-          {/* CTAs */}
-          <motion.div className="lp-hero__ctas" variants={childVariants}>
+          <div className="lp-hero-v2__ctas">
             <Link to="/register?role=client" className="lp-btn-ghost">
-              Rent Compute
+              Get started
             </Link>
-            <Link to="/register?role=provider" className="lp-btn-ghost">
-              Provide Compute
-            </Link>
-          </motion.div>
-        </motion.div>
+            <a href="#how-it-works" className="lp-btn-link-quiet">
+              See how it works
+            </a>
+          </div>
+        </div>
 
-        {/* Hero terminal */}
-        <div className="lp-hero__terminal">
-          <HeroTerminal />
+        <div ref={visualRef} className="lp-hero-v2__visual">
+          {!isMobile && mounted3d && (
+            <Suspense fallback={null}>
+              <Globe3D scrollProgress={scrollProgress} className="lp-hero-v2__globe" />
+            </Suspense>
+          )}
+          <div ref={tiltRef} className="lp-hero-v2__gpu-wrap">
+            {!isMobile && mounted3d ? (
+              <Suspense fallback={<div className="lp-hero-v2__gpu-fallback" />}>
+                <GpuCard3D scrollProgress={scrollProgress} />
+              </Suspense>
+            ) : (
+              <div className="lp-gpu-card-static" aria-hidden="true">
+                <div className="lp-gpu-card-static__body">
+                  <span className="lp-gpu-card-static__label">NVIDIA RTX 4060</span>
+                  <span className="lp-gpu-card-static__spec">VRAM: 8188 MB · CUDA 12.4</span>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </section>
