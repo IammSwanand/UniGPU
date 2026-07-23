@@ -47,10 +47,10 @@ export default function MyGPUs({ gpus, metrics, onToggleStatus, onRegisterClick,
                     View Details
                   </button>
                   <button 
-                    className={`cd-btn ${gpu.status === 'online' ? 'cd-btn--danger' : 'cd-btn--primary'}`}
+                    className={`cd-btn ${(gpu.status === 'online' || gpu.status === 'busy') ? 'cd-btn--danger' : 'cd-btn--primary'}`}
                     onClick={() => onToggleStatus(gpu)}
                   >
-                    {gpu.status === 'online' ? 'Go Offline' : 'Go Online'}
+                    {(gpu.status === 'online' || gpu.status === 'busy') ? 'Go Offline' : 'Go Online'}
                   </button>
                 </div>
               </div>
