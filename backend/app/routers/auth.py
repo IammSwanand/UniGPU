@@ -9,6 +9,7 @@ from sqlalchemy import select
 from jose import jwt
 import bcrypt
 import asyncio
+import httpx
 
 from app.database import get_db
 from app.config import get_settings
@@ -23,6 +24,7 @@ from app.schemas.user import (
     ResendVerificationRequest,
     ForgotPasswordRequest,
     ResetPasswordRequest,
+    GoogleAuthRequest,
     MessageResponse,
 )
 from app.security_utils import (
@@ -364,3 +366,113 @@ async def reset_password(
     await db.flush()
 
     return MessageResponse(message="Password updated successfully. You can now sign in.")
+
+
+@router.post("/google", response_model=Token)
+async def google_auth(
+    data: GoogleAuthRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Authenticate (or register) a user via Google OAuth.
+
+    Flow:
+      1. Verify the Google ID Token by calling Google's tokeninfo endpoint.
+      2. Validate the `aud` claim matches our client ID to prevent token injection.
+      3. Upsert the user record by google_id (create wallet for new users).
+      4. For providers: a cli_password MUST be supplied and is stored hashed so the
+         Agent desktop app can authenticate via POST /auth/login with email+password.
+      5. Return the app's own HS256 JWT (NOT the Google token).
+    """
+    # ── 1. Verify token with Google ──────────────────────────────────────────
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(
+                "https://oauth2.googleapis.com/tokeninfo",
+                params={"id_token": data.id_token},
+            )
+    except httpx.RequestError as exc:
+        logger.error("Google tokeninfo request failed: %s", exc)
+        raise HTTPException(
+            status_code=503,
+            detail="Could not reach Google's auth servers. Please try again.",
+        )
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=401, detail="Invalid Google token.")
+
+    google_payload = resp.json()
+
+    # ── 2. Validate audience ─────────────────────────────────────────────────
+    if settings.GOOGLE_CLIENT_ID:
+        aud = google_payload.get("aud", "")
+        if aud != settings.GOOGLE_CLIENT_ID:
+            raise HTTPException(status_code=401, detail="Google token audience mismatch.")
+
+    google_id: str = google_payload.get("sub", "")
+    email: str = google_payload.get("email", "")
+    name: str = google_payload.get("name") or google_payload.get("given_name") or email.split("@")[0]
+
+    if not google_id or not email:
+        raise HTTPException(status_code=400, detail="Google token missing required fields.")
+
+    # ── 3. Provider must supply a CLI password ───────────────────────────────
+    if data.role.value == "provider" and not data.cli_password:
+        raise HTTPException(
+            status_code=422,
+            detail="Providers must set a CLI password so the Agent app can authenticate.",
+        )
+
+    if data.cli_password and len(data.cli_password) < MIN_PASSWORD_LENGTH:
+        raise HTTPException(
+            status_code=400,
+            detail=f"CLI password must be at least {MIN_PASSWORD_LENGTH} characters.",
+        )
+
+    # ── 4. Upsert user ───────────────────────────────────────────────────────
+    # Try to find by google_id first, then fall back to email (handles the case
+    # where the user previously registered with the same email via password).
+    result = await db.execute(select(User).where(User.google_id == google_id))
+    user = result.scalar_one_or_none()
+
+    if user is None:
+        # Check if there's already an account with the same email (password user)
+        result = await db.execute(select(User).where(User.email == email))
+        existing_email_user = result.scalar_one_or_none()
+        if existing_email_user:
+            # Link the Google identity to the existing account
+            user = existing_email_user
+            user.google_id = google_id
+            # If a CLI password is supplied and the account had no password, set it
+            if data.cli_password and user.hashed_password is None:
+                user.hashed_password = _hash_password(data.cli_password)
+            await db.flush()
+        else:
+            # Brand-new user — create account
+            user = User(
+                email=email,
+                username=name,
+                hashed_password=_hash_password(data.cli_password) if data.cli_password else None,
+                role=data.role,
+                google_id=google_id,
+                is_email_verified=True,  # Google already verified the email
+                is_active=True,
+            )
+            db.add(user)
+            await db.flush()
+
+            # Auto-create wallet
+            wallet = Wallet(user_id=user.id, balance=0.0)
+            db.add(wallet)
+            await db.flush()
+    else:
+        # Returning Google user — update CLI password if a new one is provided
+        if data.cli_password:
+            user.hashed_password = _hash_password(data.cli_password)
+            await db.flush()
+
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="Account disabled.")
+
+    # ── 5. Issue app JWT ─────────────────────────────────────────────────────
+    return _build_token_response(user)

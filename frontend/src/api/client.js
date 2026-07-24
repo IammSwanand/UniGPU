@@ -46,6 +46,7 @@ const api = {
     // Auth
     register: (d) => request('POST', '/auth/register', { body: d }),
     login: (d) => request('POST', '/auth/login', { body: d }),
+    googleAuth: (d) => request('POST', '/auth/google', { body: d }),
     verifyEmail: (d) => request('POST', '/auth/verify-email', { body: d }),
     resendVerification: (d) => request('POST', '/auth/resend-verification', { body: d }),
     forgotPassword: (d) => request('POST', '/auth/forgot-password', { body: d }),
