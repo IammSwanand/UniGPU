@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
 
+    # ── Google OAuth ──
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
+
     # ── Billing ──
     RATE_PER_SECOND: float = 0.002  # $0.002 per second of GPU usage
 

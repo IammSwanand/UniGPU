@@ -57,8 +57,15 @@ export function AuthProvider({ children }) {
         setUser(null);
     };
 
+    const loginWithGoogle = async (idToken, selectedRole = 'client', cliPassword = null) => {
+        const payload = { id_token: idToken, role: selectedRole };
+        if (cliPassword) payload.cli_password = cliPassword;
+        const res = await api.googleAuth(payload);
+        return applySession(res);
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, register, verifyEmail, resendVerification, logout }}>
+        <AuthContext.Provider value={{ user, token, loading, login, loginWithGoogle, register, verifyEmail, resendVerification, logout }}>
             {children}
         </AuthContext.Provider>
     );

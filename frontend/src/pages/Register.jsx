@@ -6,6 +6,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRocket, faBolt } from '@fortawesome/free-solid-svg-icons';
 import Navbar from '../components/landing/Navbar';
 import CodeWindow from '../components/landing/CodeWindow';
+import GoogleAuthButton from '../components/auth/GoogleAuthButton';
 import { containerVariants, childVariants, asideVariants } from '../lib/authMotion';
 
 export default function Register() {
@@ -177,6 +178,10 @@ export default function Register() {
                                         {loading ? 'Creating…' : 'Create Account'}
                                     </button>
                                 </motion.form>
+
+                                <motion.div variants={childVariants}>
+                                    <GoogleAuthButton role={role} />
+                                </motion.div>
 
                                 <motion.div className="lp-auth__divider" variants={childVariants} />
                                 <motion.div className="lp-auth__footer" variants={childVariants}>
