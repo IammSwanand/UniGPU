@@ -129,7 +129,8 @@ export default function ProviderDashboard() {
   };
 
   const toggleStatus = async (gpu) => {
-    const newStatus = gpu.status === 'online' ? 'offline' : 'online';
+    const isOnlineOrBusy = gpu.status === 'online' || gpu.status === 'busy';
+    const newStatus = isOnlineOrBusy ? 'offline' : 'online';
     try {
       if (newStatus === 'offline') {
         setMetrics(prev => { const next = { ...prev }; delete next[gpu.id]; return next; });
