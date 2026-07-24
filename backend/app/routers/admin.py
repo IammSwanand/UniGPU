@@ -47,6 +47,29 @@ async def admin_list_users(
     return result.scalars().all()
 
 
+@router.patch("/users/{user_id}/toggle-active", response_model=UserOut)
+async def admin_toggle_user_active(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_role("admin")),
+):
+    from fastapi import HTTPException, status
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    
+    # Don't let the admin disable themselves accidentally? Optional.
+    if user.id == _admin.id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Cannot toggle your own status")
+
+    user.is_active = not user.is_active
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+
 @router.get("/stats")
 async def admin_stats(
     db: AsyncSession = Depends(get_db),

@@ -81,7 +81,15 @@ export default function Login() {
                         </motion.p>
 
                         {successMessage && <motion.div className="lp-auth__error" variants={childVariants}>{successMessage}</motion.div>}
-                        {error && <motion.div className="lp-auth__error" variants={childVariants}>{error}</motion.div>}
+                        {error && (
+                            <motion.div className="lp-auth__error" variants={childVariants}>
+                                {error === 'Account disabled' ? (
+                                    <span>Account disabled. <Link to="/support" style={{ textDecoration: 'underline' }}>Contact support</Link></span>
+                                ) : (
+                                    error
+                                )}
+                            </motion.div>
+                        )}
 
                         <motion.form className="lp-auth__form" onSubmit={handleSubmit} variants={childVariants}>
                             <div className="lp-auth__form-group">
