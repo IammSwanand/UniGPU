@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/landing/Navbar';
 import CodeWindow from '../components/landing/CodeWindow';
+import GoogleAuthButton from '../components/auth/GoogleAuthButton';
 import { containerVariants, childVariants, asideVariants } from '../lib/authMotion';
 
 export default function Login() {
@@ -100,6 +101,10 @@ export default function Login() {
                                 {loading ? 'Signing in…' : 'Sign In'}
                             </button>
                         </motion.form>
+
+                        <motion.div variants={childVariants}>
+                            <GoogleAuthButton role="client" />
+                        </motion.div>
 
                         <motion.div className="lp-auth__divider" variants={childVariants} />
                         <motion.div className="lp-auth__footer" variants={childVariants}>

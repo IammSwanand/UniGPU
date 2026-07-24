@@ -1,6 +1,7 @@
 import { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const Landing = lazy(() => import('./pages/Landing'));
 const Login = lazy(() => import('./pages/Login'));
@@ -41,8 +42,9 @@ function DashboardRedirect() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <Suspense fallback={<AppShell />}>
+    <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID"}>
+      <AuthProvider>
+        <Suspense fallback={<AppShell />}>
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Landing />} />
@@ -78,5 +80,6 @@ export default function App() {
         </BrowserRouter>
       </Suspense>
     </AuthProvider>
+    </GoogleOAuthProvider>
   );
 }

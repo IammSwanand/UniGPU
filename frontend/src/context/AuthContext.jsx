@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect } from 'react';
+import { jwtDecode } from 'jwt-decode';
 import api from '../api/client';
 
 const AuthContext = createContext(null);
@@ -57,8 +58,21 @@ export function AuthProvider({ children }) {
         setUser(null);
     };
 
+    const loginWithGoogle = (tokenValue, selectedRole = 'client') => {
+        const decoded = jwtDecode(tokenValue);
+        const mockRes = {
+            access_token: tokenValue,
+            user_id: decoded.sub,
+            email: decoded.email,
+            username: decoded.name || decoded.email.split('@')[0],
+            role: selectedRole,
+            is_email_verified: true,
+        };
+        return applySession(mockRes);
+    };
+
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, register, verifyEmail, resendVerification, logout }}>
+        <AuthContext.Provider value={{ user, token, loading, login, loginWithGoogle, register, verifyEmail, resendVerification, logout }}>
             {children}
         </AuthContext.Provider>
     );
