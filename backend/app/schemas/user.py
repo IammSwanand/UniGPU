@@ -33,6 +33,19 @@ class ResetPasswordRequest(BaseModel):
     new_password: str
 
 
+class GoogleAuthRequest(BaseModel):
+    """
+    Sent by the frontend after Google's OAuth popup succeeds.
+    - id_token:     The raw Google ID Token (JWT) returned by the Google Login button.
+    - role:         The role the user is signing up / in as.
+    - cli_password: Required for providers — stored (hashed) so the Agent app can
+                    authenticate via the standard POST /auth/login endpoint.
+    """
+    id_token: str
+    role: UserRole = UserRole.client
+    cli_password: str | None = None
+
+
 class MessageResponse(BaseModel):
     message: str
 

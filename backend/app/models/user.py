@@ -21,7 +21,8 @@ class User(Base):
     )
     email: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     username: Mapped[str] = mapped_column(String, index=True, nullable=False)
-    hashed_password: Mapped[str] = mapped_column(String, nullable=False)
+    hashed_password: Mapped[str | None] = mapped_column(String, nullable=True)
+    google_id: Mapped[str | None] = mapped_column(String, unique=True, index=True, nullable=True)
     role: Mapped[UserRole] = mapped_column(
         Enum(UserRole), default=UserRole.client, nullable=False
     )
