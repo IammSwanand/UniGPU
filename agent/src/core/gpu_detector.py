@@ -70,10 +70,15 @@ def _parse_rocm_smi_output(raw: str) -> List[GPUInfo]:
             continue
         parts = [p.strip() for p in line.split(",")]
         if len(parts) >= 2:
+            try:
+                vram_mb = int(float(parts[1])) // (1024 * 1024)
+            except (ValueError, TypeError, IndexError):
+                vram_mb = 0
+
             gpus.append(GPUInfo(
                 index=idx,
                 name=f"AMD GPU {idx}", # rocm-smi might not output name directly in simple CSV
-                vram_mb=int(float(parts[1])) // (1024 * 1024) if len(parts) > 1 and parts[1].isdigit() else 0,
+                vram_mb=vram_mb,
                 cuda_version="ROCm",
                 driver_version=parts[2] if len(parts) > 2 else "unknown",
             ))
@@ -83,7 +88,7 @@ def _parse_rocm_smi_output(raw: str) -> List[GPUInfo]:
 def detect_gpus() -> List[Dict[str, Any]]:
     """
     Detect GPUs on this machine.
-    Returns a list of GPU info dicts. Falls back to a mock GPU if neither nvidia-smi nor rocm-smi is unavailable.
+    Returns a list of GPU info dicts. Falls back to a mock GPU if neither nvidia-smi nor rocm-smi is available.
     """
     if shutil.which("nvidia-smi"):
         try:

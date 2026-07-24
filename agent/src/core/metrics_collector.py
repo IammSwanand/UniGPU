@@ -104,10 +104,16 @@ def _collect_gpu_metrics(metrics: Dict[str, Any]) -> None:
                     parts = [p.strip() for p in lines[0].split(",")]
                     # Format: device, temp, use, mem_used, mem_total
                     if len(parts) >= 5:
-                        metrics["gpu_temp_c"] = int(float(parts[1])) if parts[1].replace('.','',1).isdigit() else 0
-                        metrics["gpu_util_pct"] = int(float(parts[2])) if parts[2].replace('.','',1).isdigit() else 0
-                        metrics["gpu_mem_used_mb"] = int(float(parts[3])) // (1024 * 1024) if parts[3].replace('.','',1).isdigit() else 0
-                        metrics["gpu_mem_total_mb"] = int(float(parts[4])) // (1024 * 1024) if parts[4].replace('.','',1).isdigit() else 0
+                        def _safe_int(val: str, divisor: int = 1) -> int:
+                            try:
+                                return int(float(val)) // divisor
+                            except (ValueError, TypeError):
+                                return 0
+
+                        metrics["gpu_temp_c"] = _safe_int(parts[1])
+                        metrics["gpu_util_pct"] = _safe_int(parts[2])
+                        metrics["gpu_mem_used_mb"] = _safe_int(parts[3], 1024 * 1024)
+                        metrics["gpu_mem_total_mb"] = _safe_int(parts[4], 1024 * 1024)
                 return
         except Exception as exc:
             logger.debug("AMD GPU metrics collection failed: %s", exc)
