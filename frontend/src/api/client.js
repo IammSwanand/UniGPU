@@ -37,7 +37,11 @@ async function request(method, path, { body, files } = {}) {
         : await res.text();
 
     if (!res.ok) {
-        throw { status: res.status, detail: data?.detail || data };
+        const errorDetail = data?.detail || data;
+        if (res.status === 403 && errorDetail === "Account disabled") {
+            window.dispatchEvent(new CustomEvent('accountDisabled'));
+        }
+        throw { status: res.status, detail: errorDetail };
     }
     return data;
 }
@@ -100,6 +104,7 @@ const api = {
     adminGPUs: () => request('GET', '/admin/gpus'),
     adminJobs: () => request('GET', '/admin/jobs'),
     adminUsers: () => request('GET', '/admin/users'),
+    toggleUserStatus: (id) => request('PATCH', `/admin/users/${id}/toggle-active`),
 };
 
 export default api;

@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, useEffect } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 
@@ -18,9 +18,40 @@ const ProviderDashboard = lazy(() => import('./pages/ProviderDashboard'));
 const ProviderWallet = lazy(() => import('./pages/ProviderWallet'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const GpuMarketplace = lazy(() => import('./pages/GpuMarketplace'));
+const Support = lazy(() => import('./pages/Support'));
 
 function AppShell() {
   return <div className="connecting-spinner" aria-label="Loading" />;
+}
+
+function GlobalDisabledModal() {
+  const [open, setOpen] = useState(false);
+
+  useEffect(() => {
+    const handleDisabled = () => setOpen(true);
+    window.addEventListener('accountDisabled', handleDisabled);
+    return () => window.removeEventListener('accountDisabled', handleDisabled);
+  }, []);
+
+  if (!open) return null;
+
+  return (
+    <div className="cd-overlay" style={{ zIndex: 9999, display: 'flex', position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)' }}>
+      <div className="cd-modal__panel" style={{ padding: '24px', maxWidth: '400px', width: '100%', margin: 'auto', textAlign: 'center', backgroundColor: 'white', borderRadius: '12px' }}>
+        <h3 className="cd-modal__title" style={{ marginBottom: '12px', color: '#ef4444', fontSize: '20px', fontWeight: 600 }}>Account Disabled</h3>
+        <p style={{ color: 'var(--lp-ash-helper)', marginBottom: '24px', fontSize: '15px' }}>
+          Your account has been disabled. Please contact support for assistance.
+        </p>
+        <button className="cd-btn cd-btn--primary" style={{ width: '100%', justifyContent: 'center' }} onClick={() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          window.location.href = '/';
+        }}>
+          Return to Home
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function ProtectedRoute({ children, roles }) {
@@ -55,6 +86,7 @@ export default function App() {
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/support" element={<Support />} />
             <Route path="/dashboard" element={<DashboardRedirect />} />
             <Route path="/dashboard/client" element={
               <ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>
@@ -76,6 +108,7 @@ export default function App() {
             } />
           </Routes>
         </BrowserRouter>
+        <GlobalDisabledModal />
       </Suspense>
     </AuthProvider>
   );
