@@ -11,7 +11,7 @@ const faqs = [
   {
     id: 'how-executed',
     q: 'How are workloads executed?',
-    a: 'Every submitted workload runs inside an isolated Docker container with NVIDIA GPU runtime.',
+    a: 'Every submitted workload runs inside an isolated Docker container with NVIDIA or AMD GPU runtime.',
   },
   {
     id: 'code-access',
@@ -36,7 +36,7 @@ const faqs = [
   {
     id: 'hardware',
     q: 'What hardware is required?',
-    a: 'An NVIDIA GPU supporting CUDA together with Docker and NVIDIA Container Toolkit.',
+    a: 'An NVIDIA or AMD GPU supporting CUDA/ROCm together with Docker and relevant GPU toolkits.',
   },
   {
     id: 'students-only',

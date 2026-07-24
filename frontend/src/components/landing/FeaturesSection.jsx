@@ -5,7 +5,7 @@ const features = [
   {
     id: 'secure-containers',
     title: 'Secure Containers',
-    body: 'Every workload executes inside an isolated Docker container using the NVIDIA Runtime.',
+    body: 'Every workload executes inside an isolated Docker container using NVIDIA or AMD Runtimes.',
     icon: (
       <svg viewBox="0 0 18 18" fill="none" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
         <rect x="2" y="6" width="14" height="9" rx="2" />

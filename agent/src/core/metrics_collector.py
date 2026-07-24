@@ -58,36 +58,65 @@ def collect_metrics() -> Dict[str, Any]:
 
 
 def _collect_gpu_metrics(metrics: Dict[str, Any]) -> None:
-    """Query nvidia-smi for GPU temp, utilisation, and memory."""
-    if not shutil.which("nvidia-smi"):
-        return
+    """Query nvidia-smi or rocm-smi for GPU temp, utilisation, and memory."""
+    if shutil.which("nvidia-smi"):
+        try:
+            result = subprocess.run(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=temperature.gpu,utilization.gpu,memory.used,memory.total",
+                    "--format=csv,noheader,nounits",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                creationflags=_SUBPROCESS_FLAGS,
+            )
+            if result.returncode == 0:
+                # Take the first GPU line
+                line = result.stdout.strip().splitlines()[0]
+                parts = [p.strip() for p in line.split(",")]
+                if len(parts) >= 4:
+                    metrics["gpu_temp_c"] = int(parts[0])
+                    metrics["gpu_util_pct"] = int(parts[1])
+                    metrics["gpu_mem_used_mb"] = int(parts[2])
+                    metrics["gpu_mem_total_mb"] = int(parts[3])
+                return
+        except Exception as exc:
+            logger.debug("NVIDIA GPU metrics collection failed: %s", exc)
 
-    try:
-        result = subprocess.run(
-            [
-                "nvidia-smi",
-                "--query-gpu=temperature.gpu,utilization.gpu,memory.used,memory.total",
-                "--format=csv,noheader,nounits",
-            ],
-            capture_output=True,
-            text=True,
-            timeout=5,
-            creationflags=_SUBPROCESS_FLAGS,
-        )
-        if result.returncode != 0:
-            return
+    if shutil.which("rocm-smi"):
+        try:
+            result = subprocess.run(
+                [
+                    "rocm-smi",
+                    "--showtemp", "--showuse", "--showmeminfo", "vram", "--csv"
+                ],
+                capture_output=True,
+                text=True,
+                timeout=5,
+                creationflags=_SUBPROCESS_FLAGS,
+            )
+            if result.returncode == 0:
+                # Basic parsing for rocm-smi csv
+                lines = [line for line in result.stdout.strip().splitlines() if "device" not in line.lower() and line.strip()]
+                if lines:
+                    parts = [p.strip() for p in lines[0].split(",")]
+                    # Format: device, temp, use, mem_used, mem_total
+                    if len(parts) >= 5:
+                        def _safe_int(val: str, divisor: int = 1) -> int:
+                            try:
+                                return int(float(val)) // divisor
+                            except (ValueError, TypeError):
+                                return 0
 
-        # Take the first GPU line
-        line = result.stdout.strip().splitlines()[0]
-        parts = [p.strip() for p in line.split(",")]
-        if len(parts) >= 4:
-            metrics["gpu_temp_c"] = int(parts[0])
-            metrics["gpu_util_pct"] = int(parts[1])
-            metrics["gpu_mem_used_mb"] = int(parts[2])
-            metrics["gpu_mem_total_mb"] = int(parts[3])
-
-    except Exception as exc:
-        logger.debug("GPU metrics collection failed: %s", exc)
+                        metrics["gpu_temp_c"] = _safe_int(parts[1])
+                        metrics["gpu_util_pct"] = _safe_int(parts[2])
+                        metrics["gpu_mem_used_mb"] = _safe_int(parts[3], 1024 * 1024)
+                        metrics["gpu_mem_total_mb"] = _safe_int(parts[4], 1024 * 1024)
+                return
+        except Exception as exc:
+            logger.debug("AMD GPU metrics collection failed: %s", exc)
 
 
 def _collect_cpu_ram_metrics(metrics: Dict[str, Any]) -> None:

@@ -4,7 +4,7 @@ import CodeWindow from './CodeWindow';
 
 const techChips = [
   'FastAPI', 'Docker', 'Redis', 'Celery',
-  'PostgreSQL', 'WebSockets', 'NVIDIA Runtime', 'Python',
+  'PostgreSQL', 'WebSockets', 'NVIDIA & AMD GPUs', 'Python',
 ];
 
 function ArchWindow() {
@@ -50,8 +50,8 @@ function ArchWindow() {
       {'\n'}
       <span className="lp-tok-muted">    </span>
       <span className="lp-tok-string">"nvidia/cuda:12.0"</span>
-      <span className="lp-tok-output">, runtime=</span>
-      <span className="lp-tok-string">"nvidia"</span>
+      <span className="lp-tok-output">, </span>
+      <span className="lp-tok-comment"># or rocm/pytorch</span>
       {'\n'}
       <span className="lp-tok-output">)</span>
     </CodeWindow>

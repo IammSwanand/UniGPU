@@ -26,11 +26,11 @@ function JobMockup() {
       {/* Details */}
       <div className="lp-mockup-job__row">
         <span className="lp-mockup-job__row-label">GPU</span>
-        <span className="lp-mockup-job__row-value">NVIDIA RTX 4060</span>
+        <span className="lp-mockup-job__row-value">NVIDIA / AMD GPU</span>
       </div>
       <div className="lp-mockup-job__row">
         <span className="lp-mockup-job__row-label">Runtime</span>
-        <span className="lp-mockup-job__row-value">Docker + NVIDIA</span>
+        <span className="lp-mockup-job__row-value">Docker + GPU</span>
       </div>
       <div className="lp-mockup-job__row">
         <span className="lp-mockup-job__row-label">Status</span>

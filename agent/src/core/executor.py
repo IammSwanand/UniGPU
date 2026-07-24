@@ -270,18 +270,29 @@ class JobExecutor:
         container = None
 
         try:
-            # Detect if NVIDIA runtime is available
+            # Detect if NVIDIA or AMD is available
             runtime_opts = {}
-            try:
-                runtimes = client.info().get("Runtimes", {})
-                if "nvidia" in runtimes:
-                    runtime_opts["runtime"] = "nvidia"
-                    runtime_opts["environment"] = {"NVIDIA_VISIBLE_DEVICES": "all"}
-                    logger.info("Using NVIDIA runtime for job %s", job_id)
-                else:
-                    logger.warning("NVIDIA runtime not found — running without GPU access")
-            except Exception:
-                logger.warning("Could not detect runtimes — running without GPU access")
+            if shutil.which("nvidia-smi"):
+                try:
+                    runtimes = client.info().get("Runtimes", {})
+                    if "nvidia" in runtimes:
+                        runtime_opts["runtime"] = "nvidia"
+                        runtime_opts["environment"] = {"NVIDIA_VISIBLE_DEVICES": "all"}
+                        logger.info("Using NVIDIA runtime for job %s", job_id)
+                    else:
+                        logger.warning("NVIDIA runtime not found — running without GPU access")
+                except Exception:
+                    logger.warning("Could not detect runtimes — running without GPU access")
+            elif shutil.which("rocm-smi"):
+                # AMD GPU detected
+                logger.info("AMD GPU detected via rocm-smi. Using AMD device mapping for job %s", job_id)
+                # Map standard ROCm devices
+                runtime_opts["devices"] = ["/dev/kfd:/dev/kfd", "/dev/dri:/dev/dri"]
+                runtime_opts["group_add"] = ["video"]
+                # Switch base image if it was the default nvidia one
+                if "nvidia" in image:
+                    image = "rocm/pytorch:latest"
+                    logger.info("Switched base image to %s for AMD hardware", image)
 
             container = client.containers.run(
                 image=image,

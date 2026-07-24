@@ -85,7 +85,7 @@ export default function HowToUse() {
                                     <span style={{ color: 'var(--purple)', fontWeight: 800 }}>01</span> Setup
                                 </h3>
                                 <ul style={{ color: 'var(--text-secondary)', paddingLeft: '34px', margin: 0, display: 'flex', flexDirection: 'column', gap: '12px', lineHeight: '1.7' }}>
-                                    <li>Install Python, Docker, and the NVIDIA Container Toolkit on your machine.</li>
+                                    <li>Install Python, Docker, and the NVIDIA Container Toolkit (or ROCm for AMD) on your machine.</li>
                                     <li>Download the <strong>UniGPU Agent</strong> from your Provider Dashboard.</li>
                                     <li>Run <code>pip install -r requirements.txt</code> in the agent folder.</li>
                                 </ul>
