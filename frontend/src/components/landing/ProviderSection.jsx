@@ -27,7 +27,7 @@ function AgentInstallWindow() {
       <span className="lp-tok-output">Connected to UniGPU network</span>
       {'\n'}
       <span className="lp-tok-success">✓ </span>
-      <span className="lp-tok-output">GPU detected — NVIDIA RTX 3080</span>
+      <span className="lp-tok-output">GPU detected — NVIDIA RTX 3080 / AMD RX 7900</span>
       {'\n'}
       <span className="lp-tok-success">✓ </span>
       <span className="lp-tok-output">Heartbeat active — listening for jobs...</span>

@@ -59,43 +59,83 @@ def _get_cuda_version() -> str:
     return "unknown"
 
 
+def _parse_rocm_smi_output(raw: str) -> List[GPUInfo]:
+    """Parse CSV output from rocm-smi."""
+    gpus: List[GPUInfo] = []
+    # rocm-smi --csv output typically looks like:
+    # device,vram,driver
+    # 0,16384,5.7.0
+    for idx, line in enumerate(raw.strip().splitlines()):
+        if "device" in line.lower() or not line.strip():
+            continue
+        parts = [p.strip() for p in line.split(",")]
+        if len(parts) >= 2:
+            gpus.append(GPUInfo(
+                index=idx,
+                name=f"AMD GPU {idx}", # rocm-smi might not output name directly in simple CSV
+                vram_mb=int(float(parts[1])) // (1024 * 1024) if len(parts) > 1 and parts[1].isdigit() else 0,
+                cuda_version="ROCm",
+                driver_version=parts[2] if len(parts) > 2 else "unknown",
+            ))
+    return gpus
+
+
 def detect_gpus() -> List[Dict[str, Any]]:
     """
     Detect GPUs on this machine.
-    Returns a list of GPU info dicts. Falls back to a mock GPU if nvidia-smi is unavailable.
+    Returns a list of GPU info dicts. Falls back to a mock GPU if neither nvidia-smi nor rocm-smi is unavailable.
     """
-    if not shutil.which("nvidia-smi"):
-        logger.warning("nvidia-smi not found — returning mock GPU data (dev mode)")
-        return [_mock_gpu()]
+    if shutil.which("nvidia-smi"):
+        try:
+            result = subprocess.run(
+                [
+                    "nvidia-smi",
+                    "--query-gpu=name,memory.total,driver_version",
+                    "--format=csv,noheader,nounits",
+                ],
+                capture_output=True, text=True, timeout=10,
+            )
 
-    try:
-        result = subprocess.run(
-            [
-                "nvidia-smi",
-                "--query-gpu=name,memory.total,driver_version",
-                "--format=csv,noheader,nounits",
-            ],
-            capture_output=True, text=True, timeout=10,
-        )
+            if result.returncode == 0:
+                gpus = _parse_nvidia_smi_output(result.stdout)
+                cuda_ver = _get_cuda_version()
+                for gpu in gpus:
+                    gpu.cuda_version = cuda_ver
 
-        if result.returncode != 0:
-            logger.error("nvidia-smi failed: %s", result.stderr)
-            return [_mock_gpu()]
+                logger.info("Detected %d NVIDIA GPU(s): %s", len(gpus), [g.name for g in gpus])
+                return [g.to_dict() for g in gpus]
+            else:
+                logger.error("nvidia-smi failed: %s", result.stderr)
+        except subprocess.TimeoutExpired:
+            logger.error("nvidia-smi timed out")
+        except Exception as exc:
+            logger.error("NVIDIA GPU detection failed: %s", exc)
 
-        gpus = _parse_nvidia_smi_output(result.stdout)
-        cuda_ver = _get_cuda_version()
-        for gpu in gpus:
-            gpu.cuda_version = cuda_ver
+    if shutil.which("rocm-smi"):
+        try:
+            # Note: rocm-smi --csv output is comma-separated
+            result = subprocess.run(
+                [
+                    "rocm-smi",
+                    "--showid", "--showvram", "--showdriverversion", "--csv",
+                ],
+                capture_output=True, text=True, timeout=10,
+            )
 
-        logger.info("Detected %d GPU(s): %s", len(gpus), [g.name for g in gpus])
-        return [g.to_dict() for g in gpus]
+            if result.returncode == 0:
+                gpus = _parse_rocm_smi_output(result.stdout)
+                if gpus:
+                    logger.info("Detected %d AMD GPU(s): %s", len(gpus), [g.name for g in gpus])
+                    return [g.to_dict() for g in gpus]
+            else:
+                logger.error("rocm-smi failed: %s", result.stderr)
+        except subprocess.TimeoutExpired:
+            logger.error("rocm-smi timed out")
+        except Exception as exc:
+            logger.error("AMD GPU detection failed: %s", exc)
 
-    except subprocess.TimeoutExpired:
-        logger.error("nvidia-smi timed out")
-        return [_mock_gpu()]
-    except Exception as exc:
-        logger.error("GPU detection failed: %s", exc)
-        return [_mock_gpu()]
+    logger.warning("nvidia-smi and rocm-smi not found or failed — returning mock GPU data (dev mode)")
+    return [_mock_gpu()]
 
 
 def _mock_gpu() -> Dict[str, Any]:

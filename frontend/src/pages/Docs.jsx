@@ -45,7 +45,7 @@ const DOCS = {
         body: 'As a client you upload a zipped workload, pick an entrypoint, and UniGPU schedules it onto an available provider GPU. You pay only for the seconds of compute you actually use.',
         points: [
           'No reserved instances and no subscriptions — pure usage-based billing.',
-          'Jobs run isolated inside Docker + NVIDIA Container Toolkit containers.',
+          'Jobs run isolated inside Docker + NVIDIA Container Toolkit (or AMD ROCm) containers.',
           'Stream stdout/stderr logs in real time from your dashboard.',
         ],
       },
@@ -138,10 +138,10 @@ const DOCS = {
         title: 'Prerequisites',
         body: 'Make sure the host machine is ready before installing the agent.',
         points: [
-          'A supported NVIDIA GPU with current drivers installed.',
+          'A supported NVIDIA or AMD GPU with current drivers installed.',
           'Python 3.10+ available on PATH.',
-          'Docker, plus the NVIDIA Container Toolkit so containers can see the GPU.',
-          'Run docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi to confirm GPU access from a container.',
+          'Docker, plus the NVIDIA Container Toolkit (or AMD equivalent) so containers can see the GPU.',
+          'Run docker run --rm --gpus all nvidia/cuda:12.2.0-base-ubuntu22.04 nvidia-smi (or rocm/pytorch for AMD) to confirm GPU access from a container.',
         ],
       },
       {
@@ -193,7 +193,7 @@ const DOCS = {
               <span className="lp-tok-output">Connected to UniGPU network</span>
               {'\n'}
               <span className="lp-tok-success">✓ </span>
-              <span className="lp-tok-output">GPU detected — NVIDIA RTX 3080</span>
+              <span className="lp-tok-output">GPU detected — NVIDIA RTX 3080 / AMD RX 7900</span>
               {'\n'}
               <span className="lp-tok-success">✓ </span>
               <span className="lp-tok-output">Heartbeat active — listening for jobs...</span>
@@ -219,7 +219,7 @@ const DOCS = {
         body: 'Keep the agent healthy so your GPU keeps earning.',
         points: [
           'Run the agent as a background service so it survives shell disconnects.',
-          'Keep Docker and the NVIDIA toolkit updated for stability.',
+          'Keep Docker and GPU toolkits updated for stability.',
           'Watch thermals — sustained high temperatures throttle performance.',
           'Pause the agent when you need the GPU yourself; credits only accrue while it’s online and idle.',
         ],

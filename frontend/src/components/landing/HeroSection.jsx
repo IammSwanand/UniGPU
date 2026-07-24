@@ -27,7 +27,7 @@ function HeroTerminal() {
       <span className="lp-tok-output">Matching available GPU...</span>
       {'\n'}
       <span className="lp-tok-success">✓ </span>
-      <span className="lp-tok-output">NVIDIA RTX 4060 selected</span>
+      <span className="lp-tok-output">NVIDIA / AMD GPU selected</span>
       {'\n'}
       <span className="lp-tok-success">✓ </span>
       <span className="lp-tok-output">Container started</span>
