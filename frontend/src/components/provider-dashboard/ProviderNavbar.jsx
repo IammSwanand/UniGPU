@@ -151,9 +151,15 @@ export default function ProviderNavbar({ wallet, notifications = [], unreadCount
                   </div>
                 </div>
 
-                {/* My Profile (Coming soon) */}
-                <button className="cd-menu__item" disabled title="Coming soon">
-                  <IconUser /> My Profile <span className="cd-coming" style={{ marginLeft: 'auto' }}>Soon</span>
+                {/* My Profile */}
+                <button
+                  className="cd-menu__item"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    navigate('/dashboard/provider/profile');
+                  }}
+                >
+                  <IconUser /> My Profile
                 </button>
 
                 {/* Link to provider wallet page */}

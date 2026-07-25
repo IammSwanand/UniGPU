@@ -59,9 +59,20 @@ class UserOut(BaseModel):
     is_email_verified: bool
     is_active: bool
     created_at: datetime
+    github_handle: str | None = None
+    linkedin_handle: str | None = None
+    huggingface_handle: str | None = None
+    kaggle_handle: str | None = None
 
     class Config:
         from_attributes = True
+
+class UserProfileUpdate(BaseModel):
+    username: str | None = None
+    github_handle: str | None = None
+    linkedin_handle: str | None = None
+    huggingface_handle: str | None = None
+    kaggle_handle: str | None = None
 
 
 class Token(BaseModel):
@@ -72,3 +83,7 @@ class Token(BaseModel):
     email: str
     username: str
     is_email_verified: bool
+    github_handle: str | None = None
+    linkedin_handle: str | None = None
+    huggingface_handle: str | None = None
+    kaggle_handle: str | None = None

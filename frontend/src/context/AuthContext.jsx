@@ -16,6 +16,10 @@ export function AuthProvider({ children }) {
             username: res.username,
             role: res.role,
             isEmailVerified: res.is_email_verified,
+            github_handle: res.github_handle,
+            linkedin_handle: res.linkedin_handle,
+            huggingface_handle: res.huggingface_handle,
+            kaggle_handle: res.kaggle_handle,
         };
         localStorage.setItem('user', JSON.stringify(userData));
         setToken(res.access_token);
@@ -38,6 +42,12 @@ export function AuthProvider({ children }) {
     const login = async (email, password) => {
         const res = await api.login({ email, password });
         return applySession(res);
+    };
+
+    const updateUser = (newUserData) => {
+        const updated = { ...user, ...newUserData };
+        localStorage.setItem('user', JSON.stringify(updated));
+        setUser(updated);
     };
 
     const register = async (data) => {
@@ -65,7 +75,7 @@ export function AuthProvider({ children }) {
     };
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, loginWithGoogle, register, verifyEmail, resendVerification, logout }}>
+        <AuthContext.Provider value={{ user, token, loading, login, loginWithGoogle, register, verifyEmail, resendVerification, logout, updateUser }}>
             {children}
         </AuthContext.Provider>
     );

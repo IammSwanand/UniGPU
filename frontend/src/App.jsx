@@ -20,6 +20,7 @@ const ProviderWallet = lazy(() => import('./pages/ProviderWallet'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const GpuMarketplace = lazy(() => import('./pages/GpuMarketplace'));
 const Support = lazy(() => import('./pages/Support'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 function AppShell() {
   return <div className="connecting-spinner" aria-label="Loading" />;
@@ -99,11 +100,17 @@ export default function App() {
             <Route path="/dashboard/client/gpus" element={
               <ProtectedRoute roles={['client']}><GpuMarketplace /></ProtectedRoute>
             } />
+            <Route path="/dashboard/client/profile" element={
+              <ProtectedRoute roles={['client']}><Profile /></ProtectedRoute>
+            } />
             <Route path="/dashboard/provider" element={
               <ProtectedRoute roles={['provider']}><ProviderDashboard /></ProtectedRoute>
             } />
             <Route path="/dashboard/provider/wallet" element={
               <ProtectedRoute roles={['provider']}><ProviderWallet /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/provider/profile" element={
+              <ProtectedRoute roles={['provider']}><Profile /></ProtectedRoute>
             } />
             <Route path="/dashboard/admin" element={
               <ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>

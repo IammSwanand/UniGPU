@@ -168,9 +168,15 @@ export default function DashboardNavbar({ wallet, notifications = [], unreadCoun
                     {user?.email}
                   </div>
                 </div>
-                {/* Coming soon */}
-                <button className="cd-menu__item" disabled title="Coming soon">
-                  <IconUser /> My Profile <span className="cd-coming" style={{ marginLeft: 'auto' }}>Soon</span>
+                {/* My Profile */}
+                <button
+                  className="cd-menu__item"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    navigate('/dashboard/client/profile');
+                  }}
+                >
+                  <IconUser /> My Profile
                 </button>
                 {/* Link to dedicated wallet page */}
                 <button
