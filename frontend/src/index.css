@@ -1598,7 +1598,7 @@ tbody tr:last-child td {
    HERO SECTION — Elegant Redesign
    ══════════════════════════════════════════════════ */
 .lp-hero {
-  padding-top: 64px;
+  padding-top: 128px;
   position: relative;
   overflow: hidden;
 }
