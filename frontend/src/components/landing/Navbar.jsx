@@ -4,11 +4,10 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../../context/AuthContext';
 
 const NAV_LINKS = [
-  { label: 'Home', href: '#top' },
   { label: 'Features', href: '#features' },
   { label: 'How It Works', href: '#how-it-works' },
-  { label: 'Pricing', href: '#pricing' },
   { label: 'FAQ', href: '#faq' },
+  { label: 'Download Agent', href: '/download', isRoute: true },
 ];
 
 function LogoMark() {
@@ -104,14 +103,20 @@ export default function Navbar() {
 
           {/* Center links */}
           <ul className="lp-nav__links" role="list">
-            {NAV_LINKS.map(({ label, href }) => (
+            {NAV_LINKS.map(({ label, href, isRoute }) => (
               <li key={label}>
-                <a
-                  href={href}
-                  onClick={(e) => { e.preventDefault(); handleNavClick(href); }}
-                >
-                  {label}
-                </a>
+                {isRoute ? (
+                  <Link to={href} onClick={() => setDrawerOpen(false)}>
+                    {label}
+                  </Link>
+                ) : (
+                  <a
+                    href={href}
+                    onClick={(e) => { e.preventDefault(); handleNavClick(href); }}
+                  >
+                    {label}
+                  </a>
+                )}
               </li>
             ))}
           </ul>
@@ -172,14 +177,24 @@ export default function Navbar() {
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.18, ease: 'easeOut' }}
           >
-            {NAV_LINKS.map(({ label, href }) => (
-              <a
-                key={label}
-                href={href}
-                onClick={(e) => { e.preventDefault(); handleNavClick(href); }}
-              >
-                {label}
-              </a>
+            {NAV_LINKS.map(({ label, href, isRoute }) => (
+              isRoute ? (
+                <Link
+                  key={label}
+                  to={href}
+                  onClick={() => setDrawerOpen(false)}
+                >
+                  {label}
+                </Link>
+              ) : (
+                <a
+                  key={label}
+                  href={href}
+                  onClick={(e) => { e.preventDefault(); handleNavClick(href); }}
+                >
+                  {label}
+                </a>
+              )
             ))}
             <div className="lp-nav__drawer-divider" />
             {user ? (

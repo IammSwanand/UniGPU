@@ -56,6 +56,10 @@ const api = {
     forgotPassword: (d) => request('POST', '/auth/forgot-password', { body: d }),
     resetPassword: (d) => request('POST', '/auth/reset-password', { body: d }),
 
+    // Users
+    getMe: () => request('GET', '/users/me'),
+    updateProfile: (d) => request('PATCH', '/users/me', { body: d }),
+
     // GPUs
     listGPUs: () => request('GET', '/gpus/'),
     availableGPUs: (minVram) => request('GET', `/gpus/available?min_vram=${minVram || 0}`),

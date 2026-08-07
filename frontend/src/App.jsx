@@ -10,7 +10,6 @@ const ForgotPassword = lazy(() => import('./pages/ForgotPassword'));
 const ResetPassword = lazy(() => import('./pages/ResetPassword'));
 const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const HowToUse = lazy(() => import('./pages/HowToUse'));
-const Docs = lazy(() => import('./pages/Docs'));
 const AboutUs = lazy(() => import('./pages/AboutUs'));
 const Download = lazy(() => import('./pages/Download'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
@@ -20,6 +19,9 @@ const ProviderWallet = lazy(() => import('./pages/ProviderWallet'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const GpuMarketplace = lazy(() => import('./pages/GpuMarketplace'));
 const Support = lazy(() => import('./pages/Support'));
+const LegalPolicy = lazy(() => import('./pages/LegalPolicy'));
+const LegalIndex = lazy(() => import('./pages/LegalIndex'));
+const Profile = lazy(() => import('./pages/Profile'));
 
 function AppShell() {
   return <div className="connecting-spinner" aria-label="Loading" />;
@@ -80,7 +82,6 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Landing />} />
             <Route path="/how-to-use" element={<HowToUse />} />
-            <Route path="/docs" element={<Docs />} />
             <Route path="/about" element={<AboutUs />} />
             <Route path="/download" element={<Download />} />
             <Route path="/login" element={<Login />} />
@@ -89,6 +90,8 @@ export default function App() {
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/support" element={<Support />} />
+            <Route path="/legal" element={<LegalIndex />} />
+            <Route path="/legal/:policyId" element={<LegalPolicy />} />
             <Route path="/dashboard" element={<DashboardRedirect />} />
             <Route path="/dashboard/client" element={
               <ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>
@@ -99,11 +102,17 @@ export default function App() {
             <Route path="/dashboard/client/gpus" element={
               <ProtectedRoute roles={['client']}><GpuMarketplace /></ProtectedRoute>
             } />
+            <Route path="/dashboard/client/profile" element={
+              <ProtectedRoute roles={['client']}><Profile /></ProtectedRoute>
+            } />
             <Route path="/dashboard/provider" element={
               <ProtectedRoute roles={['provider']}><ProviderDashboard /></ProtectedRoute>
             } />
             <Route path="/dashboard/provider/wallet" element={
               <ProtectedRoute roles={['provider']}><ProviderWallet /></ProtectedRoute>
+            } />
+            <Route path="/dashboard/provider/profile" element={
+              <ProtectedRoute roles={['provider']}><Profile /></ProtectedRoute>
             } />
             <Route path="/dashboard/admin" element={
               <ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>

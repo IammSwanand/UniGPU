@@ -86,6 +86,10 @@ def _build_token_response(user: User) -> Token:
         email=user.email,
         username=user.username,
         is_email_verified=user.is_email_verified,
+        github_handle=user.github_handle,
+        linkedin_handle=user.linkedin_handle,
+        huggingface_handle=user.huggingface_handle,
+        kaggle_handle=user.kaggle_handle,
     )
 
 

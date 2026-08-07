@@ -4,9 +4,6 @@ import CommunitySection from '../components/landing/CommunitySection';
 import FeaturesSection from '../components/landing/FeaturesSection';
 import HowItWorksSection from '../components/landing/HowItWorksSection';
 import ClientSection from '../components/landing/ClientSection';
-import ProviderSection from '../components/landing/ProviderSection';
-import TechSection from '../components/landing/TechSection';
-import PricingSection from '../components/landing/PricingSection';
 import FAQSection from '../components/landing/FAQSection';
 import FinalCTASection from '../components/landing/FinalCTASection';
 import FooterSection from '../components/landing/FooterSection';
@@ -23,6 +20,19 @@ import FooterSection from '../components/landing/FooterSection';
 export default function Landing() {
   return (
     <div className="landing-page">
+      {/* Background Video */}
+      <div className="lp-bg-container">
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="lp-bg-video"
+        >
+          <source src="/assets/background/bg_2.mp4" type="video/mp4" />
+        </video>
+      </div>
+
       {/* ── Fixed navigation ── */}
       <Navbar />
 
@@ -46,17 +56,11 @@ export default function Landing() {
         {/* 5. Client section — light feature container + job mockup */}
         <ClientSection />
 
-        {/* 6. Provider section — light feature container + dark install terminal */}
-        <ProviderSection />
 
-        {/* 7. Technical section — lavender wash + arch code window + tech chips */}
-        <TechSection />
 
         {/* Hairline divider */}
         <div className="lp-divider" role="separator" aria-hidden="true" />
 
-        {/* 8. Pricing */}
-        <PricingSection />
 
         {/* 9. FAQ */}
         <FAQSection />

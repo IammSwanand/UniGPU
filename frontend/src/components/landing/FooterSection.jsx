@@ -1,17 +1,15 @@
 const FOOTER_COLS = [
   {
     title: 'Product',
-      links: [
-        { label: 'Features', href: '#features' },
-        { label: 'Pricing', href: '#pricing' },
-        { label: 'Docs', href: '/docs#client' },
-        { label: 'Dashboard', href: '/dashboard' },
-      ],
+    links: [
+      { label: 'Features', href: '#features' },
+      { label: 'Pricing', href: '#pricing' },
+      { label: 'Dashboard', href: '/dashboard' },
+    ],
   },
   {
     title: 'Resources',
     links: [
-      { label: 'Documentation', href: '/docs#provider' },
       { label: 'API Reference', href: '#' },
       { label: 'GitHub', href: '#' },
       { label: 'FAQ', href: '#faq' },
@@ -28,9 +26,9 @@ const FOOTER_COLS = [
   {
     title: 'Legal',
     links: [
-      { label: 'Privacy Policy', href: '#' },
-      { label: 'Terms of Service', href: '#' },
-      { label: 'License', href: '#' },
+      { label: 'Privacy Policy', href: '/legal/privacy_policy' },
+      { label: 'Terms of Service', href: '/legal/terms_of_service' },
+      { label: 'Others', href: '/legal' },
     ],
   },
 ];
