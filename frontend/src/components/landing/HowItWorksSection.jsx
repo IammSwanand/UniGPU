@@ -1,6 +1,5 @@
 import { motion } from 'framer-motion';
 import EyebrowLabel from './EyebrowLabel';
-import CodeWindow from './CodeWindow';
 
 const steps = [
   {
@@ -25,54 +24,13 @@ const steps = [
   },
 ];
 
-function ExecutionWindow() {
-  return (
-    <CodeWindow filename="agent.log">
-      <span className="lp-tok-comment"># UniGPU Agent — execution pipeline</span>
-      {'\n\n'}
-      <span className="lp-tok-keyword">INFO</span>
-      <span className="lp-tok-muted">  [scheduler]  </span>
-      <span className="lp-tok-output">Job queued — waiting for available provider</span>
-      {'\n'}
-      <span className="lp-tok-keyword">INFO</span>
-      <span className="lp-tok-muted">  [scheduler]  </span>
-      <span className="lp-tok-output">Provider matched — ws://provider-a42.local</span>
-      {'\n\n'}
-      <span className="lp-tok-keyword">INFO</span>
-      <span className="lp-tok-muted">  [agent]      </span>
-      <span className="lp-tok-output">Pulling workload package...</span>
-      {'\n'}
-      <span className="lp-tok-keyword">INFO</span>
-      <span className="lp-tok-muted">  [agent]      </span>
-      <span className="lp-tok-output">Installing requirements.txt</span>
-      {'\n'}
-      <span className="lp-tok-keyword">INFO</span>
-      <span className="lp-tok-muted">  [agent]      </span>
-      <span className="lp-tok-output">Starting Docker container</span>
-      {'\n\n'}
-      <span className="lp-tok-success">✓</span>
-      <span className="lp-tok-muted">  [runtime]    </span>
-      <span className="lp-tok-string">Container live — NVIDIA RTX 4060 attached</span>
-      {'\n\n'}
-      <span className="lp-tok-output">Epoch  1  loss=0.042  acc=96.8%</span>
-      {'\n'}
-      <span className="lp-tok-output">Epoch  5  loss=0.029  acc=98.1%</span>
-      {'\n'}
-      <span className="lp-tok-output">Epoch 20  loss=0.012  acc=99.3%</span>
-      {'\n\n'}
-      <span className="lp-tok-success">✓</span>
-      <span className="lp-tok-muted">  [billing]    </span>
-      <span className="lp-tok-string">Session closed — 11m 42s billed</span>
-    </CodeWindow>
-  );
-}
+
 
 export default function HowItWorksSection() {
   return (
     <section
       id="how-it-works"
       className="lp-section"
-      style={{ background: 'var(--lp-lavender-wash)' }}
       aria-labelledby="how-heading"
     >
       <div className="lp-container">
@@ -104,8 +62,7 @@ export default function HowItWorksSection() {
           ))}
         </div>
 
-        {/* Code window proof */}
-        <ExecutionWindow />
+
       </div>
     </section>
   );

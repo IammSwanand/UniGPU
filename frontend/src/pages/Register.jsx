@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRocket, faBolt } from '@fortawesome/free-solid-svg-icons';
 import Navbar from '../components/landing/Navbar';
-import CodeWindow from '../components/landing/CodeWindow';
+
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
 import { containerVariants, childVariants, asideVariants } from '../lib/authMotion';
 
@@ -55,6 +55,12 @@ export default function Register() {
 
     return (
         <div className="landing-page auth-page--lp">
+            {/* Background Video */}
+            <div className="lp-bg-container">
+                <video autoPlay loop muted playsInline className="lp-bg-video">
+                    <source src="/assets/background/bg_2.mp4" type="video/mp4" />
+                </video>
+            </div>
             <Navbar />
             <main id="main-content">
                 <motion.div
@@ -71,24 +77,7 @@ export default function Register() {
                             Run Python workloads on idle student GPUs, or share your own hardware and
                             earn wallet credit. One account, two ways to compute.
                         </p>
-                        <div className="lp-auth__aside-code">
-                            <CodeWindow filename="terminal" animate={false}>
-                                <span className="lp-tok-prompt">$ </span>
-                                <span className="lp-tok-keyword">unigpu</span>
-                                <span className="lp-tok-string"> register --role {role}</span>
-                                {'\n\n'}
-                                <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Account created</span>
-                                {'\n'}
-                                <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Verification email sent</span>
-                                {'\n'}
-                                <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Account activates after verification</span>
-                                {'\n\n'}
-                                <span className="lp-tok-comment">Check your inbox to activate the account.</span>
-                            </CodeWindow>
-                        </div>
+
                     </motion.aside>
 
                     {/* ── Main — form panel ── */}

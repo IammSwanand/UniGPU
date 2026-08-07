@@ -3,7 +3,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/landing/Navbar';
-import CodeWindow from '../components/landing/CodeWindow';
+
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
 import { containerVariants, childVariants, asideVariants } from '../lib/authMotion';
 
@@ -34,6 +34,12 @@ export default function Login() {
 
     return (
         <div className="landing-page auth-page--lp">
+            {/* Background Video */}
+            <div className="lp-bg-container">
+                <video autoPlay loop muted playsInline className="lp-bg-video">
+                    <source src="/assets/background/bg_2.mp4" type="video/mp4" />
+                </video>
+            </div>
             <Navbar />
             <main id="main-content">
                 <motion.div
@@ -50,24 +56,7 @@ export default function Login() {
                             Sign in to submit workloads, stream live execution logs, and manage your
                             wallet — all from the UniGPU marketplace.
                         </p>
-                        <div className="lp-auth__aside-code">
-                            <CodeWindow filename="terminal" animate={false}>
-                                <span className="lp-tok-prompt">$ </span>
-                                <span className="lp-tok-keyword">unigpu</span>
-                                <span className="lp-tok-string"> login</span>
-                                {'\n\n'}
-                                <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Authenticated</span>
-                                {'\n'}
-                                <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Session token issued</span>
-                                {'\n'}
-                                <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Wallet synced</span>
-                                {'\n\n'}
-                                <span className="lp-tok-comment">Ready to submit jobs.</span>
-                            </CodeWindow>
-                        </div>
+
                     </motion.aside>
 
                     {/* ── Main — form panel ── */}
