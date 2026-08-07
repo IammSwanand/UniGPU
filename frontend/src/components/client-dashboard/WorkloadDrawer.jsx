@@ -190,7 +190,7 @@ function WorkloadDrawerInner({ job, onClose, availableGPUs, isProvider }) {
               {job.logs ? (
                 <pre
                   style={{
-                    background: 'var(--lp-ink)',
+                    background: '#0f172a',
                     color: '#e2e8f0',
                     borderRadius: 8,
                     padding: '12px 14px',
