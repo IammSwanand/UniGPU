@@ -1303,6 +1303,7 @@ tbody tr:last-child td {
   align-items: center;
   gap: 10px;
   text-decoration: none;
+  flex: 1;
 }
 
 .lp-nav__logo-mark {
@@ -1357,7 +1358,9 @@ tbody tr:last-child td {
 .lp-nav__actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 12px;
+  flex: 1;
 }
 
 .lp-nav__login {
