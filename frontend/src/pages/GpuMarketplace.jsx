@@ -135,6 +135,7 @@ export default function GpuMarketplace() {
               <thead>
                 <tr>
                   <th>GPU Model</th>
+                  <th>Provider</th>
                   <th>VRAM</th>
                   <th>CUDA Version</th>
                   <th>Starting Price/hr</th>
@@ -153,7 +154,9 @@ export default function GpuMarketplace() {
                     <tr key={gpu.id}>
                       <td>
                         <div style={{ fontWeight: 600, color: 'var(--lp-midnight-ink)' }}>{gpu.name}</div>
-                        <div style={{ fontSize: '12px', color: 'var(--lp-ash-helper)' }}>Provider: {gpu.id.substring(0, 8)}</div>
+                      </td>
+                      <td style={{ color: 'var(--lp-ash-helper)', fontWeight: 500 }}>
+                        {gpu.provider?.username || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}
                       </td>
                       <td className="cd-table__mono">{(gpu.vram_mb / 1024).toFixed(0)} GB</td>
                       <td className="cd-table__mono">{gpu.cuda_version || 'N/A'}</td>

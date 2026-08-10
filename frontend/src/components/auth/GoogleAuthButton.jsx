@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Country, City } from 'country-state-city';
 
 export default function GoogleAuthButton({ role = 'client' }) {
     const { loginWithGoogle } = useAuth();
@@ -10,8 +11,13 @@ export default function GoogleAuthButton({ role = 'client' }) {
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [googleCredential, setGoogleCredential] = useState(null);
     const [cliPassword, setCliPassword] = useState('');
+    const [countryIso, setCountryIso] = useState('');
+    const [cityName, setCityName] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
+
+    const countries = useMemo(() => Country.getAllCountries(), []);
+    const cities = useMemo(() => countryIso ? City.getCitiesOfCountry(countryIso) : [], [countryIso]);
 
     const handleSuccess = async (credentialResponse) => {
         setError('');
@@ -36,10 +42,19 @@ export default function GoogleAuthButton({ role = 'client' }) {
 
     const handlePasswordSubmit = async (e) => {
         e.preventDefault();
+        
+        if (role === 'provider' && (!countryIso || !cityName)) {
+            setError('Location is required for providers.');
+            return;
+        }
+        
+        const countryName = countryIso ? Country.getCountryByCode(countryIso)?.name : '';
+        const locationStr = role === 'provider' ? `${cityName}, ${countryName}` : null;
+        
         setError('');
         setIsSubmitting(true);
         try {
-            const user = await loginWithGoogle(googleCredential, role, cliPassword);
+            const user = await loginWithGoogle(googleCredential, role, cliPassword, locationStr);
             setShowPasswordModal(false);
             const paths = { client: '/dashboard/client', provider: '/dashboard/provider', admin: '/dashboard/admin' };
             navigate(paths[user.role] || '/dashboard');
@@ -112,6 +127,30 @@ export default function GoogleAuthButton({ role = 'client' }) {
                                         autoFocus
                                     />
                                 </div>
+                                
+                                {role === 'provider' && (
+                                    <>
+                                        <div className="lp-auth__form-group" style={{ textAlign: 'left', marginTop: '16px' }}>
+                                            <label className="lp-auth__label">Country</label>
+                                            <select className="lp-input" value={countryIso} onChange={e => { setCountryIso(e.target.value); setCityName(''); }} required>
+                                                <option value="">Select Country</option>
+                                                {countries.map(c => (
+                                                    <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div className="lp-auth__form-group" style={{ textAlign: 'left', marginTop: '16px' }}>
+                                            <label className="lp-auth__label">City</label>
+                                            <select className="lp-input" value={cityName} onChange={e => setCityName(e.target.value)} disabled={!countryIso} required>
+                                                <option value="">Select City</option>
+                                                {cities.map(c => (
+                                                    <option key={c.name} value={c.name}>{c.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </>
+                                )}
+                                
                                 <div style={{ display: 'flex', gap: '12px', marginTop: '32px' }}>
                                     <button
                                         type="button"

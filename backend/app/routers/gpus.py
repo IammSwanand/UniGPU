@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from typing import List
 
 from app.database import get_db
@@ -71,10 +72,10 @@ async def list_gpus(
     # Clients see all GPUs (to select for job submission)
     # Admins see all GPUs
     if current_user.role.value == "provider":
-        result = await db.execute(select(GPU).where(GPU.provider_id == current_user.id))
+        result = await db.execute(select(GPU).options(selectinload(GPU.provider)).where(GPU.provider_id == current_user.id))
     else:
         # Clients and admins see all GPUs
-        result = await db.execute(select(GPU))
+        result = await db.execute(select(GPU).options(selectinload(GPU.provider)))
     return result.scalars().all()
 
 
@@ -85,6 +86,7 @@ async def list_available_gpus(
 ):
     result = await db.execute(
         select(GPU)
+        .options(selectinload(GPU.provider))
         .where(GPU.status == GPUStatus.online, GPU.vram_mb >= min_vram)
         .order_by(GPU.vram_mb.asc())
     )

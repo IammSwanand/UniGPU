@@ -16,6 +16,14 @@ class GPUStatusUpdate(BaseModel):
 
 
 # ── Response ──
+class ProviderOut(BaseModel):
+    username: str
+    location: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
 class GPUOut(BaseModel):
     id: str
     provider_id: str
@@ -25,6 +33,7 @@ class GPUOut(BaseModel):
     status: GPUStatus
     last_heartbeat: Optional[datetime]
     created_at: datetime
+    provider: Optional[ProviderOut] = None
 
     class Config:
         from_attributes = True

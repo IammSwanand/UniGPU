@@ -20,6 +20,7 @@ export function AuthProvider({ children }) {
             linkedin_handle: res.linkedin_handle,
             huggingface_handle: res.huggingface_handle,
             kaggle_handle: res.kaggle_handle,
+            location: res.location,
         };
         localStorage.setItem('user', JSON.stringify(userData));
         setToken(res.access_token);
@@ -80,9 +81,10 @@ export function AuthProvider({ children }) {
 
 
 
-    const loginWithGoogle = async (idToken, selectedRole = 'client', cliPassword = null) => {
+    const loginWithGoogle = async (idToken, selectedRole = 'client', cliPassword = null, location = null) => {
         const payload = { id_token: idToken, role: selectedRole };
         if (cliPassword) payload.cli_password = cliPassword;
+        if (location) payload.location = location;
         const res = await api.googleAuth(payload);
         return applySession(res);
     };

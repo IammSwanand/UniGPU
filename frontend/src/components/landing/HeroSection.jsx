@@ -41,9 +41,7 @@ export default function HeroSection() {
 
           {/* Subhead */}
           <motion.p className="lp-hero__subhead" variants={childVariants}>
-            Submit Python workloads and run them on idle GPUs contributed by
-            students. Secure containers, live logs, automatic scheduling — all
-            from one platform.
+            Democritizing Compute for all!!
           </motion.p>
 
           {/* CTAs */}
@@ -51,7 +49,7 @@ export default function HeroSection() {
             <Link to="/register?role=client" className="lp-btn-primary">
               Rent Compute
               <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
-                <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M6 3l5 5-5 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </Link>
             <Link to="/register?role=provider" className="lp-btn-ghost">

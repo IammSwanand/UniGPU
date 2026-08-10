@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, model_validator
 from datetime import datetime
 from app.models.user import UserRole
 
@@ -9,6 +9,13 @@ class UserCreate(BaseModel):
     username: str
     password: str
     role: UserRole = UserRole.client
+    location: str | None = None
+
+    @model_validator(mode='after')
+    def check_location(self) -> 'UserCreate':
+        if self.role == UserRole.provider and not self.location:
+            raise ValueError('Location is required for providers.')
+        return self
 
 
 class EmailVerificationRequest(BaseModel):
@@ -44,6 +51,13 @@ class GoogleAuthRequest(BaseModel):
     id_token: str
     role: UserRole = UserRole.client
     cli_password: str | None = None
+    location: str | None = None
+
+    @model_validator(mode='after')
+    def check_location(self) -> 'GoogleAuthRequest':
+        if self.role == UserRole.provider and not self.location:
+            raise ValueError('Location is required for providers.')
+        return self
 
 
 class MessageResponse(BaseModel):
@@ -63,6 +77,7 @@ class UserOut(BaseModel):
     linkedin_handle: str | None = None
     huggingface_handle: str | None = None
     kaggle_handle: str | None = None
+    location: str | None = None
 
     class Config:
         from_attributes = True
@@ -73,6 +88,7 @@ class UserProfileUpdate(BaseModel):
     linkedin_handle: str | None = None
     huggingface_handle: str | None = None
     kaggle_handle: str | None = None
+    location: str | None = None
 
 
 class Token(BaseModel):
@@ -87,3 +103,4 @@ class Token(BaseModel):
     linkedin_handle: str | None = None
     huggingface_handle: str | None = None
     kaggle_handle: str | None = None
+    location: str | None = None

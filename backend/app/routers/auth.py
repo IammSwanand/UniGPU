@@ -114,6 +114,7 @@ async def register(
         username=data.username,
         hashed_password=_hash_password(data.password),
         role=data.role,
+        location=data.location,
         is_email_verified=False,
         email_verification_token_hash=token_hash,
         email_verification_expires=datetime.now(timezone.utc) + timedelta(hours=EMAIL_VERIFICATION_EXPIRE_HOURS),
@@ -458,6 +459,7 @@ async def google_auth(
                 username=name,
                 hashed_password=_hash_password(data.cli_password) if data.cli_password else None,
                 role=data.role,
+                location=data.location,
                 google_id=google_id,
                 is_email_verified=True,  # Google already verified the email
                 is_active=True,

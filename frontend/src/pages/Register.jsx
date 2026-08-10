@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRocket, faBolt } from '@fortawesome/free-solid-svg-icons';
 import Navbar from '../components/landing/Navbar';
+import { Country, City } from 'country-state-city';
 
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
 import { containerVariants, childVariants, asideVariants } from '../lib/authMotion';
@@ -17,6 +18,8 @@ export default function Register() {
     const searchParams = new URLSearchParams(location.search);
     const initialRole = searchParams.get('role') === 'provider' ? 'provider' : 'client';
     const [role, setRole] = useState(initialRole);
+    const [countryIso, setCountryIso] = useState('');
+    const [cityName, setCityName] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [registeredEmail, setRegisteredEmail] = useState('');
@@ -25,12 +28,22 @@ export default function Register() {
     const [resendLoading, setResendLoading] = useState(false);
     const { register, resendVerification } = useAuth();
 
+    const countries = useMemo(() => Country.getAllCountries(), []);
+    const cities = useMemo(() => countryIso ? City.getCitiesOfCountry(countryIso) : [], [countryIso]);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (role === 'provider' && (!countryIso || !cityName)) {
+            setError('Location is required for providers.');
+            return;
+        }
+        const countryName = countryIso ? Country.getCountryByCode(countryIso)?.name : '';
+        const locationStr = role === 'provider' ? `${cityName}, ${countryName}` : null;
+
         setError('');
         setLoading(true);
         try {
-            await register({ email, username, password, role });
+            await register({ email, username, password, role, location: locationStr });
             setRegisteredEmail(email);
         } catch (err) {
             setError(err.detail || 'Registration failed');
@@ -163,6 +176,28 @@ export default function Register() {
                                         <input className="lp-input" type="password" placeholder="Choose a password"
                                             value={password} onChange={e => setPassword(e.target.value)} required />
                                     </div>
+                                    {role === 'provider' && (
+                                        <>
+                                            <div className="lp-auth__form-group">
+                                                <label className="lp-auth__label">Country</label>
+                                                <select className="lp-input" value={countryIso} onChange={e => { setCountryIso(e.target.value); setCityName(''); }} required>
+                                                    <option value="">Select Country</option>
+                                                    {countries.map(c => (
+                                                        <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                            <div className="lp-auth__form-group">
+                                                <label className="lp-auth__label">City</label>
+                                                <select className="lp-input" value={cityName} onChange={e => setCityName(e.target.value)} disabled={!countryIso} required>
+                                                    <option value="">Select City</option>
+                                                    {cities.map(c => (
+                                                        <option key={c.name} value={c.name}>{c.name}</option>
+                                                    ))}
+                                                </select>
+                                            </div>
+                                        </>
+                                    )}
                                     <button className="lp-btn-inverse lp-auth__submit" type="submit" disabled={loading}>
                                         {loading ? 'Creating…' : 'Create Account'}
                                     </button>

@@ -40,6 +40,7 @@ class User(Base):
     linkedin_handle: Mapped[str | None] = mapped_column(String, nullable=True)
     huggingface_handle: Mapped[str | None] = mapped_column(String, nullable=True)
     kaggle_handle: Mapped[str | None] = mapped_column(String, nullable=True)
+    location: Mapped[str | None] = mapped_column(String, nullable=True)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
