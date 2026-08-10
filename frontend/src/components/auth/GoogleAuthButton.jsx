@@ -57,13 +57,14 @@ export default function GoogleAuthButton({ role = 'client' }) {
                     {error}
                 </p>
             )}
-            <div className="lp-google-auth-wrapper" style={{ display: 'flex', justifyContent: 'center', margin: '16px 0' }}>
+            <div className="lp-google-auth-wrapper" style={{ display: 'flex', justifyContent: 'center', width: '100%', margin: '8px 0' }}>
                 <GoogleLogin
                     onSuccess={handleSuccess}
                     onError={handleError}
                     text="continue_with"
                     theme="outline"
                     shape="pill"
+                    width="100%"
                 />
             </div>
 
