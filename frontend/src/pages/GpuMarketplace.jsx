@@ -157,18 +157,11 @@ export default function GpuMarketplace() {
                       <td>
                         <div style={{ fontWeight: 600, color: 'var(--lp-midnight-ink)' }}>{gpu.name}</div>
                       </td>
-                      <td style={{ color: 'var(--lp-ash-helper)', fontWeight: 500 }}>
+                      <td>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span>{gpu.provider?.email_prefix || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}</span>
-                          {gpu.provider && (
-                            <button
-                              type="button"
-                              style={{ background: 'none', border: 'none', color: 'var(--lp-royal-signal)', cursor: 'pointer', fontSize: '12px', padding: 0 }}
-                              onClick={(e) => { e.stopPropagation(); setViewProvider(gpu.provider); }}
-                            >
-                              View Profile
-                            </button>
-                          )}
+                          <span style={{ fontWeight: 600, color: 'var(--lp-midnight-ink)' }}>
+                            {gpu.provider?.email_prefix || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}
+                          </span>
                         </div>
                       </td>
                       <td className="cd-table__mono">{(gpu.vram_mb / 1024).toFixed(0)} GB</td>
@@ -177,23 +170,44 @@ export default function GpuMarketplace() {
                       <td className="cd-table__mono">{gpu.queueTime}</td>
                       <td style={{ fontSize: '13px', color: 'var(--lp-slate-caption)' }}>{gpu.bestFor}</td>
                       <td style={{ textAlign: 'right' }}>
-                        {mode === 'select' ? (
-                          <button 
-                            className="cd-btn cd-btn--primary" 
-                            style={{ padding: '6px 16px', fontSize: '13px', minWidth: '80px' }}
-                            onClick={() => handleSelect(gpu.id)}
-                          >
-                            Select
-                          </button>
-                        ) : (
-                          <button 
-                            className="cd-btn cd-btn--outline" 
-                            style={{ padding: '6px 16px', fontSize: '13px', minWidth: '130px' }}
-                            onClick={() => handleSelect(gpu.id)}
-                          >
-                            Deploy Workload
-                          </button>
-                        )}
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '8px' }}>
+                          {gpu.provider && (
+                            <button
+                              type="button"
+                              style={{
+                                background: 'rgba(20, 90, 255, 0.1)',
+                                border: 'none',
+                                color: 'var(--lp-royal-signal)',
+                                cursor: 'pointer',
+                                fontSize: '11px',
+                                fontWeight: 600,
+                                padding: '6px 12px',
+                                borderRadius: '12px',
+                                whiteSpace: 'nowrap'
+                              }}
+                              onClick={(e) => { e.stopPropagation(); setViewProvider(gpu.provider); }}
+                            >
+                              View Profile
+                            </button>
+                          )}
+                          {mode === 'select' ? (
+                            <button 
+                              className="cd-btn cd-btn--primary" 
+                              style={{ padding: '6px 16px', fontSize: '13px', minWidth: '80px' }}
+                              onClick={() => handleSelect(gpu.id)}
+                            >
+                              Select
+                            </button>
+                          ) : (
+                            <button 
+                              className="cd-btn cd-btn--outline" 
+                              style={{ padding: '6px 16px', fontSize: '13px', minWidth: '130px' }}
+                              onClick={() => handleSelect(gpu.id)}
+                            >
+                              Deploy Workload
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))

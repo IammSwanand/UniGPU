@@ -131,13 +131,32 @@ export default function GpuPreference({ availableGPUs, selectedGPU, onSelect }) 
                     <td>
                       <div style={{ fontWeight: 500, color: 'var(--lp-midnight-ink)' }}>{gpu.name}</div>
                     </td>
-                    <td className="cd-table__mono" style={{ color: 'var(--lp-ash-helper)' }}>
+                    <td className="cd-table__mono">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span>{gpu.provider?.email_prefix || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}</span>
+                        <span style={{ fontWeight: 600, color: 'var(--lp-midnight-ink)' }}>
+                          {gpu.provider?.email_prefix || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}
+                        </span>
+                      </div>
+                    </td>
+                    <td className="cd-table__mono">{(gpu.vram_mb / 1024).toFixed(0)} GB</td>
+                    <td className="cd-table__mono">{gpu.cuda_version || 'N/A'}</td>
+                    <td className="cd-table__mono" style={{ color: 'var(--lp-ash-helper)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                        <span>N/A</span>
                         {gpu.provider && (
                           <button
                             type="button"
-                            style={{ background: 'none', border: 'none', color: 'var(--lp-royal-signal)', cursor: 'pointer', fontSize: '12px', padding: 0 }}
+                            style={{
+                              background: 'rgba(20, 90, 255, 0.1)',
+                              border: 'none',
+                              color: 'var(--lp-royal-signal)',
+                              cursor: 'pointer',
+                              fontSize: '11px',
+                              fontWeight: 600,
+                              padding: '6px 12px',
+                              borderRadius: '12px',
+                              whiteSpace: 'nowrap'
+                            }}
                             onClick={(e) => { e.stopPropagation(); setViewProvider(gpu.provider); }}
                           >
                             View Profile
@@ -145,9 +164,6 @@ export default function GpuPreference({ availableGPUs, selectedGPU, onSelect }) 
                         )}
                       </div>
                     </td>
-                    <td className="cd-table__mono">{(gpu.vram_mb / 1024).toFixed(0)} GB</td>
-                    <td className="cd-table__mono">{gpu.cuda_version || 'N/A'}</td>
-                    <td className="cd-table__mono" style={{ color: 'var(--lp-ash-helper)' }}>N/A</td>
                   </tr>
                 ))
               )}
