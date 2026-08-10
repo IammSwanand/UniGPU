@@ -251,7 +251,21 @@ export default function Profile() {
                 <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
                   <button className="cd-btn cd-btn--outline" onClick={() => {
                     setIsEditingMain(false);
-                    setMainInfo({ username: user?.username || '' });
+                    let initialCountryIso = '';
+                    let initialCityName = '';
+                    if (user?.location) {
+                      const parts = user.location.split(', ');
+                      if (parts.length === 2) {
+                        initialCityName = parts[0];
+                        const country = Country.getAllCountries().find(c => c.name === parts[1]);
+                        if (country) initialCountryIso = country.isoCode;
+                      }
+                    }
+                    setMainInfo({ 
+                      username: user?.username || '',
+                      countryIso: initialCountryIso,
+                      cityName: initialCityName
+                    });
                   }}>
                     Cancel
                   </button>
