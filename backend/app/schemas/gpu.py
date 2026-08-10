@@ -20,6 +20,10 @@ class ProviderOut(BaseModel):
     username: str
     email_prefix: str
     location: Optional[str] = None
+    github_handle: Optional[str] = None
+    linkedin_handle: Optional[str] = None
+    huggingface_handle: Optional[str] = None
+    kaggle_handle: Optional[str] = None
 
     class Config:
         from_attributes = True

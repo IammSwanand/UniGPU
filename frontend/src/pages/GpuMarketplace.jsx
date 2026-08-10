@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import DashboardNavbar from '../components/client-dashboard/DashboardNavbar';
 import api from '../api/client';
+import ProviderProfileModal from '../components/client-dashboard/ProviderProfileModal';
 
 export default function GpuMarketplace() {
   const navigate = useNavigate();
@@ -9,6 +10,7 @@ export default function GpuMarketplace() {
   const [gpus, setGpus] = useState([]);
   const [loading, setLoading] = useState(true);
   const [wallet, setWallet] = useState(null);
+  const [viewProvider, setViewProvider] = useState(null);
 
   const queryParams = new URLSearchParams(location.search);
   const mode = queryParams.get('mode'); // 'select' or null
@@ -156,7 +158,18 @@ export default function GpuMarketplace() {
                         <div style={{ fontWeight: 600, color: 'var(--lp-midnight-ink)' }}>{gpu.name}</div>
                       </td>
                       <td style={{ color: 'var(--lp-ash-helper)', fontWeight: 500 }}>
-                        {gpu.provider?.email_prefix || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span>{gpu.provider?.email_prefix || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}</span>
+                          {gpu.provider && (
+                            <button
+                              type="button"
+                              style={{ background: 'none', border: 'none', color: 'var(--lp-royal-signal)', cursor: 'pointer', fontSize: '12px', padding: 0 }}
+                              onClick={(e) => { e.stopPropagation(); setViewProvider(gpu.provider); }}
+                            >
+                              View Profile
+                            </button>
+                          )}
+                        </div>
                       </td>
                       <td className="cd-table__mono">{(gpu.vram_mb / 1024).toFixed(0)} GB</td>
                       <td className="cd-table__mono">{gpu.cuda_version || 'N/A'}</td>
@@ -190,6 +203,7 @@ export default function GpuMarketplace() {
           </div>
         </div>
       </main>
+      <ProviderProfileModal provider={viewProvider} onClose={() => setViewProvider(null)} />
     </div>
   );
 }

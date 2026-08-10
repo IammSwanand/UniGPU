@@ -19,9 +19,12 @@
  *  - onSelect(id)   : change handler
  */
 import { useNavigate } from 'react-router-dom';
+import { useState } from 'react';
+import ProviderProfileModal from './ProviderProfileModal';
 
 export default function GpuPreference({ availableGPUs, selectedGPU, onSelect }) {
   const navigate = useNavigate();
+  const [viewProvider, setViewProvider] = useState(null);
   const isAuto = selectedGPU === '';
 
   const handleToggleAuto = () => {
@@ -129,7 +132,18 @@ export default function GpuPreference({ availableGPUs, selectedGPU, onSelect }) 
                       <div style={{ fontWeight: 500, color: 'var(--lp-midnight-ink)' }}>{gpu.name}</div>
                     </td>
                     <td className="cd-table__mono" style={{ color: 'var(--lp-ash-helper)' }}>
-                      {gpu.provider?.email_prefix || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span>{gpu.provider?.email_prefix || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}</span>
+                        {gpu.provider && (
+                          <button
+                            type="button"
+                            style={{ background: 'none', border: 'none', color: 'var(--lp-royal-signal)', cursor: 'pointer', fontSize: '12px', padding: 0 }}
+                            onClick={(e) => { e.stopPropagation(); setViewProvider(gpu.provider); }}
+                          >
+                            View Profile
+                          </button>
+                        )}
+                      </div>
                     </td>
                     <td className="cd-table__mono">{(gpu.vram_mb / 1024).toFixed(0)} GB</td>
                     <td className="cd-table__mono">{gpu.cuda_version || 'N/A'}</td>
@@ -170,6 +184,7 @@ export default function GpuPreference({ availableGPUs, selectedGPU, onSelect }) 
           </button>
         </div>
       </div>
+      <ProviderProfileModal provider={viewProvider} onClose={() => setViewProvider(null)} />
     </div>
   );
 }
