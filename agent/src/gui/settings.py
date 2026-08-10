@@ -9,6 +9,11 @@ from typing import Optional, Callable
 
 from src.core.config import AgentConfig
 
+try:
+    from src.build_env import IS_PROD
+except ImportError:
+    IS_PROD = False
+
 # ─── Color palette (matches setup_wizard) ────────
 BG           = "#0f0f1a"
 BG_CARD      = "#1a1a2e"
@@ -102,15 +107,22 @@ class SettingsWindow:
         # ── Fields ───────────────────────────────────
         fields = [
             ("GPU ID", "gpu_id", True),
-            ("Backend HTTP URL", "backend_http_url", False),
-            ("Backend WebSocket URL", "backend_ws_url", False),
+        ]
+        
+        if not IS_PROD:
+            fields.extend([
+                ("Backend HTTP URL", "backend_http_url", False),
+                ("Backend WebSocket URL", "backend_ws_url", False),
+            ])
+            
+        fields.extend([
             ("Work Directory", "work_dir", False),
             ("Docker Base Image", "docker_base_image", False),
             ("Heartbeat Interval (s)", "heartbeat_interval", False),
             ("Max Job Timeout (s)", "max_job_timeout", False),
             ("CPU Limit", "cpu_limit", False),
             ("Memory Limit", "memory_limit", False),
-        ]
+        ])
 
         for label_text, key, read_only in fields:
             tk.Label(container, text=label_text, font=("Segoe UI", 9, "bold"),

@@ -20,6 +20,12 @@ from src.core.config import AgentConfig
 from src.core.gpu_detector import detect_gpus
 from src.core.credentials import save_credentials, delete_credentials
 
+try:
+    from src.build_env import IS_PROD, BACKEND_URL
+except ImportError:
+    IS_PROD = False
+    BACKEND_URL = ""
+
 logger = logging.getLogger("unigpu.agent.setup")
 
 # ─── Color palette ──────────────────────────────
@@ -74,7 +80,8 @@ class SetupWizard:
             pass
 
         # State
-        self._backend_url = tk.StringVar(value="http://localhost:8000")
+        default_url = BACKEND_URL if IS_PROD else "http://localhost:8000"
+        self._backend_url = tk.StringVar(value=default_url)
         self._username = tk.StringVar()
         self._password = tk.StringVar()
         self._gpu_label = tk.StringVar(value="Not detected yet")
@@ -131,16 +138,17 @@ class SetupWizard:
         desc_lbl.pack(pady=10)
         self._dynamic_labels.append(desc_lbl)
 
-        # Backend URL
-        tk.Label(page, text="Backend Server URL", font=("Segoe UI", 10, "bold"),
-                 bg=BG, fg=FG, anchor="w").pack(fill="x", pady=(20, 3))
-        entry = tk.Entry(page, textvariable=self._backend_url, font=("Consolas", 11),
-                         bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
-                         highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT)
-        entry.pack(fill="x", ipady=6)
+        # Backend URL (Only show in dev mode)
+        if not IS_PROD:
+            tk.Label(page, text="Backend Server URL", font=("Segoe UI", 10, "bold"),
+                     bg=BG, fg=FG, anchor="w").pack(fill="x", pady=(20, 3))
+            entry = tk.Entry(page, textvariable=self._backend_url, font=("Consolas", 11),
+                             bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
+                             highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT)
+            entry.pack(fill="x", ipady=6)
 
-        tk.Label(page, text="Ask your admin for the server URL if not localhost",
-                 font=("Segoe UI", 9), bg=BG, fg=FG_DIM).pack(anchor="w", pady=(3, 0))
+            tk.Label(page, text="Ask your admin for the server URL if not localhost",
+                     font=("Segoe UI", 9), bg=BG, fg=FG_DIM).pack(anchor="w", pady=(3, 0))
 
         self._make_nav_btn(page, "Next →", self._on_welcome_next).pack(side="bottom", pady=20)
 

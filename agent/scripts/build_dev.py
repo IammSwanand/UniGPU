@@ -48,6 +48,12 @@ def build():
     print(f"  Building {APP_NAME}")
     print(f"{'=' * 50}\n")
 
+    # Generate build environment variables
+    env_file = AGENT_DIR / "src" / "build_env.py"
+    with open(env_file, "w") as f:
+        f.write('IS_PROD = False\nBACKEND_URL = ""\n')
+    print("  Generated src/build_env.py (DEV)")
+
     # Check PyInstaller is available
     try:
         import PyInstaller
@@ -91,6 +97,7 @@ def build():
         "--hidden-import", "src.gui.tray",
         "--hidden-import", "src.gui.settings",
         "--hidden-import", "src.gui.setup_wizard",
+        "--hidden-import", "src.build_env",
         # Collect all sub-packages
         "--collect-submodules", "websockets",
         "--collect-submodules", "httpx",
