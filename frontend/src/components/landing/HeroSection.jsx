@@ -41,7 +41,7 @@ export default function HeroSection() {
 
           {/* Subhead */}
           <motion.p className="lp-hero__subhead" variants={childVariants}>
-            Democritizing Compute for all!!
+            Democratizing Compute for All
           </motion.p>
 
           {/* CTAs */}

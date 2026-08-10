@@ -96,7 +96,7 @@ export default function AboutUs() {
                         <div style={{ marginBottom: '40px' }}>
                             <div className="lp-section__header" style={{ marginBottom: '60px' }}>
                                 <EyebrowLabel>The Team</EyebrowLabel>
-                                <h2 className="lp-section__heading">Developed By</h2>
+                                <h2 className="lp-section__heading">Engineered by</h2>
                             </div>
 
                             <div className="lp-features__grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '30px' }}>
@@ -108,7 +108,7 @@ export default function AboutUs() {
                                         alt="Swanand Wakadmane"
                                     />
                                     <h3 className="lp-feature-mini__title" style={{ fontSize: '1.5rem', marginBottom: '8px' }}>Swanand Wakadmane</h3>
-                                    <p style={{ color: 'var(--lp-royal-signal)', fontWeight: 600, fontSize: '1rem', margin: '0 0 16px 0' }}>Co-founder & Developer</p>
+                                    <p style={{ color: 'var(--lp-royal-signal)', fontWeight: 600, fontSize: '1rem', margin: '0 0 16px 0' }}>Co-founder</p>
 
                                     <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
                                         <a href="https://github.com/IammSwanand" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--lp-ash-helper)', fontSize: '1.4rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--lp-midnight-ink)'} onMouseOut={e => e.currentTarget.style.color = 'var(--lp-ash-helper)'}><FontAwesomeIcon icon={faGithub} /></a>
@@ -145,7 +145,7 @@ export default function AboutUs() {
                                         alt="Sujal Kadam"
                                     />
                                     <h3 className="lp-feature-mini__title" style={{ fontSize: '1.5rem', marginBottom: '8px' }}>Sujal Kadam</h3>
-                                    <p style={{ color: 'var(--lp-royal-signal)', fontWeight: 600, fontSize: '1rem', margin: '0 0 16px 0' }}>Co-founder & Developer</p>
+                                    <p style={{ color: 'var(--lp-royal-signal)', fontWeight: 600, fontSize: '1rem', margin: '0 0 16px 0' }}>Co-founder</p>
 
                                     <div style={{ display: 'flex', gap: '16px', marginBottom: '24px' }}>
                                         <a href="https://github.com/withonly-sujal" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--lp-ash-helper)', fontSize: '1.4rem', transition: 'color 0.2s' }} onMouseOver={e => e.currentTarget.style.color = 'var(--lp-midnight-ink)'} onMouseOut={e => e.currentTarget.style.color = 'var(--lp-ash-helper)'}><FontAwesomeIcon icon={faGithub} /></a>
