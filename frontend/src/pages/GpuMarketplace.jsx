@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faCheckCircle } from '@fortawesome/free-solid-svg-icons';
+import blueTick from '../components/blue_tick.png';
 import DashboardNavbar from '../components/client-dashboard/DashboardNavbar';
 import api from '../api/client';
 import ProviderProfileModal from '../components/client-dashboard/ProviderProfileModal';
@@ -160,12 +160,19 @@ export default function GpuMarketplace() {
                         <div style={{ fontWeight: 600, color: 'var(--lp-midnight-ink)' }}>{gpu.name}</div>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ fontWeight: 600, color: 'var(--lp-midnight-ink)' }}>
-                            {gpu.provider?.email_prefix || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}
-                          </span>
-                          {gpu.provider?.is_email_verified && (
-                            <FontAwesomeIcon icon={faCheckCircle} style={{ color: 'var(--lp-royal-signal)', fontSize: '14px' }} title="Verified Provider" />
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{ fontWeight: 600, color: 'var(--lp-midnight-ink)' }}>
+                              {gpu.provider?.email_prefix || 'Unknown'}
+                            </span>
+                            {gpu.provider?.is_email_verified && (
+                              <img src={blueTick} alt="Verified Provider" style={{ width: '14px', height: '14px' }} title="Verified Provider" />
+                            )}
+                          </div>
+                          {gpu.provider?.location && (
+                            <span style={{ color: 'var(--lp-ash-helper)', fontWeight: 500, fontSize: '14px' }}>
+                              ({gpu.provider.location})
+                            </span>
                           )}
                         </div>
                       </td>

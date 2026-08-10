@@ -1,7 +1,8 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGithub, faLinkedin } from '@fortawesome/free-brands-svg-icons';
-import { faMapMarkerAlt, faTimes, faCheckCircle } from '@fortawesome/free-solid-svg-icons';
+import { faMapMarkerAlt, faTimes } from '@fortawesome/free-solid-svg-icons';
+import blueTick from '../blue_tick.png';
 import { IconKaggle, IconHuggingFace } from './icons';
 
 export default function ProviderProfileModal({ provider, onClose }) {
@@ -55,7 +56,7 @@ export default function ProviderProfileModal({ provider, onClose }) {
                 <h3 style={{ margin: '0 0 4px', fontSize: '1.25rem', color: 'var(--lp-midnight-ink)', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {provider.email_prefix || provider.username}
                   {provider.is_email_verified && (
-                    <FontAwesomeIcon icon={faCheckCircle} style={{ color: 'var(--lp-royal-signal)', fontSize: '16px' }} title="Verified Provider" />
+                    <img src={blueTick} alt="Verified Provider" style={{ width: '16px', height: '16px' }} title="Verified Provider" />
                   )}
                 </h3>
                 {provider.location && (
