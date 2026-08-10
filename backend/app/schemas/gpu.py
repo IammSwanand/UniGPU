@@ -20,6 +20,7 @@ class ProviderOut(BaseModel):
     username: str
     email_prefix: str
     location: Optional[str] = None
+    is_email_verified: bool = False
     github_handle: Optional[str] = None
     linkedin_handle: Optional[str] = None
     huggingface_handle: Optional[str] = None

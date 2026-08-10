@@ -20,6 +20,8 @@
  */
 import { useNavigate } from 'react-router-dom';
 import { useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faCheckCircle } from '@fortawesome/free-solid-svg-icons';
 import ProviderProfileModal from './ProviderProfileModal';
 
 export default function GpuPreference({ availableGPUs, selectedGPU, onSelect }) {
@@ -136,6 +138,9 @@ export default function GpuPreference({ availableGPUs, selectedGPU, onSelect }) 
                         <span style={{ fontWeight: 600, color: 'var(--lp-midnight-ink)' }}>
                           {gpu.provider?.email_prefix || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}
                         </span>
+                        {gpu.provider?.is_email_verified && (
+                          <FontAwesomeIcon icon={faCheckCircle} style={{ color: 'var(--lp-royal-signal)', fontSize: '14px' }} title="Verified Provider" />
+                        )}
                       </div>
                     </td>
                     <td className="cd-table__mono">{(gpu.vram_mb / 1024).toFixed(0)} GB</td>
