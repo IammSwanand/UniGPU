@@ -18,7 +18,7 @@ SCRIPTS_DIR = Path(__file__).parent
 AGENT_DIR = SCRIPTS_DIR.parent          # d:/UniGPU/agent
 DIST_DIR = AGENT_DIR / "dist"
 BUILD_DIR = AGENT_DIR / "build"
-APP_NAME = "UniGPU Agent Dev"
+APP_NAME = "dev_UniGPU_Agent"
 ENTRY_SCRIPT = AGENT_DIR / "run.py"
 ICON_FILE = AGENT_DIR / "assets" / "icon.ico"
 
