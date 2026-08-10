@@ -11,6 +11,7 @@ import {
   IconClose,
   IconSearch,
 } from './icons';
+import blueTick from '../blue_tick.png';
 
 /**
  * DashboardNavbar — LP-styled fixed top navigation for the Client Dashboard.
@@ -163,7 +164,12 @@ export default function DashboardNavbar({ wallet, notifications = [], unreadCoun
             {openMenu === 'profile' && (
               <div className="cd-menu" role="dialog" aria-label="Profile menu">
                 <div className="cd-menu__head" style={{ textAlign: 'left' }}>
-                  {user?.username || 'Account'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {user?.username || 'Account'}
+                    {user?.isEmailVerified && (
+                      <img src={blueTick} alt="Verified User" style={{ width: '12px', height: '12px' }} title="Verified User" />
+                    )}
+                  </div>
                   <div style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, fontSize: 12, color: 'var(--lp-ash-helper)', marginTop: 2 }}>
                     {user?.email}
                   </div>

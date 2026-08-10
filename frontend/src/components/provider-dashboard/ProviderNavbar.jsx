@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { IconWallet, IconUser, IconSettings, IconLogout, IconBell } from '../client-dashboard/icons';
+import blueTick from '../blue_tick.png';
 
 function LogoMark() {
   return (
@@ -145,7 +146,12 @@ export default function ProviderNavbar({ wallet, notifications = [], unreadCount
             {openMenu === 'profile' && (
               <div className="cd-menu" role="dialog" aria-label="Profile menu">
                 <div className="cd-menu__head" style={{ textAlign: 'left' }}>
-                  {user?.username || 'Account'}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {user?.username || 'Account'}
+                    {user?.isEmailVerified && (
+                      <img src={blueTick} alt="Verified User" style={{ width: '12px', height: '12px' }} title="Verified User" />
+                    )}
+                  </div>
                   <div style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, fontSize: 12, color: 'var(--lp-ash-helper)', marginTop: 2 }}>
                     {user?.email}
                   </div>
