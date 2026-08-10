@@ -11,6 +11,7 @@ import { faGithub, faLinkedin } from '@fortawesome/free-brands-svg-icons';
 import { faUser, faEnvelope, faCheckCircle, faTimesCircle, faLink, faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons';
 import { IconKaggle, IconHuggingFace } from '../components/client-dashboard/icons';
 import { Country, City } from 'country-state-city';
+import blueTick from '../components/blue_tick.png';
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
@@ -210,7 +211,12 @@ export default function Profile() {
                     )}
                   </div>
                 ) : (
-                  <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#0f172a', margin: '0 0 4px 0' }}>{user?.username || 'User'}</h2>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 4px 0' }}>
+                    <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#0f172a', margin: 0 }}>{user?.username || 'User'}</h2>
+                    {user?.isEmailVerified && (
+                      <img src={blueTick} alt="Verified User" style={{ width: '18px', height: '18px' }} title="Verified User" />
+                    )}
+                  </div>
                 )}
                 <span className="cd-badge cd-badge--active" style={{ textTransform: 'capitalize' }}>
                   {user?.role}
