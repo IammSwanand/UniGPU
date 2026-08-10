@@ -27,16 +27,34 @@ export function AuthProvider({ children }) {
         return userData;
     };
 
+    const logout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        setToken(null);
+        setUser(null);
+    };
+
     useEffect(() => {
-        const savedToken = localStorage.getItem('token');
-        const saved = localStorage.getItem('user');
-        if (savedToken) {
-            setToken(savedToken);
-        }
-        if (saved) {
-            setUser(JSON.parse(saved));
-        }
-        setLoading(false);
+        const initAuth = async () => {
+            const savedToken = localStorage.getItem('token');
+            const savedUser = localStorage.getItem('user');
+            
+            if (savedToken && savedUser) {
+                try {
+                    setToken(savedToken);
+                    // Validate token with backend on initial load
+                    const userData = await api.getMe();
+                    setUser({ ...JSON.parse(savedUser), ...userData });
+                } catch (err) {
+                    if (err.status === 401) {
+                        logout();
+                    }
+                }
+            }
+            setLoading(false);
+        };
+        
+        initAuth();
     }, []);
 
     const login = async (email, password) => {
@@ -60,12 +78,7 @@ export function AuthProvider({ children }) {
         return api.resendVerification({ email });
     };
 
-    const logout = () => {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setToken(null);
-        setUser(null);
-    };
+
 
     const loginWithGoogle = async (idToken, selectedRole = 'client', cliPassword = null) => {
         const payload = { id_token: idToken, role: selectedRole };
@@ -73,6 +86,14 @@ export function AuthProvider({ children }) {
         const res = await api.googleAuth(payload);
         return applySession(res);
     };
+
+    useEffect(() => {
+        const handleUnauthorized = () => {
+            logout();
+        };
+        window.addEventListener('unauthorized', handleUnauthorized);
+        return () => window.removeEventListener('unauthorized', handleUnauthorized);
+    }, []);
 
     return (
         <AuthContext.Provider value={{ user, token, loading, login, loginWithGoogle, register, verifyEmail, resendVerification, logout, updateUser }}>

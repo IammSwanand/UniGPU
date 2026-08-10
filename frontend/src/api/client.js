@@ -38,6 +38,9 @@ async function request(method, path, { body, files } = {}) {
 
     if (!res.ok) {
         const errorDetail = data?.detail || data;
+        if (res.status === 401) {
+            window.dispatchEvent(new CustomEvent('unauthorized'));
+        }
         if (res.status === 403 && errorDetail === "Account disabled") {
             window.dispatchEvent(new CustomEvent('accountDisabled'));
         }
