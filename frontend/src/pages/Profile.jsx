@@ -8,8 +8,9 @@ import { useToasts } from '../components/client-dashboard/useToasts';
 import ToastStack from '../components/client-dashboard/Toast';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGithub, faLinkedin } from '@fortawesome/free-brands-svg-icons';
-import { faUser, faEnvelope, faCheckCircle, faTimesCircle, faLink } from '@fortawesome/free-solid-svg-icons';
+import { faUser, faEnvelope, faCheckCircle, faTimesCircle, faLink, faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons';
 import { IconKaggle, IconHuggingFace } from '../components/client-dashboard/icons';
+import { Country, City } from 'country-state-city';
 
 export default function Profile() {
   const { user, updateUser } = useAuth();
@@ -47,6 +48,8 @@ export default function Profile() {
 
   const [mainInfo, setMainInfo] = useState({
     username: user?.username || '',
+    countryIso: '',
+    cityName: '',
   });
 
   const [socialHandles, setSocialHandles] = useState({
@@ -58,8 +61,22 @@ export default function Profile() {
 
   useEffect(() => {
     if (user) {
+      let initialCountryIso = '';
+      let initialCityName = '';
+      if (user.location) {
+        const parts = user.location.split(', ');
+        if (parts.length === 2) {
+          initialCityName = parts[0];
+          const countryName = parts[1];
+          const country = Country.getAllCountries().find(c => c.name === countryName);
+          if (country) initialCountryIso = country.isoCode;
+        }
+      }
+
       setMainInfo({
         username: user.username || '',
+        countryIso: initialCountryIso,
+        cityName: initialCityName,
       });
       setSocialHandles({
         github: user.github_handle || '',
@@ -96,8 +113,20 @@ export default function Profile() {
     }
     setIsSavingMain(true);
     try {
+      let locationStr = undefined;
+      if (!isClient) {
+        if (!mainInfo.countryIso || !mainInfo.cityName) {
+          notify("Location is required for providers", "error");
+          setIsSavingMain(false);
+          return;
+        }
+        const countryName = Country.getCountryByCode(mainInfo.countryIso)?.name || '';
+        locationStr = `${mainInfo.cityName}, ${countryName}`;
+      }
+
       const updated = await api.updateProfile({
         username: mainInfo.username.trim(),
+        ...(locationStr !== undefined && { location: locationStr }),
       });
       updateUser(updated);
       notify("Profile updated successfully!", "success");
@@ -159,6 +188,26 @@ export default function Profile() {
                       placeholder="Username"
                       style={{ fontSize: '18px', fontWeight: '600', padding: '4px 8px', width: '100%', maxWidth: '250px' }}
                     />
+                    {!isClient && (
+                      <>
+                        <div style={{ marginTop: '12px' }}>
+                          <select className="cd-input" style={{ width: '100%', maxWidth: '250px', padding: '4px 8px' }} value={mainInfo.countryIso} onChange={e => setMainInfo({ ...mainInfo, countryIso: e.target.value, cityName: '' })}>
+                            <option value="">Select Country</option>
+                            {Country.getAllCountries().map(c => (
+                              <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div style={{ marginTop: '8px' }}>
+                          <select className="cd-input" style={{ width: '100%', maxWidth: '250px', padding: '4px 8px' }} value={mainInfo.cityName} onChange={e => setMainInfo({ ...mainInfo, cityName: e.target.value })} disabled={!mainInfo.countryIso}>
+                            <option value="">Select City</option>
+                            {mainInfo.countryIso && City.getCitiesOfCountry(mainInfo.countryIso).map(c => (
+                              <option key={c.name} value={c.name}>{c.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </>
+                    )}
                   </div>
                 ) : (
                   <h2 style={{ fontSize: '20px', fontWeight: '600', color: '#0f172a', margin: '0 0 4px 0' }}>{user?.username || 'User'}</h2>
@@ -186,6 +235,15 @@ export default function Profile() {
                   {user?.isEmailVerified ? 'Verified' : 'Unverified'}
                 </span>
               </div>
+
+              {!isClient && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--lp-stone-divider)', paddingBottom: '12px' }}>
+                  <span style={{ color: 'var(--lp-ash-helper)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <FontAwesomeIcon icon={faMapMarkerAlt} /> Location
+                  </span>
+                  <span style={{ fontWeight: '500', color: '#0f172a' }}>{user?.location || 'Not set'}</span>
+                </div>
+              )}
             </div>
 
             <div style={{ marginTop: '24px', textAlign: 'right' }}>
