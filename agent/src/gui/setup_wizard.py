@@ -146,6 +146,7 @@ class SetupWizard:
                              bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
                              highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT)
             entry.pack(fill="x", ipady=6)
+            entry.bind("<Return>", lambda e: self._on_welcome_next())
 
             tk.Label(page, text="Ask your admin for the server URL if not localhost",
                      font=("Segoe UI", 9), bg=BG, fg=FG_DIM).pack(anchor="w", pady=(3, 0))
@@ -163,18 +164,20 @@ class SetupWizard:
         # Email
         tk.Label(page, text="Email", font=("Segoe UI", 10, "bold"),
                  bg=BG, fg=FG, anchor="w").pack(fill="x", pady=(10, 3))
-        tk.Entry(page, textvariable=self._username, font=("Segoe UI", 11),
-                 bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
-                 highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT
-                 ).pack(fill="x", ipady=6)
+        user_entry = tk.Entry(page, textvariable=self._username, font=("Segoe UI", 11),
+                              bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
+                              highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT)
+        user_entry.pack(fill="x", ipady=6)
+        user_entry.bind("<Return>", lambda e: self._on_login())
 
         # Password
         tk.Label(page, text="Password", font=("Segoe UI", 10, "bold"),
                  bg=BG, fg=FG, anchor="w").pack(fill="x", pady=(15, 3))
-        tk.Entry(page, textvariable=self._password, show="●", font=("Segoe UI", 11),
-                 bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
-                 highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT
-                 ).pack(fill="x", ipady=6)
+        pass_entry = tk.Entry(page, textvariable=self._password, show="●", font=("Segoe UI", 11),
+                              bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
+                              highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT)
+        pass_entry.pack(fill="x", ipady=6)
+        pass_entry.bind("<Return>", lambda e: self._on_login())
 
         # Status
         self._login_status = tk.Label(page, textvariable=self._status,
