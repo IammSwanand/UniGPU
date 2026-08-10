@@ -100,6 +100,7 @@ export default function GpuPreference({ availableGPUs, selectedGPU, onSelect }) 
                 <th style={{ width: '40px', textAlign: 'center' }}></th>
                 <th>GPU Model</th>
                 <th>Provider</th>
+                <th>Location</th>
                 <th>VRAM</th>
                 <th>CUDA</th>
                 <th>Price / hr</th>
@@ -108,7 +109,7 @@ export default function GpuPreference({ availableGPUs, selectedGPU, onSelect }) 
             <tbody>
               {displayedGPUs.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '20px', color: 'var(--lp-ash-helper)' }}>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '20px', color: 'var(--lp-ash-helper)' }}>
                     No GPUs currently available.
                   </td>
                 </tr>
@@ -143,12 +144,10 @@ export default function GpuPreference({ availableGPUs, selectedGPU, onSelect }) 
                             <img src={blueTick} alt="Verified Provider" style={{ width: '14px', height: '14px' }} title="Verified Provider" />
                           )}
                         </div>
-                        {gpu.provider?.location && (
-                          <span style={{ color: 'var(--lp-ash-helper)', fontWeight: 500, fontSize: '14px' }}>
-                            ({gpu.provider.location})
-                          </span>
-                        )}
                       </div>
+                    </td>
+                    <td style={{ color: 'var(--lp-ash-helper)', fontSize: '14px' }}>
+                      {gpu.provider?.location || 'N/A'}
                     </td>
                     <td className="cd-table__mono">{(gpu.vram_mb / 1024).toFixed(0)} GB</td>
                     <td className="cd-table__mono">{gpu.cuda_version || 'N/A'}</td>

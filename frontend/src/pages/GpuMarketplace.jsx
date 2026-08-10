@@ -140,6 +140,7 @@ export default function GpuMarketplace() {
                 <tr>
                   <th>GPU Model</th>
                   <th>Provider</th>
+                  <th>Location</th>
                   <th>VRAM</th>
                   <th>CUDA Version</th>
                   <th>Starting Price/hr</th>
@@ -150,9 +151,9 @@ export default function GpuMarketplace() {
               </thead>
               <tbody>
                 {loading ? (
-                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: '40px' }}>Loading marketplace...</td></tr>
+                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: '40px' }}>Loading marketplace...</td></tr>
                 ) : filteredGpus.length === 0 ? (
-                  <tr><td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: 'var(--lp-ash-helper)' }}>No GPUs found matching your filters.</td></tr>
+                  <tr><td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: 'var(--lp-ash-helper)' }}>No GPUs found matching your filters.</td></tr>
                 ) : (
                   filteredGpus.map((gpu) => (
                     <tr key={gpu.id}>
@@ -169,12 +170,10 @@ export default function GpuMarketplace() {
                               <img src={blueTick} alt="Verified Provider" style={{ width: '14px', height: '14px' }} title="Verified Provider" />
                             )}
                           </div>
-                          {gpu.provider?.location && (
-                            <span style={{ color: 'var(--lp-ash-helper)', fontWeight: 500, fontSize: '14px' }}>
-                              ({gpu.provider.location})
-                            </span>
-                          )}
                         </div>
+                      </td>
+                      <td style={{ color: 'var(--lp-ash-helper)', fontSize: '14px' }}>
+                        {gpu.provider?.location || 'N/A'}
                       </td>
                       <td className="cd-table__mono">{(gpu.vram_mb / 1024).toFixed(0)} GB</td>
                       <td className="cd-table__mono">{gpu.cuda_version || 'N/A'}</td>
