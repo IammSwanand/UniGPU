@@ -79,7 +79,7 @@ class AgentConfig:
     heartbeat_interval: int = 10
 
     # Work directory for job files & outputs
-    work_dir: str = "./jobs"
+    work_dir: str = field(default_factory=lambda: str(_appdata_dir() / "jobs"))
 
     # Maximum job execution time in seconds
     max_job_timeout: int = 3600

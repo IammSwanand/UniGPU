@@ -127,18 +127,39 @@ class SettingsWindow:
         for label_text, key, read_only in fields:
             tk.Label(container, text=label_text, font=("Segoe UI", 9, "bold"),
                      bg=BG, fg=FG, anchor="w").pack(fill="x", pady=(8, 2))
-            entry = tk.Entry(
-                container, textvariable=self._vars[key], font=("Consolas", 10),
-                bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
-                highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT,
-                state="readonly" if read_only else "normal",
-                readonlybackground="#1a1a28",
-            )
-            entry.pack(fill="x", ipady=4)
+                     
+            if key == "work_dir":
+                row_frame = tk.Frame(container, bg=BG)
+                row_frame.pack(fill="x")
+                
+                entry = tk.Entry(
+                    row_frame, textvariable=self._vars[key], font=("Consolas", 10),
+                    bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
+                    highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT,
+                    state="normal"
+                )
+                entry.pack(side="left", fill="x", expand=True, ipady=4)
+                
+                def _browse_dir():
+                    d = filedialog.askdirectory(initialdir=self._vars["work_dir"].get(), title="Select Work Directory")
+                    if d:
+                        self._vars["work_dir"].set(d)
+                        
+                tk.Button(row_frame, text="Browse...", command=_browse_dir,
+                          font=("Segoe UI", 9), bg=BG_CARD, fg=FG,
+                          activebackground=BORDER, activeforeground=FG,
+                          relief="flat", cursor="hand2", padx=10).pack(side="right", padx=(5, 0), ipady=2)
+            else:
+                entry = tk.Entry(
+                    container, textvariable=self._vars[key], font=("Consolas", 10),
+                    bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
+                    highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT,
+                    state="readonly" if read_only else "normal",
+                    readonlybackground="#1a1a28",
+                )
+                entry.pack(fill="x", ipady=4)
 
-        # Config file location hint
-        tk.Label(container, text=f"Config: {AgentConfig.config_file_path()}",
-                 font=("Segoe UI", 8), bg=BG, fg=FG_DIM, anchor="w").pack(fill="x", pady=(12, 0))
+
 
         # ── Buttons (fixed at bottom) ────────────────
         btn_frame = tk.Frame(self.win, bg=BG)
