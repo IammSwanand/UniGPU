@@ -18,6 +18,7 @@ class GPUStatusUpdate(BaseModel):
 # ── Response ──
 class ProviderOut(BaseModel):
     username: str
+    email_prefix: str
     location: Optional[str] = None
 
     class Config:

@@ -129,7 +129,7 @@ export default function GpuPreference({ availableGPUs, selectedGPU, onSelect }) 
                       <div style={{ fontWeight: 500, color: 'var(--lp-midnight-ink)' }}>{gpu.name}</div>
                     </td>
                     <td className="cd-table__mono" style={{ color: 'var(--lp-ash-helper)' }}>
-                      {gpu.provider?.username || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}
+                      {gpu.provider?.email_prefix || 'Unknown'} {gpu.provider?.location ? `(${gpu.provider.location})` : ''}
                     </td>
                     <td className="cd-table__mono">{(gpu.vram_mb / 1024).toFixed(0)} GB</td>
                     <td className="cd-table__mono">{gpu.cuda_version || 'N/A'}</td>

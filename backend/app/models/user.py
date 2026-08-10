@@ -49,3 +49,7 @@ class User(Base):
     gpus = relationship("GPU", back_populates="provider", lazy="selectin")
     jobs = relationship("Job", back_populates="client", lazy="selectin")
     wallet = relationship("Wallet", back_populates="user", uselist=False, lazy="selectin")
+
+    @property
+    def email_prefix(self) -> str:
+        return self.email.split("@")[0] if self.email else "Unknown"
