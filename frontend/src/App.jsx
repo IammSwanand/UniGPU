@@ -24,7 +24,11 @@ const LegalIndex = lazy(() => import('./pages/LegalIndex'));
 const Profile = lazy(() => import('./pages/Profile'));
 
 function AppShell() {
-  return <div className="connecting-spinner" aria-label="Loading" />;
+  return (
+    <div style={{ display: 'flex', height: '100vh', alignItems: 'center', justifyContent: 'center' }}>
+      <div className="connecting-spinner" aria-label="Loading" style={{ width: '40px', height: '40px', borderWidth: '3px' }} />
+    </div>
+  );
 }
 
 function GlobalDisabledModal() {
@@ -77,51 +81,51 @@ export default function App() {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID"}>
       <AuthProvider>
-        <Suspense fallback={<AppShell />}>
         <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Landing />} />
-            <Route path="/how-to-use" element={<HowToUse />} />
-            <Route path="/about" element={<AboutUs />} />
-            <Route path="/download" element={<Download />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/register" element={<Register />} />
-            <Route path="/verify-email" element={<VerifyEmail />} />
-            <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/reset-password" element={<ResetPassword />} />
-            <Route path="/support" element={<Support />} />
-            <Route path="/legal" element={<LegalIndex />} />
-            <Route path="/legal/:policyId" element={<LegalPolicy />} />
-            <Route path="/dashboard" element={<DashboardRedirect />} />
-            <Route path="/dashboard/client" element={
-              <ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>
-            } />
-            <Route path="/dashboard/client/wallet" element={
-              <ProtectedRoute roles={['client']}><ClientWallet /></ProtectedRoute>
-            } />
-            <Route path="/dashboard/client/gpus" element={
-              <ProtectedRoute roles={['client']}><GpuMarketplace /></ProtectedRoute>
-            } />
-            <Route path="/dashboard/client/profile" element={
-              <ProtectedRoute roles={['client']}><Profile /></ProtectedRoute>
-            } />
-            <Route path="/dashboard/provider" element={
-              <ProtectedRoute roles={['provider']}><ProviderDashboard /></ProtectedRoute>
-            } />
-            <Route path="/dashboard/provider/wallet" element={
-              <ProtectedRoute roles={['provider']}><ProviderWallet /></ProtectedRoute>
-            } />
-            <Route path="/dashboard/provider/profile" element={
-              <ProtectedRoute roles={['provider']}><Profile /></ProtectedRoute>
-            } />
-            <Route path="/dashboard/admin" element={
-              <ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>
-            } />
-          </Routes>
+          <Suspense fallback={<AppShell />}>
+            <Routes>
+              <Route path="/" element={<Landing />} />
+              <Route path="/how-to-use" element={<HowToUse />} />
+              <Route path="/about" element={<AboutUs />} />
+              <Route path="/download" element={<Download />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/register" element={<Register />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
+              <Route path="/reset-password" element={<ResetPassword />} />
+              <Route path="/support" element={<Support />} />
+              <Route path="/legal" element={<LegalIndex />} />
+              <Route path="/legal/:policyId" element={<LegalPolicy />} />
+              <Route path="/dashboard" element={<DashboardRedirect />} />
+              <Route path="/dashboard/client" element={
+                <ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>
+              } />
+              <Route path="/dashboard/client/wallet" element={
+                <ProtectedRoute roles={['client']}><ClientWallet /></ProtectedRoute>
+              } />
+              <Route path="/dashboard/client/gpus" element={
+                <ProtectedRoute roles={['client']}><GpuMarketplace /></ProtectedRoute>
+              } />
+              <Route path="/dashboard/client/profile" element={
+                <ProtectedRoute roles={['client']}><Profile /></ProtectedRoute>
+              } />
+              <Route path="/dashboard/provider" element={
+                <ProtectedRoute roles={['provider']}><ProviderDashboard /></ProtectedRoute>
+              } />
+              <Route path="/dashboard/provider/wallet" element={
+                <ProtectedRoute roles={['provider']}><ProviderWallet /></ProtectedRoute>
+              } />
+              <Route path="/dashboard/provider/profile" element={
+                <ProtectedRoute roles={['provider']}><Profile /></ProtectedRoute>
+              } />
+              <Route path="/dashboard/admin" element={
+                <ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>
+              } />
+            </Routes>
+            <GlobalDisabledModal />
+          </Suspense>
         </BrowserRouter>
-        <GlobalDisabledModal />
-      </Suspense>
-    </AuthProvider>
+      </AuthProvider>
     </GoogleOAuthProvider>
   );
 }

@@ -90,6 +90,7 @@ def _build_token_response(user: User) -> Token:
         linkedin_handle=user.linkedin_handle,
         huggingface_handle=user.huggingface_handle,
         kaggle_handle=user.kaggle_handle,
+        location=user.location,
     )
 
 
