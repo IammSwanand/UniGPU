@@ -115,14 +115,16 @@ export default function Profile() {
     setIsSavingMain(true);
     try {
       let locationStr = undefined;
-      if (!isClient) {
-        if (!mainInfo.countryIso || !mainInfo.cityName) {
-          notify("Location is required for providers", "error");
-          setIsSavingMain(false);
-          return;
-        }
+      if (mainInfo.countryIso && mainInfo.cityName) {
         const countryName = Country.getCountryByCode(mainInfo.countryIso)?.name || '';
         locationStr = `${mainInfo.cityName}, ${countryName}`;
+      } else if (!isClient) {
+        notify("Location is required for providers", "error");
+        setIsSavingMain(false);
+        return;
+      } else if (isClient) {
+        // If client clears it, send null to clear it in DB
+        locationStr = null;
       }
 
       const updated = await api.updateProfile({
@@ -189,26 +191,22 @@ export default function Profile() {
                       placeholder="Username"
                       style={{ fontSize: '18px', fontWeight: '600', padding: '4px 8px', width: '100%', maxWidth: '250px' }}
                     />
-                    {!isClient && (
-                      <>
-                        <div style={{ marginTop: '12px' }}>
-                          <select className="cd-input" style={{ width: '100%', maxWidth: '250px', padding: '4px 8px' }} value={mainInfo.countryIso} onChange={e => setMainInfo({ ...mainInfo, countryIso: e.target.value, cityName: '' })}>
-                            <option value="">Select Country</option>
-                            {Country.getAllCountries().map(c => (
-                              <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                        <div style={{ marginTop: '8px' }}>
-                          <select className="cd-input" style={{ width: '100%', maxWidth: '250px', padding: '4px 8px' }} value={mainInfo.cityName} onChange={e => setMainInfo({ ...mainInfo, cityName: e.target.value })} disabled={!mainInfo.countryIso}>
-                            <option value="">Select City</option>
-                            {mainInfo.countryIso && City.getCitiesOfCountry(mainInfo.countryIso).map(c => (
-                              <option key={c.name} value={c.name}>{c.name}</option>
-                            ))}
-                          </select>
-                        </div>
-                      </>
-                    )}
+                    <div style={{ marginTop: '12px' }}>
+                      <select className="cd-input" style={{ width: '100%', maxWidth: '250px', padding: '4px 8px' }} value={mainInfo.countryIso} onChange={e => setMainInfo({ ...mainInfo, countryIso: e.target.value, cityName: '' })}>
+                        <option value="">Select Country</option>
+                        {Country.getAllCountries().map(c => (
+                          <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div style={{ marginTop: '8px' }}>
+                      <select className="cd-input" style={{ width: '100%', maxWidth: '250px', padding: '4px 8px' }} value={mainInfo.cityName} onChange={e => setMainInfo({ ...mainInfo, cityName: e.target.value })} disabled={!mainInfo.countryIso}>
+                        <option value="">Select City</option>
+                        {mainInfo.countryIso && City.getCitiesOfCountry(mainInfo.countryIso).map(c => (
+                          <option key={c.name} value={c.name}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 ) : (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', margin: '0 0 4px 0' }}>
@@ -242,14 +240,12 @@ export default function Profile() {
                 </span>
               </div>
 
-              {!isClient && (
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--lp-stone-divider)', paddingBottom: '12px' }}>
-                  <span style={{ color: 'var(--lp-ash-helper)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <FontAwesomeIcon icon={faMapMarkerAlt} /> Location
-                  </span>
-                  <span style={{ fontWeight: '500', color: '#0f172a' }}>{user?.location || 'Not set'}</span>
-                </div>
-              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--lp-stone-divider)', paddingBottom: '12px' }}>
+                <span style={{ color: 'var(--lp-ash-helper)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <FontAwesomeIcon icon={faMapMarkerAlt} /> Location
+                </span>
+                <span style={{ fontWeight: '500', color: '#0f172a' }}>{user?.location || 'Not set'}</span>
+              </div>
             </div>
 
             <div style={{ marginTop: '24px', textAlign: 'right' }}>
