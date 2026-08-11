@@ -35,7 +35,15 @@ async def charge_client(db: AsyncSession, job: Job) -> bool:
         select(Wallet).where(Wallet.user_id == job.client_id)
     )
     client_wallet = client_wallet_result.scalar_one_or_none()
-    if not client_wallet or client_wallet.balance < cost:
+    if not client_wallet:
+        return False
+
+    from app.models.settings import SystemSettings
+    settings_result = await db.execute(select(SystemSettings).where(SystemSettings.id == "default"))
+    system_settings = settings_result.scalar_one_or_none()
+    overdraft_limit = system_settings.overdraft_limit if system_settings else -50.0
+
+    if (client_wallet.balance - cost) < overdraft_limit:
         return False
 
     client_wallet.balance -= cost

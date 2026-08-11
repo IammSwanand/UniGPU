@@ -46,12 +46,12 @@ async def topup_wallet(
         )
     
     # ── Validation: Transaction amount limit ──
-    MAX_TOPUP_AMOUNT = 10000  # Max ₹10,000 per transaction
+    MAX_TOPUP_AMOUNT = 10000  # Max 10,000 Credits per transaction
     
     if not (0 < data.amount <= MAX_TOPUP_AMOUNT):
         raise HTTPException(
             status_code=400,
-            detail=f"Amount must be between ₹1 and ₹{MAX_TOPUP_AMOUNT}"
+            detail=f"Amount must be between 1 and {MAX_TOPUP_AMOUNT} Credits"
         )
     
     # ── Validation: Daily total limit ──
@@ -62,7 +62,7 @@ async def topup_wallet(
     if not is_allowed:
         raise HTTPException(
             status_code=400,
-            detail=f"Daily limit exceeded. You can top up ₹{remaining_daily:.0f} more today."
+            detail=f"Daily limit exceeded. You can top up {remaining_daily:.0f} more Credits today."
         )
 
     result = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id))
@@ -76,7 +76,7 @@ async def topup_wallet(
         wallet_id=wallet.id,
         amount=data.amount,
         type=TransactionType.credit,
-        description="Wallet top-up (simulated)",
+        description="Credit purchase",
     )
     db.add(tx)
     await db.flush()
