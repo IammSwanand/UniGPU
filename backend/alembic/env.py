@@ -13,6 +13,7 @@ from app.models import gpu as gpu_model  # noqa: F401
 from app.models import job as job_model  # noqa: F401
 from app.models import user as user_model  # noqa: F401
 from app.models import wallet as wallet_model  # noqa: F401
+from app.models import enterprise as enterprise_model  # noqa: F401
 
 config = context.config
 
