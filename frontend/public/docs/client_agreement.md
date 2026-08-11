@@ -139,6 +139,9 @@ Compute charges are generally based upon:
 - Network usage
 - Additional platform services
 
+**Task Exhaustion & Overdraft:**
+If a running Compute Job exceeds your available UniGPU Credits, the platform may permit a small overdraft allowance (e.g., up to -50 Credits) to allow the job to complete gracefully. Once the overdraft limit is reached, the Job will be forcefully terminated. Clients are strictly liable to clear any negative balance before they are permitted to launch new Jobs.
+
 Refund eligibility is governed by the Refund & Cancellation Policy.
 
 ---
