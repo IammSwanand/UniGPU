@@ -449,6 +449,7 @@ async def google_auth(
             # Link the Google identity to the existing account
             user = existing_email_user
             user.google_id = google_id
+            user.is_email_verified = True
             # If a CLI password is supplied and the account had no password, set it
             if data.cli_password and user.hashed_password is None:
                 user.hashed_password = _hash_password(data.cli_password)
@@ -474,9 +475,10 @@ async def google_auth(
             await db.flush()
     else:
         # Returning Google user — update CLI password if a new one is provided
+        user.is_email_verified = True
         if data.cli_password:
             user.hashed_password = _hash_password(data.cli_password)
-            await db.flush()
+        await db.flush()
 
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabled.")
