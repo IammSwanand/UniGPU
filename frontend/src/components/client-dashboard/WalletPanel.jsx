@@ -37,7 +37,6 @@ export default function WalletPanel({
         <div className="cd-wallet__top">
           <div className="cd-wallet__label">Available Credits</div>
           <div className="cd-wallet__balance">
-            <span className="cd-wallet__currency">₹</span>
             <span className="cd-wallet__amount">
               {wallet?.balance?.toFixed(2) ?? '0.00'}
             </span>
@@ -46,13 +45,13 @@ export default function WalletPanel({
             <input
               className="cd-input"
               type="number"
-              placeholder="Amount"
+              placeholder="e.g. 1000"
               min="1"
               max="10000"
               step="any"
               value={topupAmt}
               onChange={(e) => onTopupChange(e.target.value)}
-              aria-label="Top-up amount"
+              aria-label="Purchase amount"
             />
             <button
               className="cd-btn cd-btn--primary"
@@ -60,7 +59,7 @@ export default function WalletPanel({
               onClick={onTopUp}
               disabled={!topupAmt || parseFloat(topupAmt) <= 0}
             >
-              <IconWallet /> Top Up
+              <IconWallet /> Purchase Credits
             </button>
           </div>
         </div>
@@ -82,7 +81,7 @@ export default function WalletPanel({
                   </div>
                 </div>
                 <div className={`cd-tx__amount cd-tx__amount--${tx.type}`}>
-                  {tx.type === 'credit' ? '+' : '-'}₹{tx.amount.toFixed(2)}
+                  {tx.type === 'credit' ? '+' : '-'}{tx.amount.toFixed(2)} Credits
                 </div>
               </div>
             ))

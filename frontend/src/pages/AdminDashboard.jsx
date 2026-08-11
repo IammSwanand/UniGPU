@@ -9,27 +9,53 @@ export default function AdminDashboard() {
   const [jobs, setJobs] = useState([]);
   const [users, setUsers] = useState([]);
   const [tab, setTab] = useState('overview');
+  const [overdraftLimit, setOverdraftLimit] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
 
   const load = async () => {
     try {
-      const [s, g, j, u] = await Promise.all([
-        api.adminStats(), api.adminGPUs(), api.adminJobs(), api.adminUsers(),
+      const [s, g, j, u, st] = await Promise.all([
+        api.adminStats(), api.adminGPUs(), api.adminJobs(), api.adminUsers(), api.getSystemSettings()
       ]);
       setStats(s);
       setGPUs(g);
       setJobs(j);
       setUsers(u);
+      if (st) setOverdraftLimit(st.overdraft_limit?.toString() || '-50');
     } catch (e) { console.error(e); }
   };
 
   const handleToggleUser = async (userId) => {
     try {
       await api.toggleUserStatus(userId);
-      // Reload users to get updated status
       const u = await api.adminUsers();
       setUsers(u);
     } catch (e) {
       console.error('Failed to toggle user status', e);
+    }
+  };
+
+  const handleUnblockWallet = async (userId) => {
+    if (!window.confirm("Are you sure you want to manually unblock this user's wallet? This will forgive any negative debt and reset their balance to 0.")) return;
+    try {
+      await api.unblockWallet(userId);
+      alert("Wallet unblocked successfully.");
+    } catch (e) {
+      console.error('Failed to unblock wallet', e);
+      alert(e.detail || "Failed to unblock wallet");
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      setSavingSettings(true);
+      await api.updateSystemSettings({ overdraft_limit: parseFloat(overdraftLimit) });
+      alert("Settings saved successfully.");
+    } catch (e) {
+      console.error("Failed to save settings", e);
+      alert(e.detail || "Failed to save settings");
+    } finally {
+      setSavingSettings(false);
     }
   };
 
@@ -92,6 +118,30 @@ export default function AdminDashboard() {
               <div className="cd-card" style={{ padding: '20px' }}>
                 <div style={{ color: 'var(--lp-ash-helper)', fontSize: '13px', fontWeight: 500 }}>Total Users</div>
                 <div style={{ fontSize: '32px', fontWeight: 600, marginTop: '8px', color: '#f59e0b' }}>{stats?.total_users ?? '-'}</div>
+              </div>
+            </div>
+
+            <div className="cd-card" style={{ padding: '20px' }}>
+              <div style={{ fontWeight: 600, marginBottom: '16px' }}>System Settings</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--lp-ash-helper)', marginBottom: '4px' }}>Global Overdraft Limit (Credits)</label>
+                  <input 
+                    className="cd-input" 
+                    type="number" 
+                    value={overdraftLimit} 
+                    onChange={e => setOverdraftLimit(e.target.value)} 
+                    style={{ width: '200px' }}
+                  />
+                </div>
+                <button 
+                  className="cd-btn cd-btn--primary" 
+                  onClick={handleSaveSettings} 
+                  disabled={savingSettings}
+                  style={{ marginTop: '20px' }}
+                >
+                  {savingSettings ? 'Saving...' : 'Save Settings'}
+                </button>
               </div>
             </div>
 
@@ -256,13 +306,20 @@ export default function AdminDashboard() {
                           {u.is_active ? 'Active' : 'Disabled'}
                         </span>
                       </td>
-                      <td data-label="Actions">
+                      <td data-label="Actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         <button
                           className={`cd-btn ${u.is_active ? 'cd-btn--danger' : 'cd-btn--primary'}`}
                           style={{ padding: '4px 8px', fontSize: '12px' }}
                           onClick={() => handleToggleUser(u.id)}
                         >
                           {u.is_active ? 'Disable' : 'Enable'}
+                        </button>
+                        <button
+                          className="cd-btn"
+                          style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid var(--lp-stone-divider)' }}
+                          onClick={() => handleUnblockWallet(u.id)}
+                        >
+                          Unblock Wallet
                         </button>
                       </td>
                     </tr>
