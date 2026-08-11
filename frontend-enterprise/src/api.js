@@ -44,6 +44,7 @@ const api = {
     // Enterprise specific
     createOrg: (d) => request('POST', '/enterprise/orgs', { body: d }),
     getOrg: () => request('GET', '/enterprise/orgs/me'),
+    generateApiKey: () => request('POST', '/enterprise/orgs/me/api-key'),
     
     createCluster: (d) => request('POST', '/enterprise/clusters', { body: d }),
     listClusters: () => request('GET', '/enterprise/clusters'),

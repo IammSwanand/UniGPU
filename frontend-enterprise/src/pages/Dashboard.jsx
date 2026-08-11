@@ -6,6 +6,7 @@ export default function Dashboard() {
     const [clusters, setClusters] = useState([]);
     const [loading, setLoading] = useState(true);
     const [newClusterName, setNewClusterName] = useState('');
+    const [apiKey, setApiKey] = useState(null);
 
     useEffect(() => {
         loadData();
@@ -13,21 +14,14 @@ export default function Dashboard() {
 
     const loadData = async () => {
         try {
-            // In a real flow, if they just registered, they might not have an org yet, 
-            // but our backend creates the user, so let's check if they have an org
-            try {
-                const orgData = await api.getOrg();
-                setOrg(orgData);
-                const clusterData = await api.listClusters();
-                setClusters(clusterData);
-            } catch (err) {
-                if (err.status === 404) {
-                    // Organization doesn't exist, maybe they just registered.
-                    // The user is prompted to create an organization.
-                }
+            const orgData = await api.getOrg();
+            setOrg(orgData);
+            const clusterData = await api.listClusters();
+            setClusters(clusterData);
+        } catch (err) {
+            if (err.status === 404) {
+                // Not found
             }
-        } catch (error) {
-            console.error(error);
         } finally {
             setLoading(false);
         }
@@ -42,6 +36,16 @@ export default function Dashboard() {
             setOrg(newOrg);
         } catch (err) {
             alert(err.detail || "Failed to create organization");
+        }
+    };
+
+    const handleGenerateApiKey = async () => {
+        if (!window.confirm("Generating a new API Key will invalidate your existing key. Continue?")) return;
+        try {
+            const res = await api.generateApiKey();
+            setApiKey(res.api_key);
+        } catch (err) {
+            alert(err.detail || "Failed to generate key");
         }
     };
 
@@ -81,7 +85,23 @@ export default function Dashboard() {
                     <h1 style={{ marginBottom: '0.5rem' }}>{org.name} Overview</h1>
                     <p style={{ color: 'var(--text-muted)' }}>Manage your Ray clusters and monitor node health.</p>
                 </div>
+                <div>
+                    <button className="btn" style={{ backgroundColor: 'var(--bg-dark)', border: '1px solid var(--border)', color: 'white' }} onClick={handleGenerateApiKey}>
+                        Generate Node API Key
+                    </button>
+                </div>
             </div>
+
+            {apiKey && (
+                <div style={{ padding: '1rem', backgroundColor: 'rgba(16, 185, 129, 0.1)', border: '1px solid var(--accent)', borderRadius: '0.5rem', marginBottom: '2rem' }}>
+                    <div style={{ color: 'var(--accent)', fontWeight: 'bold', marginBottom: '0.5rem' }}>New API Key Generated:</div>
+                    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                        <code style={{ fontSize: '1.25rem', padding: '0.5rem', backgroundColor: 'var(--bg-dark)', borderRadius: '0.25rem', display: 'block', flexGrow: 1 }}>{apiKey}</code>
+                        <button className="btn" style={{ backgroundColor: 'var(--bg-dark)', color: 'white', border: '1px solid var(--border)' }} onClick={(e) => { navigator.clipboard.writeText(apiKey); e.target.innerText = 'Copied!'; setTimeout(() => e.target.innerText = 'Copy', 2000); }}>Copy</button>
+                    </div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginTop: '0.5rem' }}>Copy this key now. You won't be able to see it again.</div>
+                </div>
+            )}
 
             <div className="grid">
                 <div className="card">
@@ -131,8 +151,9 @@ export default function Dashboard() {
                                         0 Nodes
                                     </span>
                                 </div>
-                                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                                    ID: {cluster.id.split('-')[0]}...
+                                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-all', paddingRight: '1rem' }}>ID: {cluster.id}</span>
+                                    <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', backgroundColor: 'var(--bg-dark)', color: 'white', border: '1px solid var(--border)' }} onClick={(e) => { navigator.clipboard.writeText(cluster.id); e.target.innerText = 'Copied!'; setTimeout(() => e.target.innerText = 'Copy', 2000); }}>Copy</button>
                                 </div>
                                 <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
                                     Head Node IP: {cluster.head_node_ip || 'Waiting for CLI Agent...'}
