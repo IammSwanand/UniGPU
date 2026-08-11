@@ -11,8 +11,15 @@ import bcrypt
 import asyncio
 import httpx
 
+import pyotp
+import qrcode
+import io
+import base64
+from typing import Union
+
 from app.database import get_db
 from app.config import get_settings
+from app.deps import get_current_user
 from app.models.user import User
 from app.models.wallet import Wallet
 from app.schemas.user import (
@@ -26,6 +33,10 @@ from app.schemas.user import (
     ResetPasswordRequest,
     GoogleAuthRequest,
     MessageResponse,
+    Login2FAResponse,
+    Verify2FARequest,
+    Enable2FARequest,
+    Setup2FAResponse,
 )
 from app.security_utils import (
     check_login_attempt, record_failed_login, record_successful_login
@@ -141,7 +152,7 @@ async def register(
     return MessageResponse(message="Account created. Check your email to verify your account.")
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Union[Token, Login2FAResponse])
 async def login(
     request: Request,
     data: UserLogin,
@@ -179,6 +190,12 @@ async def login(
     if not user.is_active:
         raise HTTPException(status_code=403, detail="Account disabled")
 
+    if user.is_2fa_enabled:
+        # Return a temporary token for 2FA verification step
+        temp_payload = {"sub": user.id, "type": "2fa_temp", "exp": datetime.now(timezone.utc) + timedelta(minutes=5)}
+        temp_token = jwt.encode(temp_payload, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+        return Login2FAResponse(requires_2fa=True, temp_token=temp_token)
+
     await record_successful_login(login_key, client_ip)
 
     token = _create_token(user)
@@ -189,6 +206,7 @@ async def login(
         email=user.email,
         username=user.username,
         is_email_verified=user.is_email_verified,
+        is_2fa_enabled=user.is_2fa_enabled,
     )
 
 
@@ -485,3 +503,83 @@ async def google_auth(
 
     # ── 5. Issue app JWT ─────────────────────────────────────────────────────
     return _build_token_response(user)
+
+
+@router.post("/verify-2fa-login", response_model=Token)
+async def verify_2fa_login(
+    request: Request,
+    data: Verify2FARequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Verify 2FA code during login."""
+    try:
+        payload = jwt.decode(data.temp_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "2fa_temp":
+            raise HTTPException(status_code=400, detail="Invalid token type.")
+        user_id = payload.get("sub")
+    except jwt.JWTError:
+        raise HTTPException(status_code=401, detail="Invalid or expired temporary token.")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    
+    if not user or not user.is_active or not user.is_2fa_enabled:
+        raise HTTPException(status_code=403, detail="Invalid user or 2FA not enabled.")
+
+    totp = pyotp.TOTP(user.totp_secret)
+    if not totp.verify(data.code):
+        client_ip = request.client.host if request.client else "unknown"
+        await record_failed_login(user.email, client_ip)
+        raise HTTPException(status_code=401, detail="Invalid 2FA code.")
+
+    return Token(
+        access_token=_create_token(user),
+        role=user.role,
+        user_id=user.id,
+        email=user.email,
+        username=user.username,
+        is_email_verified=user.is_email_verified,
+        is_2fa_enabled=user.is_2fa_enabled,
+    )
+
+
+@router.post("/2fa/setup", response_model=Setup2FAResponse)
+async def setup_2fa(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Generate a new TOTP secret and return QR code."""
+    secret = pyotp.random_base32()
+    # Save the secret temporarily, but don't enable 2FA yet until they verify it
+    current_user.totp_secret = secret
+    await db.commit()
+
+    totp = pyotp.TOTP(secret)
+    uri = totp.provisioning_uri(name=current_user.email, issuer_name="UniGPU")
+    
+    img = qrcode.make(uri)
+    buf = io.BytesIO()
+    img.save(buf)
+    base64_img = base64.b64encode(buf.getvalue()).decode('utf-8')
+
+    return Setup2FAResponse(secret=secret, qr_code=f"data:image/png;base64,{base64_img}")
+
+
+@router.post("/2fa/enable", response_model=MessageResponse)
+async def enable_2fa(
+    data: Enable2FARequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Verify the code and permanently enable 2FA."""
+    if not current_user.totp_secret:
+        raise HTTPException(status_code=400, detail="Must setup 2FA first.")
+
+    totp = pyotp.TOTP(current_user.totp_secret)
+    if not totp.verify(data.code):
+        raise HTTPException(status_code=400, detail="Invalid 2FA code.")
+
+    current_user.is_2fa_enabled = True
+    await db.commit()
+
+    return MessageResponse(message="2FA has been successfully enabled.")

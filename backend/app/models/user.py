@@ -46,6 +46,10 @@ class User(Base):
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)
     )
 
+    # 2FA / TOTP
+    totp_secret: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    is_2fa_enabled: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false")
+
     # relationships
     gpus = relationship("GPU", back_populates="provider", lazy="selectin")
     jobs = relationship("Job", back_populates="client", lazy="selectin")
