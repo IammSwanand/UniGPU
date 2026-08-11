@@ -14,13 +14,14 @@ export default function AdminDashboard() {
 
   const load = async () => {
     try {
-      const [s, g, j, u, st] = await Promise.all([
+      const results = await Promise.allSettled([
         api.adminStats(), api.adminGPUs(), api.adminJobs(), api.adminUsers(), api.getSystemSettings()
       ]);
-      setStats(s);
-      setGPUs(g);
-      setJobs(j);
-      setUsers(u);
+      const [s, g, j, u, st] = results.map(r => r.status === 'fulfilled' ? r.value : null);
+      if (s) setStats(s);
+      if (g) setGPUs(g);
+      if (j) setJobs(j);
+      if (u) setUsers(u);
       if (st) setOverdraftLimit(st.overdraft_limit?.toString() || '-50');
     } catch (e) { console.error(e); }
   };
@@ -66,6 +67,7 @@ export default function AdminDashboard() {
     { key: 'gpus', label: 'GPU Fleet' },
     { key: 'jobs', label: 'Jobs' },
     { key: 'users', label: 'Users' },
+    { key: 'settings', label: 'System Settings' },
   ];
 
   const handleTab = (key) => setTab(key);
@@ -121,29 +123,7 @@ export default function AdminDashboard() {
               </div>
             </div>
 
-            <div className="cd-card" style={{ padding: '20px' }}>
-              <div style={{ fontWeight: 600, marginBottom: '16px' }}>System Settings</div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', color: 'var(--lp-ash-helper)', marginBottom: '4px' }}>Global Overdraft Limit (Credits)</label>
-                  <input 
-                    className="cd-input" 
-                    type="number" 
-                    value={overdraftLimit} 
-                    onChange={e => setOverdraftLimit(e.target.value)} 
-                    style={{ width: '200px' }}
-                  />
-                </div>
-                <button 
-                  className="cd-btn cd-btn--primary" 
-                  onClick={handleSaveSettings} 
-                  disabled={savingSettings}
-                  style={{ marginTop: '20px' }}
-                >
-                  {savingSettings ? 'Saving...' : 'Save Settings'}
-                </button>
-              </div>
-            </div>
+
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
               <div className="cd-card">
@@ -326,6 +306,33 @@ export default function AdminDashboard() {
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {tab === 'settings' && (
+          <div className="cd-card" style={{ padding: '20px', maxWidth: '600px' }}>
+            <div style={{ fontWeight: 600, marginBottom: '16px' }}>System Settings</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--lp-ash-helper)', marginBottom: '4px' }}>Global Overdraft Limit (Credits)</label>
+                <input 
+                  className="cd-input" 
+                  type="number" 
+                  value={overdraftLimit} 
+                  onChange={e => setOverdraftLimit(e.target.value)} 
+                  style={{ width: '200px' }}
+                />
+              </div>
+              <button 
+                className="cd-btn cd-btn--primary" 
+                onClick={handleSaveSettings} 
+                disabled={savingSettings}
+                style={{ marginTop: '20px' }}
+              >
+                {savingSettings ? 'Saving...' : 'Save Settings'}
+              </button>
             </div>
           </div>
         )}
