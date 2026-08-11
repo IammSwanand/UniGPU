@@ -116,9 +116,9 @@ async def register(
         hashed_password=_hash_password(data.password),
         role=data.role,
         location=data.location,
-        is_email_verified=False,
-        email_verification_token_hash=token_hash,
-        email_verification_expires=datetime.now(timezone.utc) + timedelta(hours=EMAIL_VERIFICATION_EXPIRE_HOURS),
+        is_email_verified=True if settings.DEBUG else False,
+        email_verification_token_hash=token_hash if not settings.DEBUG else None,
+        email_verification_expires=(datetime.now(timezone.utc) + timedelta(hours=EMAIL_VERIFICATION_EXPIRE_HOURS)) if not settings.DEBUG else None,
     )
     db.add(user)
     await db.flush()
@@ -128,15 +128,16 @@ async def register(
     db.add(wallet)
     await db.flush()
 
-    verify_url = f"{settings.FRONTEND_URL.rstrip('/')}/verify-email?token={raw_token}"
-    try:
-        await send_email_verification_email(user.email, verify_url)
-    except Exception:
-        logger.exception("Failed to send verification email to %s", user.email)
-        raise HTTPException(
-            status_code=503,
-            detail="Unable to send verification email. Please try again later.",
-        )
+    if not settings.DEBUG:
+        verify_url = f"{settings.FRONTEND_URL.rstrip('/')}/verify-email?token={raw_token}"
+        try:
+            await send_email_verification_email(user.email, verify_url)
+        except Exception:
+            logger.exception("Failed to send verification email to %s", user.email)
+            raise HTTPException(
+                status_code=503,
+                detail="Unable to send verification email. Please try again later.",
+            )
 
     return MessageResponse(message="Account created. Check your email to verify your account.")
 
