@@ -5,7 +5,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
-from app.routers import auth, gpus, jobs, wallet, admin, ws, users
+from app.routers import auth, gpus, jobs, wallet, admin, ws, users, enterprise
 from app.config import get_settings
 import os
 import asyncio
@@ -183,6 +183,7 @@ app.include_router(jobs.router, prefix="/jobs", tags=["Jobs"])
 app.include_router(wallet.router, prefix="/wallet", tags=["Wallet"])
 app.include_router(admin.router, prefix="/admin", tags=["Admin"])
 app.include_router(users.router, prefix="/users", tags=["Users"])
+app.include_router(enterprise.router)
 
 # ── WebSocket ──
 app.include_router(ws.router, tags=["WebSocket"])
