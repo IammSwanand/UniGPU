@@ -3,6 +3,7 @@ import {
   IconSearch, IconEye, IconTrash, IconUpload,
 } from '../client-dashboard/icons';
 import { statusInfo, timeAgo } from '../client-dashboard/utils';
+import CreditIcon from '../CreditIcon';
 
 const FILTERS = ['All', 'Queued', 'Running', 'Completed', 'Failed'];
 
@@ -179,7 +180,7 @@ export default function ProviderWorkloads({
                         </button>
                       </td>
                       <td data-label="Cost" style={{ color: job.cost != null ? 'inherit' : 'var(--lp-ash-helper)' }}>
-                        {job.cost != null ? `₹${job.cost.toFixed(4)}` : '—'}
+                        {job.cost != null ? <><CreditIcon size={14} style={{ marginRight: '4px' }} />{job.cost.toFixed(4)}</> : '—'}
                       </td>
                       <td data-label="" className="cd-row-actions" onClick={(e) => e.stopPropagation()}>
                       </td>

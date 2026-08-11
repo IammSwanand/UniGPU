@@ -1,4 +1,5 @@
 import { IconWallet } from './icons';
+import CreditIcon from '../CreditIcon';
 
 /**
  * WalletPanel — restyled wallet section for the light dashboard.
@@ -37,6 +38,7 @@ export default function WalletPanel({
         <div className="cd-wallet__top">
           <div className="cd-wallet__label">Available Credits</div>
           <div className="cd-wallet__balance">
+            <CreditIcon size={36} style={{ marginRight: '8px' }} />
             <span className="cd-wallet__amount">
               {wallet?.balance?.toFixed(2) ?? '0.00'}
             </span>
@@ -81,7 +83,7 @@ export default function WalletPanel({
                   </div>
                 </div>
                 <div className={`cd-tx__amount cd-tx__amount--${tx.type}`}>
-                  {tx.type === 'credit' ? '+' : '-'}{tx.amount.toFixed(2)} Credits
+                  {tx.type === 'credit' ? '+' : '-'}<CreditIcon size={14} style={{ margin: '0 4px' }} />{tx.amount.toFixed(2)}
                 </div>
               </div>
             ))

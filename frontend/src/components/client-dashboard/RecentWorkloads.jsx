@@ -198,7 +198,7 @@ export default function RecentWorkloads({
                         </button>
                       </td>
                       <td data-label="Cost" style={{ color: job.cost != null ? 'inherit' : 'var(--lp-ash-helper)' }}>
-                        {job.cost != null ? `₹${job.cost.toFixed(4)}` : '—'}
+                        {job.cost != null ? <><CreditIcon size={14} style={{ marginRight: '4px' }} />{job.cost.toFixed(4)}</> : '—'}
                       </td>
                       <td data-label="" className="cd-row-actions" onClick={(e) => e.stopPropagation()}>
                         <button

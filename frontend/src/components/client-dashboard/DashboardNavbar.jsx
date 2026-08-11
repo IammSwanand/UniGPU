@@ -114,7 +114,7 @@ export default function DashboardNavbar({ wallet, notifications = [], unreadCoun
           >
             <span className="cd-wallet-pill__cta">Balance</span>
             <span className="cd-wallet-pill__amount">
-              {wallet ? `₹${wallet.balance.toFixed(2)}` : '₹...'}
+              {wallet ? <><CreditIcon size={14} style={{ marginRight: '4px' }} />{wallet.balance.toFixed(2)}</> : '...'}
             </span>
           </Link>
 

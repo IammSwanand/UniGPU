@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { IconWallet, IconUser, IconSettings, IconLogout, IconBell } from '../client-dashboard/icons';
+import CreditIcon from '../CreditIcon';
 import blueTick from '../blue_tick.png';
 
 function LogoMark() {
@@ -96,7 +97,7 @@ export default function ProviderNavbar({ wallet, notifications = [], unreadCount
           >
             <span className="cd-wallet-pill__cta">Balance</span>
             <span className="cd-wallet-pill__amount">
-              {wallet ? `₹${wallet.balance.toFixed(2)}` : '₹...'}
+              {wallet ? <><CreditIcon size={14} style={{ marginRight: '4px' }} />{wallet.balance.toFixed(2)}</> : '...'}
             </span>
           </Link>
 

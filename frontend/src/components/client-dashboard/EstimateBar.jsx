@@ -2,7 +2,7 @@
  * EstimateBar — Estimated Runtime / Cost / Queue Time.
  *
  * The backend does not currently provide runtime, cost, or queue-time
- * estimates (it charges a flat ₹0.002/s only AFTER a job completes, and
+ * estimates (it charges a flat 0.002 Credits/s only AFTER a job completes, and
  * exposes no pre-execution prediction). Rather than fabricate numbers —
  * which would violate the design doc's explicit "never fake execution"
  * rule — these three cells render as "Coming soon".
