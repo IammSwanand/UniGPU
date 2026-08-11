@@ -78,6 +78,16 @@ async def submit_job(
     if not is_allowed:
         raise HTTPException(status_code=429, detail=reason)
 
+    # ── Billing: Check Wallet Balance ──
+    from app.models.wallet import Wallet
+    wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id))
+    wallet = wallet_result.scalar_one_or_none()
+    if not wallet or wallet.balance <= 0:
+        raise HTTPException(
+            status_code=402,
+            detail="Insufficient Credits. Your balance is zero or negative. Please purchase credits to launch new jobs."
+        )
+
     job_id = str(uuid.uuid4())
 
     script_content = await script.read()

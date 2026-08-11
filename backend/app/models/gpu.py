@@ -43,5 +43,5 @@ class GPU(Base):
     )
 
     # relationships
-    provider = relationship("User", back_populates="gpus")
+    provider = relationship("User", back_populates="gpus", lazy="selectin")
     jobs = relationship("Job", back_populates="gpu", lazy="selectin")

@@ -21,6 +21,7 @@ class Wallet(Base):
     user_id: Mapped[str] = mapped_column(
         String, ForeignKey("users.id"), unique=True, nullable=False
     )
+    # balance represents UniGPU Credits, not fiat currency.
     balance: Mapped[float] = mapped_column(Float, default=0.0)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc)

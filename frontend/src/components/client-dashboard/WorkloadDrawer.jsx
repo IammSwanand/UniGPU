@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { IconClose, IconCheck } from './icons';
 import { statusInfo } from './utils';
 import ArtifactsPanel from './ArtifactsPanel';
+import CreditIcon from '../CreditIcon';
 
 /**
  * WorkloadDrawer — right-side drawer opened by clicking a row in the
@@ -132,7 +133,7 @@ function WorkloadDrawerInner({ job, onClose, availableGPUs, isProvider }) {
               </div>
               <div className="cd-detail-row">
                 <span className="cd-detail-row__label">Cost</span>
-                <span className="cd-detail-row__value">{job.cost != null ? `₹${job.cost.toFixed(4)}` : '—'}</span>
+                <span className="cd-detail-row__value">{job.cost != null ? <><CreditIcon size={14} style={{ marginRight: '4px' }} />{job.cost.toFixed(4)}</> : '—'}</span>
               </div>
             </div>
           )}

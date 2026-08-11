@@ -113,6 +113,9 @@ const api = {
     adminJobs: () => request('GET', '/admin/jobs'),
     adminUsers: () => request('GET', '/admin/users'),
     toggleUserStatus: (id) => request('PATCH', `/admin/users/${id}/toggle-active`),
+    getSystemSettings: () => request('GET', '/admin/settings'),
+    updateSystemSettings: (d) => request('PATCH', '/admin/settings', { body: d }),
+    unblockWallet: (id) => request('POST', `/admin/users/${id}/unblock-wallet`),
 };
 
 export default api;

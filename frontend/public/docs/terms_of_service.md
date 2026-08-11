@@ -178,14 +178,17 @@ UniGPU does not claim ownership of User Content or Job Outputs.
 
 # 10. Payments, Credits & Billing
 
-Certain Services require payment.
+Certain Services require payment through the purchase of "UniGPU Credits".
+
+**UniGPU Credits** are a closed-loop digital utility designed solely for platform usage. They do not constitute e-money, prepaid payment instruments (PPI), or fiat currency, and they hold no real-world cash value outside of the UniGPU platform.
 
 Clients acknowledge that:
 
+- All purchases of UniGPU Credits are strictly final and non-refundable.
+- Credits cannot be traded, withdrawn, or exchanged for fiat currency by Clients.
 - Charges are based upon applicable pricing at the time Services are consumed.
 - Pricing may change for future purchases.
 - Applicable taxes may be added where required by law.
-- Compute Credits may only be used within the UniGPU platform unless otherwise required by applicable law.
 
 Providers acknowledge that:
 

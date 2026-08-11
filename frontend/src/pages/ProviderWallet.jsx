@@ -4,6 +4,7 @@ import api from '../api/client';
 import { useToasts } from '../components/client-dashboard/useToasts';
 import ToastStack from '../components/client-dashboard/Toast';
 import ProviderNavbar from '../components/provider-dashboard/ProviderNavbar';
+import CreditIcon from '../components/CreditIcon';
 
 function ProviderWalletPanel({ wallet, transactions }) {
   return (
@@ -22,11 +23,14 @@ function ProviderWalletPanel({ wallet, transactions }) {
         <div className="cd-wallet__top" style={{ paddingBottom: '32px' }}>
           <div className="cd-wallet__label">Available Credits</div>
           <div className="cd-wallet__balance">
-            <span className="cd-wallet__currency">₹</span>
+            <CreditIcon size={36} style={{ marginRight: '8px' }} />
             <span className="cd-wallet__amount">
               {wallet?.balance?.toFixed(2) ?? '0.00'}
             </span>
           </div>
+          <p style={{ marginTop: '16px', fontSize: '13px', color: 'var(--lp-ash-helper)', maxWidth: '400px' }}>
+            * Credits are settled and paid out in your local currency to your registered bank account at the end of the billing cycle, subject to applicable TDS.
+          </p>
         </div>
 
         {/* Transactions */}
@@ -46,7 +50,7 @@ function ProviderWalletPanel({ wallet, transactions }) {
                   </div>
                 </div>
                 <div className={`cd-tx__amount cd-tx__amount--${tx.type}`}>
-                  {tx.type === 'credit' ? '+' : '-'}₹{tx.amount.toFixed(2)}
+                  {tx.type === 'credit' ? '+' : '-'}<CreditIcon size={14} style={{ margin: '0 4px' }} />{tx.amount.toFixed(2)}
                 </div>
               </div>
             ))

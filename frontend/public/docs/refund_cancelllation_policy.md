@@ -57,20 +57,20 @@ This Policy applies to:
 
 ---
 
-# 4. Wallet & Compute Credits
+# 4. UniGPU Credits
 
-Clients may add funds to their UniGPU Wallet using supported payment methods.
+Clients may purchase "UniGPU Credits" using supported payment methods.
 
-Wallet balances may be used to purchase:
+UniGPU Credits are a closed-loop digital utility that may be used to purchase:
 
 - Compute Jobs
 - Storage services
 - Premium platform features
 - Other Services offered by UniGPU
 
-Unless required by applicable law, Wallet balances are non-transferable and may not be exchanged for cash.
+Unless required by applicable law, UniGPU Credits are non-transferable, non-refundable, and may not be withdrawn or exchanged for fiat currency or cash. 
 
-Wallet balances do not accrue interest.
+All purchases of UniGPU Credits are final. Credits do not accrue interest.
 
 ---
 
@@ -139,6 +139,7 @@ Refund amounts may reflect actual compute resources successfully consumed before
 
 Unless required by applicable law, the following are generally non-refundable:
 
+- The initial purchase of UniGPU Credits.
 - Successfully completed Compute Jobs.
 - User-requested cancellation after substantial execution has occurred.
 - Charges resulting from incorrectly configured Jobs.
