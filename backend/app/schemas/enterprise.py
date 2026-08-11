@@ -15,6 +15,9 @@ class OrganizationOut(BaseModel):
     class Config:
         from_attributes = True
 
+class APIKeyResponse(BaseModel):
+    api_key: str
+
 # ── Cluster Schemas ──
 
 class EnterpriseClusterCreate(BaseModel):
