@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/client';
 import AdminNavbar from '../components/admin-dashboard/AdminNavbar';
 import { statusInfo, timeAgo } from '../components/client-dashboard/utils';
+import { useAuth } from '../context/AuthContext';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -9,27 +10,83 @@ export default function AdminDashboard() {
   const [jobs, setJobs] = useState([]);
   const [users, setUsers] = useState([]);
   const [tab, setTab] = useState('overview');
+  const [overdraftLimit, setOverdraftLimit] = useState('');
+  const [savingSettings, setSavingSettings] = useState(false);
+  const { user, updateUser } = useAuth();
+  
+  const [twoFactorQR, setTwoFactorQR] = useState(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [settingUp2FA, setSettingUp2FA] = useState(false);
 
   const load = async () => {
     try {
-      const [s, g, j, u] = await Promise.all([
-        api.adminStats(), api.adminGPUs(), api.adminJobs(), api.adminUsers(),
+      const results = await Promise.allSettled([
+        api.adminStats(), api.adminGPUs(), api.adminJobs(), api.adminUsers(), api.getSystemSettings()
       ]);
-      setStats(s);
-      setGPUs(g);
-      setJobs(j);
-      setUsers(u);
+      const [s, g, j, u, st] = results.map(r => r.status === 'fulfilled' ? r.value : null);
+      if (s) setStats(s);
+      if (g) setGPUs(g);
+      if (j) setJobs(j);
+      if (u) setUsers(u);
+      if (st) setOverdraftLimit(st.overdraft_limit?.toString() || '-50');
     } catch (e) { console.error(e); }
   };
 
   const handleToggleUser = async (userId) => {
     try {
       await api.toggleUserStatus(userId);
-      // Reload users to get updated status
       const u = await api.adminUsers();
       setUsers(u);
     } catch (e) {
       console.error('Failed to toggle user status', e);
+    }
+  };
+
+  const handleUnblockWallet = async (userId) => {
+    if (!window.confirm("Are you sure you want to manually unblock this user's wallet? This will forgive any negative debt and reset their balance to 0.")) return;
+    try {
+      await api.unblockWallet(userId);
+      alert("Wallet unblocked successfully.");
+    } catch (e) {
+      console.error('Failed to unblock wallet', e);
+      alert(e.detail || "Failed to unblock wallet");
+    }
+  };
+
+  const handleSaveSettings = async () => {
+    try {
+      setSavingSettings(true);
+      await api.updateSystemSettings({ overdraft_limit: parseInt(overdraftLimit) || -50 });
+      alert("Settings saved successfully.");
+    } catch (e) {
+      console.error(e);
+      alert(e.detail || "Failed to save settings");
+    } finally {
+      setSavingSettings(false);
+    }
+  };
+
+  const handleSetup2FA = async () => {
+    try {
+      setSettingUp2FA(true);
+      const res = await api.setup2fa();
+      setTwoFactorQR(res.qr_code);
+    } catch (e) {
+      alert("Failed to setup 2FA");
+    } finally {
+      setSettingUp2FA(false);
+    }
+  };
+
+  const handleEnable2FA = async () => {
+    try {
+      await api.enable2fa({ code: twoFactorCode });
+      alert("2FA successfully enabled!");
+      updateUser({ is_2fa_enabled: true });
+      setTwoFactorQR(null);
+      setTwoFactorCode('');
+    } catch (e) {
+      alert(e.detail || "Failed to verify 2FA code");
     }
   };
 
@@ -40,6 +97,7 @@ export default function AdminDashboard() {
     { key: 'gpus', label: 'GPU Fleet' },
     { key: 'jobs', label: 'Jobs' },
     { key: 'users', label: 'Users' },
+    { key: 'settings', label: 'System Settings' },
   ];
 
   const handleTab = (key) => setTab(key);
@@ -94,6 +152,8 @@ export default function AdminDashboard() {
                 <div style={{ fontSize: '32px', fontWeight: 600, marginTop: '8px', color: '#f59e0b' }}>{stats?.total_users ?? '-'}</div>
               </div>
             </div>
+
+
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }}>
               <div className="cd-card">
@@ -256,7 +316,7 @@ export default function AdminDashboard() {
                           {u.is_active ? 'Active' : 'Disabled'}
                         </span>
                       </td>
-                      <td data-label="Actions">
+                      <td data-label="Actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                         <button
                           className={`cd-btn ${u.is_active ? 'cd-btn--danger' : 'cd-btn--primary'}`}
                           style={{ padding: '4px 8px', fontSize: '12px' }}
@@ -264,11 +324,82 @@ export default function AdminDashboard() {
                         >
                           {u.is_active ? 'Disable' : 'Enable'}
                         </button>
+                        <button
+                          className="cd-btn"
+                          style={{ padding: '4px 8px', fontSize: '12px', border: '1px solid var(--lp-stone-divider)' }}
+                          onClick={() => handleUnblockWallet(u.id)}
+                        >
+                          Unblock Wallet
+                        </button>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+            </div>
+          </div>
+        )}
+
+        {/* Settings Tab */}
+        {tab === 'settings' && (
+          <div className="cd-card" style={{ padding: '20px', maxWidth: '600px' }}>
+            <div style={{ fontWeight: 600, marginBottom: '16px' }}>System Settings</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', paddingBottom: '24px', borderBottom: '1px solid var(--lp-stone-divider)', marginBottom: '24px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--lp-ash-helper)', marginBottom: '4px' }}>Global Overdraft Limit (Credits)</label>
+                <input 
+                  className="cd-input" 
+                  type="number" 
+                  value={overdraftLimit} 
+                  onChange={e => setOverdraftLimit(e.target.value)} 
+                  style={{ width: '200px' }}
+                />
+              </div>
+              <button 
+                className="cd-btn cd-btn--primary" 
+                onClick={handleSaveSettings} 
+                disabled={savingSettings}
+                style={{ marginTop: '20px' }}
+              >
+                {savingSettings ? 'Saving...' : 'Save Settings'}
+              </button>
+            </div>
+
+            <div style={{ fontWeight: 600, marginBottom: '16px' }}>Security Settings</div>
+            <div>
+              {user?.is_2fa_enabled ? (
+                <div style={{ color: 'var(--lp-emerald)', fontWeight: 500 }}>✓ 2FA is successfully enabled on your account.</div>
+              ) : (
+                <>
+                  <p style={{ color: 'var(--lp-ash-helper)', fontSize: '14px', marginBottom: '16px' }}>Enable Two-Factor Authentication using an authenticator app (e.g. Google Authenticator, Authy).</p>
+                  
+                  {!twoFactorQR ? (
+                    <button className="cd-btn" onClick={handleSetup2FA} disabled={settingUp2FA}>
+                      {settingUp2FA ? 'Generating...' : 'Setup 2FA'}
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--lp-stone-subtle)', padding: '16px', borderRadius: '8px' }}>
+                      <p style={{ fontSize: '14px', margin: 0 }}>1. Scan this QR Code with your Authenticator App:</p>
+                      <img src={twoFactorQR} alt="2FA QR Code" style={{ width: '200px', height: '200px', borderRadius: '8px', background: '#fff', padding: '8px' }} />
+                      <p style={{ fontSize: '14px', margin: 0 }}>2. Enter the 6-digit code to verify:</p>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input 
+                          className="cd-input" 
+                          type="text" 
+                          placeholder="000000" 
+                          value={twoFactorCode} 
+                          onChange={e => setTwoFactorCode(e.target.value)} 
+                          style={{ width: '120px' }}
+                          maxLength={6}
+                        />
+                        <button className="cd-btn cd-btn--primary" onClick={handleEnable2FA}>
+                          Verify & Enable
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         )}

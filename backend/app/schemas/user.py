@@ -72,6 +72,7 @@ class UserOut(BaseModel):
     role: UserRole
     is_email_verified: bool
     is_active: bool
+    is_2fa_enabled: bool = False
     created_at: datetime
     github_handle: str | None = None
     linkedin_handle: str | None = None
@@ -99,8 +100,25 @@ class Token(BaseModel):
     email: str
     username: str
     is_email_verified: bool
+    is_2fa_enabled: bool = False
     github_handle: str | None = None
     linkedin_handle: str | None = None
     huggingface_handle: str | None = None
     kaggle_handle: str | None = None
     location: str | None = None
+
+# ── 2FA ──
+class Login2FAResponse(BaseModel):
+    requires_2fa: bool = True
+    temp_token: str
+
+class Verify2FARequest(BaseModel):
+    temp_token: str
+    code: str
+
+class Enable2FARequest(BaseModel):
+    code: str
+
+class Setup2FAResponse(BaseModel):
+    qr_code: str
+    secret: str

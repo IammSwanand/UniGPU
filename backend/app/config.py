@@ -7,6 +7,11 @@ from functools import lru_cache
 class Settings(BaseSettings):
     # ── Environment ──
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
+    SUPERADMIN_EMAILS: str = os.getenv("SUPERADMIN_EMAILS", "")
+    
+    @property
+    def superadmins(self) -> list[str]:
+        return [email.strip().lower() for email in self.SUPERADMIN_EMAILS.split(",") if email.strip()]
 
     # ── Database ──
     # Docker uses PostgreSQL. For local dev without Docker, use:

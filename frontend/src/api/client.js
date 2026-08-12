@@ -58,6 +58,9 @@ const api = {
     resendVerification: (d) => request('POST', '/auth/resend-verification', { body: d }),
     forgotPassword: (d) => request('POST', '/auth/forgot-password', { body: d }),
     resetPassword: (d) => request('POST', '/auth/reset-password', { body: d }),
+    verify2faLogin: (d) => request('POST', '/auth/verify-2fa-login', { body: d }),
+    setup2fa: () => request('POST', '/auth/2fa/setup'),
+    enable2fa: (d) => request('POST', '/auth/2fa/enable', { body: d }),
 
     // Users
     getMe: () => request('GET', '/users/me'),
@@ -113,6 +116,9 @@ const api = {
     adminJobs: () => request('GET', '/admin/jobs'),
     adminUsers: () => request('GET', '/admin/users'),
     toggleUserStatus: (id) => request('PATCH', `/admin/users/${id}/toggle-active`),
+    getSystemSettings: () => request('GET', '/admin/settings'),
+    updateSystemSettings: (d) => request('PATCH', '/admin/settings', { body: d }),
+    unblockWallet: (id) => request('POST', `/admin/users/${id}/unblock-wallet`),
 };
 
 export default api;

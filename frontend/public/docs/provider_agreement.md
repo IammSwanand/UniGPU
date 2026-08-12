@@ -164,7 +164,10 @@ UniGPU does not require Providers to maintain any minimum uptime unless specifie
 
 # 10. Payments & Payouts
 
-Providers are eligible to receive payouts for successfully completed Jobs in accordance with UniGPU's pricing and payout policies.
+Providers are eligible to receive payouts for successfully completed Jobs in accordance with UniGPU's pricing and payout policies. Earnings are calculated based on credits burned by the Client workloads. 
+
+**Payout Processing & Taxes:**
+Payouts are made in fiat currency (INR for Indian residents) to your registered bank account at the end of the billing cycle. As an e-commerce operator, UniGPU is required by law (e.g., Section 194-O of the Income Tax Act in India) to deduct Tax Deducted at Source (TDS) at applicable rates (e.g., 1% or higher) upon submission of a valid PAN or equivalent tax ID. Failure to provide a valid PAN may result in a higher rate of TDS deduction as mandated by law.
 
 Payouts may be adjusted or delayed in cases involving:
 
@@ -175,7 +178,7 @@ Payouts may be adjusted or delayed in cases involving:
 - Violations of UniGPU policies.
 - Legal or regulatory requirements.
 
-Providers are responsible for ensuring that payout information remains accurate.
+Providers are responsible for ensuring that payout information and tax identifiers remain accurate.
 
 ---
 
@@ -268,10 +271,12 @@ These obligations survive termination of this Agreement.
 
 ---
 
-# 17. Limitation of Liability
+# 17. Limitation of Liability and Waivers
 
-To the fullest extent permitted by applicable law, UniGPU shall not be liable for:
+To the fullest extent permitted by applicable law, UniGPU acts solely as a marketplace and shall not be liable for:
 
+- **Hardware Degradation:** Wear-and-tear, overheating, component failure, or power costs associated with running Client workloads.
+- **Illegal Use by Clients:** Legal repercussions or IP blacklisting caused by a Client running illegal, malicious, or unauthorized workloads on your hardware, provided UniGPU took reasonable steps to enforce its Acceptable Use Policy.
 - Hardware failures.
 - Loss of Provider earnings.
 - Business interruption.

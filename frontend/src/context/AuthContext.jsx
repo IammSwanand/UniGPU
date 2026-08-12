@@ -60,6 +60,12 @@ export function AuthProvider({ children }) {
 
     const login = async (email, password) => {
         const res = await api.login({ email, password });
+        if (res.requires_2fa) return res;
+        return applySession(res);
+    };
+
+    const verify2faLogin = async (tempToken, code) => {
+        const res = await api.verify2faLogin({ temp_token: tempToken, code });
         return applySession(res);
     };
 
@@ -98,7 +104,7 @@ export function AuthProvider({ children }) {
     }, []);
 
     return (
-        <AuthContext.Provider value={{ user, token, loading, login, loginWithGoogle, register, verifyEmail, resendVerification, logout, updateUser }}>
+        <AuthContext.Provider value={{ user, token, loading, login, verify2faLogin, loginWithGoogle, register, verifyEmail, resendVerification, logout, updateUser }}>
             {children}
         </AuthContext.Provider>
     );
