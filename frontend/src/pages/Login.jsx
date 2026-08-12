@@ -11,9 +11,12 @@ export default function Login() {
     const location = useLocation();
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [requires2fa, setRequires2fa] = useState(false);
+    const [tempToken, setTempToken] = useState('');
+    const [twoFactorCode, setTwoFactorCode] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login } = useAuth();
+    const { login, verify2faLogin } = useAuth();
     const navigate = useNavigate();
     const successMessage = location.state?.message || '';
 
@@ -22,9 +25,20 @@ export default function Login() {
         setError('');
         setLoading(true);
         try {
-            const user = await login(email, password);
-            const paths = { client: '/dashboard/client', provider: '/dashboard/provider', admin: '/dashboard/admin' };
-            navigate(paths[user.role] || '/dashboard');
+            if (requires2fa) {
+                const user = await verify2faLogin(tempToken, twoFactorCode);
+                const paths = { client: '/dashboard/client', provider: '/dashboard/provider', admin: '/dashboard/admin' };
+                navigate(paths[user.role] || '/dashboard');
+            } else {
+                const res = await login(email, password);
+                if (res?.requires_2fa) {
+                    setRequires2fa(true);
+                    setTempToken(res.temp_token);
+                } else {
+                    const paths = { client: '/dashboard/client', provider: '/dashboard/provider', admin: '/dashboard/admin' };
+                    navigate(paths[res.role] || '/dashboard');
+                }
+            }
         } catch (err) {
             setError(err.detail || 'Invalid credentials');
         } finally {
@@ -81,21 +95,31 @@ export default function Login() {
                         )}
 
                         <motion.form className="lp-auth__form" onSubmit={handleSubmit} variants={childVariants}>
-                            <div className="lp-auth__form-group">
-                                <label className="lp-auth__label">Email</label>
-                                <input className="lp-input" type="email" placeholder="you@university.edu"
-                                    value={email} onChange={e => setEmail(e.target.value)} required />
-                            </div>
-                            <div className="lp-auth__form-group">
-                                <label className="lp-auth__label">Password</label>
-                                <input className="lp-input" type="password" placeholder="Enter password"
-                                    value={password} onChange={e => setPassword(e.target.value)} required />
-                                <div className="lp-auth__row">
-                                    <Link to="/forgot-password" className="lp-auth__link">Forgot password?</Link>
+                            {requires2fa ? (
+                                <div className="lp-auth__form-group">
+                                    <label className="lp-auth__label">Authenticator Code</label>
+                                    <input className="lp-input" type="text" placeholder="6-digit code"
+                                        value={twoFactorCode} onChange={e => setTwoFactorCode(e.target.value)} required />
                                 </div>
-                            </div>
+                            ) : (
+                                <>
+                                    <div className="lp-auth__form-group">
+                                        <label className="lp-auth__label">Email</label>
+                                        <input className="lp-input" type="email" placeholder="you@university.edu"
+                                            value={email} onChange={e => setEmail(e.target.value)} required />
+                                    </div>
+                                    <div className="lp-auth__form-group">
+                                        <label className="lp-auth__label">Password</label>
+                                        <input className="lp-input" type="password" placeholder="Enter password"
+                                            value={password} onChange={e => setPassword(e.target.value)} required />
+                                        <div className="lp-auth__row">
+                                            <Link to="/forgot-password" className="lp-auth__link">Forgot password?</Link>
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                             <button className="lp-btn-inverse lp-auth__submit" type="submit" disabled={loading}>
-                                {loading ? 'Signing in…' : 'Sign In'}
+                                {loading ? (requires2fa ? 'Verifying…' : 'Signing in…') : (requires2fa ? 'Verify Code' : 'Sign In')}
                             </button>
                         </motion.form>
 

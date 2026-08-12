@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../api/client';
 import AdminNavbar from '../components/admin-dashboard/AdminNavbar';
 import { statusInfo, timeAgo } from '../components/client-dashboard/utils';
+import { useAuth } from '../context/AuthContext';
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
@@ -11,6 +12,11 @@ export default function AdminDashboard() {
   const [tab, setTab] = useState('overview');
   const [overdraftLimit, setOverdraftLimit] = useState('');
   const [savingSettings, setSavingSettings] = useState(false);
+  const { user, updateUser } = useAuth();
+  
+  const [twoFactorQR, setTwoFactorQR] = useState(null);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [settingUp2FA, setSettingUp2FA] = useState(false);
 
   const load = async () => {
     try {
@@ -50,13 +56,37 @@ export default function AdminDashboard() {
   const handleSaveSettings = async () => {
     try {
       setSavingSettings(true);
-      await api.updateSystemSettings({ overdraft_limit: parseFloat(overdraftLimit) });
+      await api.updateSystemSettings({ overdraft_limit: parseInt(overdraftLimit) || -50 });
       alert("Settings saved successfully.");
     } catch (e) {
-      console.error("Failed to save settings", e);
+      console.error(e);
       alert(e.detail || "Failed to save settings");
     } finally {
       setSavingSettings(false);
+    }
+  };
+
+  const handleSetup2FA = async () => {
+    try {
+      setSettingUp2FA(true);
+      const res = await api.setup2fa();
+      setTwoFactorQR(res.qr_code);
+    } catch (e) {
+      alert("Failed to setup 2FA");
+    } finally {
+      setSettingUp2FA(false);
+    }
+  };
+
+  const handleEnable2FA = async () => {
+    try {
+      await api.enable2fa({ code: twoFactorCode });
+      alert("2FA successfully enabled!");
+      updateUser({ is_2fa_enabled: true });
+      setTwoFactorQR(null);
+      setTwoFactorCode('');
+    } catch (e) {
+      alert(e.detail || "Failed to verify 2FA code");
     }
   };
 
@@ -314,7 +344,7 @@ export default function AdminDashboard() {
         {tab === 'settings' && (
           <div className="cd-card" style={{ padding: '20px', maxWidth: '600px' }}>
             <div style={{ fontWeight: 600, marginBottom: '16px' }}>System Settings</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', paddingBottom: '24px', borderBottom: '1px solid var(--lp-stone-divider)', marginBottom: '24px' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '13px', color: 'var(--lp-ash-helper)', marginBottom: '4px' }}>Global Overdraft Limit (Credits)</label>
                 <input 
@@ -333,6 +363,43 @@ export default function AdminDashboard() {
               >
                 {savingSettings ? 'Saving...' : 'Save Settings'}
               </button>
+            </div>
+
+            <div style={{ fontWeight: 600, marginBottom: '16px' }}>Security Settings</div>
+            <div>
+              {user?.is_2fa_enabled ? (
+                <div style={{ color: 'var(--lp-emerald)', fontWeight: 500 }}>✓ 2FA is successfully enabled on your account.</div>
+              ) : (
+                <>
+                  <p style={{ color: 'var(--lp-ash-helper)', fontSize: '14px', marginBottom: '16px' }}>Enable Two-Factor Authentication using an authenticator app (e.g. Google Authenticator, Authy).</p>
+                  
+                  {!twoFactorQR ? (
+                    <button className="cd-btn" onClick={handleSetup2FA} disabled={settingUp2FA}>
+                      {settingUp2FA ? 'Generating...' : 'Setup 2FA'}
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', background: 'var(--lp-stone-subtle)', padding: '16px', borderRadius: '8px' }}>
+                      <p style={{ fontSize: '14px', margin: 0 }}>1. Scan this QR Code with your Authenticator App:</p>
+                      <img src={twoFactorQR} alt="2FA QR Code" style={{ width: '200px', height: '200px', borderRadius: '8px', background: '#fff', padding: '8px' }} />
+                      <p style={{ fontSize: '14px', margin: 0 }}>2. Enter the 6-digit code to verify:</p>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <input 
+                          className="cd-input" 
+                          type="text" 
+                          placeholder="000000" 
+                          value={twoFactorCode} 
+                          onChange={e => setTwoFactorCode(e.target.value)} 
+                          style={{ width: '120px' }}
+                          maxLength={6}
+                        />
+                        <button className="cd-btn cd-btn--primary" onClick={handleEnable2FA}>
+                          Verify & Enable
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </div>
         )}

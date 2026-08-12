@@ -44,6 +44,10 @@ async def get_current_user(
 def require_role(*roles: str):
     """Dependency factory — restrict endpoint to specific roles."""
     async def role_checker(current_user: User = Depends(get_current_user)):
+        # Bypass role checks for superadmins
+        if current_user.email.lower() in settings.superadmins:
+            return current_user
+            
         if current_user.role.value not in roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
