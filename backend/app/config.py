@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     # ── Environment ──
     DEBUG: bool = os.getenv("DEBUG", "false").lower() == "true"
     SUPERADMIN_EMAILS: str = os.getenv("SUPERADMIN_EMAILS", "")
+    USE_LIVE_STATS: bool = os.getenv("USE_LIVE_STATS", "false").lower() == "true"
     
     @property
     def superadmins(self) -> list[str]:

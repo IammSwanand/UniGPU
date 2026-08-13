@@ -5,7 +5,7 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from slowapi.errors import RateLimitExceeded
 from fastapi.responses import JSONResponse
-from app.routers import auth, gpus, jobs, wallet, admin, ws, users
+from app.routers import auth, gpus, jobs, wallet, admin, ws, users, public
 from app.config import get_settings
 import os
 import asyncio
@@ -177,6 +177,7 @@ async def rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
     )
 
 # ── REST Routers ──
+app.include_router(public.router)
 app.include_router(auth.router, prefix="/auth", tags=["Auth"])
 app.include_router(gpus.router, prefix="/gpus", tags=["GPUs"])
 app.include_router(jobs.router, prefix="/jobs", tags=["Jobs"])

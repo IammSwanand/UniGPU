@@ -1,6 +1,32 @@
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, useMotionValue, useTransform, useInView, animate } from 'framer-motion';
+
+const AnimatedNumber = ({ value, appendPlus, trigger }) => {
+  const count = useMotionValue(0);
+  
+  const display = useTransform(count, (latest) => {
+    const formatted = Math.floor(latest).toLocaleString();
+    return appendPlus ? `${formatted}+` : formatted;
+  });
+
+  useEffect(() => {
+    if (trigger && value !== null && value !== undefined) {
+      const controls = animate(count, value, {
+        type: "spring",
+        mass: 1,
+        stiffness: 60,
+        damping: 15,
+      });
+      return () => controls.stop();
+    }
+  }, [trigger, value, count]);
+
+  if (value === null || value === undefined) return <span>Coming Soon</span>;
+  return <motion.span>{display}</motion.span>;
+};
 import EyebrowLabel from './EyebrowLabel';
 import StatusChip from './StatusChip';
+import api from '../../api/client';
 
 const audiences = [
   'Students', 'AI Engineers', 'ML Engineers', 'Researchers',
@@ -8,8 +34,25 @@ const audiences = [
 ];
 
 export default function CommunitySection() {
+  const [stats, setStats] = useState(null);
+  const sectionRef = useRef(null);
+  const isInView = useInView(sectionRef, { once: true, margin: "-10%" });
+
+  useEffect(() => {
+    api.getPlatformStats()
+      .then(data => setStats(data))
+      .catch(err => console.error("Failed to fetch platform stats:", err));
+  }, []);
+
+  const displayStats = [
+    { label: 'Registered GPUs', value: stats ? stats.registered_gpus : null, appendPlus: false },
+    { label: 'Jobs Completed', value: stats ? stats.jobs_completed : null, appendPlus: true },
+    { label: 'Compute Hours', value: stats ? stats.compute_hours : null, appendPlus: true },
+    { label: 'Credits Earned', value: stats ? stats.credits_earned : null, appendPlus: true },
+  ];
+
   return (
-    <section id="community" className="lp-section" aria-labelledby="community-heading">
+    <section id="community" className="lp-section" aria-labelledby="community-heading" ref={sectionRef}>
       <div className="lp-container">
         <div className="lp-feature-container">
           <div className="lp-split">
@@ -53,12 +96,7 @@ export default function CommunitySection() {
                 }}
                 aria-label="Platform statistics preview"
               >
-                {[
-                  { label: 'Registered GPUs', value: 'Coming Soon', unit: '' },
-                  { label: 'Jobs Completed', value: 'Coming Soon', unit: '' },
-                  { label: 'Compute Hours', value: 'Coming Soon', unit: '' },
-                  { label: 'Credits Earned', value: 'Coming Soon', unit: '' },
-                ].map(({ label, value }) => (
+                {displayStats.map(({ label, value, appendPlus }) => (
                   <div
                     key={label}
                     className="lp-product-card"
@@ -79,14 +117,15 @@ export default function CommunitySection() {
                     </p>
                     <p
                       style={{
-                        fontFamily: 'var(--lp-font-inter)',
-                        fontSize: '13px',
-                        fontWeight: 500,
-                        color: 'var(--lp-royal-signal)',
+                        fontFamily: 'var(--font-sans)',
+                        fontSize: '2.5rem',
+                        fontWeight: 'bold',
+                        color: '#333333',
                         margin: 0,
+                        lineHeight: 1,
                       }}
                     >
-                      {value}
+                      <AnimatedNumber value={value} appendPlus={appendPlus} trigger={isInView} />
                     </p>
                   </div>
                 ))}

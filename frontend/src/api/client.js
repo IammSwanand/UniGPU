@@ -15,8 +15,8 @@ function authHeaders() {
     return t ? { Authorization: `Bearer ${t}` } : {};
 }
 
-async function request(method, path, { body, files } = {}) {
-    const opts = { method, headers: { ...authHeaders() } };
+async function request(method, path, { body, files, fetchOptions } = {}) {
+    const opts = { method, headers: { ...authHeaders() }, ...fetchOptions };
 
     if (files) {
         const fd = new FormData();
@@ -119,6 +119,9 @@ const api = {
     getSystemSettings: () => request('GET', '/admin/settings'),
     updateSystemSettings: (d) => request('PATCH', '/admin/settings', { body: d }),
     unblockWallet: (id) => request('POST', `/admin/users/${id}/unblock-wallet`),
+
+    // Public
+    getPlatformStats: () => request('GET', '/public/stats', { fetchOptions: { cache: 'no-store' } }),
 };
 
 export default api;

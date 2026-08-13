@@ -13,6 +13,9 @@ export default defineConfig({
           if (id.includes('framer-motion')) return 'motion'
           if (id.includes('@fortawesome')) return 'fontawesome'
           if (id.includes('@cloudinary')) return 'cloudinary'
+          if (id.includes('@react-three') || id.includes('three')) return 'three'
+          if (id.includes('lucide')) return 'lucide'
+          if (id.includes('gsap')) return 'gsap'
           if (id.includes('react')) return 'react-vendor'
 
           return 'vendor'
