@@ -12,6 +12,7 @@ import {
   IconSearch,
 } from './icons';
 import blueTick from '../blue_tick.png';
+import CreditIcon from '../CreditIcon';
 
 /**
  * DashboardNavbar — LP-styled fixed top navigation for the Client Dashboard.
@@ -203,8 +204,14 @@ export default function DashboardNavbar({ wallet, notifications = [], unreadCoun
                 >
                   <IconSearch /> Explore GPUs
                 </button>
-                <button className="cd-menu__item" disabled title="Coming soon">
-                  <IconSettings /> Settings <span className="cd-coming" style={{ marginLeft: 'auto' }}>Soon</span>
+                <button
+                  className="cd-menu__item"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    navigate('/dashboard/client/settings');
+                  }}
+                >
+                  <IconSettings /> Settings
                 </button>
                 <div className="cd-menu__divider" />
                 <button className="cd-menu__item cd-menu__item--danger" onClick={handleSignOut} style={{ color: '#ef4444' }}>

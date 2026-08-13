@@ -18,6 +18,11 @@ export default function AdminDashboard() {
   const [twoFactorCode, setTwoFactorCode] = useState('');
   const [settingUp2FA, setSettingUp2FA] = useState(false);
 
+  // ── Disable 2FA ──
+  const [showDisable2FA, setShowDisable2FA] = useState(false);
+  const [disableCode, setDisableCode] = useState('');
+  const [disabling2FA, setDisabling2FA] = useState(false);
+
   const load = async () => {
     try {
       const results = await Promise.allSettled([
@@ -87,6 +92,23 @@ export default function AdminDashboard() {
       setTwoFactorCode('');
     } catch (e) {
       alert(e.detail || "Failed to verify 2FA code");
+      setTwoFactorCode('');
+    }
+  };
+
+  const handleDisable2FA = async () => {
+    try {
+      setDisabling2FA(true);
+      await api.disable2fa({ code: disableCode });
+      alert("2FA has been disabled.");
+      updateUser({ is_2fa_enabled: false });
+      setShowDisable2FA(false);
+      setDisableCode('');
+    } catch (e) {
+      alert(e.detail || "Failed to disable 2FA");
+      setDisableCode('');
+    } finally {
+      setDisabling2FA(false);
     }
   };
 
@@ -368,7 +390,49 @@ export default function AdminDashboard() {
             <div style={{ fontWeight: 600, marginBottom: '16px' }}>Security Settings</div>
             <div>
               {user?.is_2fa_enabled ? (
-                <div style={{ color: 'var(--lp-emerald)', fontWeight: 500 }}>✓ 2FA is successfully enabled on your account.</div>
+                <>
+                  <div style={{ color: 'var(--lp-emerald)', fontWeight: 500, marginBottom: '16px' }}>✓ 2FA is successfully enabled on your account.</div>
+                  {!showDisable2FA ? (
+                    <button
+                      className="cd-btn"
+                      onClick={() => setShowDisable2FA(true)}
+                      style={{ fontSize: '13px', color: '#ef4444', borderColor: '#ef4444' }}
+                    >
+                      Disable 2FA
+                    </button>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'var(--lp-stone-subtle)', padding: '16px', borderRadius: '8px' }}>
+                      <p style={{ fontSize: '14px', margin: 0, color: '#ef4444', fontWeight: 500 }}>⚠ Enter your current authenticator code to confirm:</p>
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                        <input
+                          className="cd-input"
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
+                          placeholder="000000"
+                          value={disableCode}
+                          onChange={e => setDisableCode(e.target.value.replace(/\D/g, ''))}
+                          style={{ width: '120px' }}
+                          maxLength={6}
+                        />
+                        <button
+                          className="cd-btn"
+                          onClick={handleDisable2FA}
+                          disabled={disableCode.length !== 6 || disabling2FA}
+                          style={{ color: '#ef4444', borderColor: '#ef4444' }}
+                        >
+                          {disabling2FA ? 'Disabling...' : 'Confirm Disable'}
+                        </button>
+                        <button
+                          className="cd-btn cd-btn--outline"
+                          onClick={() => { setShowDisable2FA(false); setDisableCode(''); }}
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
               ) : (
                 <>
                   <p style={{ color: 'var(--lp-ash-helper)', fontSize: '14px', marginBottom: '16px' }}>Enable Two-Factor Authentication using an authenticator app (e.g. Google Authenticator, Authy).</p>
@@ -385,14 +449,16 @@ export default function AdminDashboard() {
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <input 
                           className="cd-input" 
-                          type="text" 
+                          type="text"
+                          inputMode="numeric"
+                          pattern="[0-9]*"
                           placeholder="000000" 
                           value={twoFactorCode} 
-                          onChange={e => setTwoFactorCode(e.target.value)} 
+                          onChange={e => setTwoFactorCode(e.target.value.replace(/\D/g, ''))}
                           style={{ width: '120px' }}
                           maxLength={6}
                         />
-                        <button className="cd-btn cd-btn--primary" onClick={handleEnable2FA}>
+                        <button className="cd-btn cd-btn--primary" onClick={handleEnable2FA} disabled={twoFactorCode.length !== 6}>
                           Verify & Enable
                         </button>
                       </div>

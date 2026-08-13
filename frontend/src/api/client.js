@@ -61,6 +61,7 @@ const api = {
     verify2faLogin: (d) => request('POST', '/auth/verify-2fa-login', { body: d }),
     setup2fa: () => request('POST', '/auth/2fa/setup'),
     enable2fa: (d) => request('POST', '/auth/2fa/enable', { body: d }),
+    disable2fa: (d) => request('POST', '/auth/2fa/disable', { body: d }),
 
     // Users
     getMe: () => request('GET', '/users/me'),

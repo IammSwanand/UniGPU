@@ -180,9 +180,15 @@ export default function ProviderNavbar({ wallet, notifications = [], unreadCount
                   <IconWallet /> Wallet
                 </button>
 
-                {/* Settings (Coming soon) */}
-                <button className="cd-menu__item" disabled title="Coming soon">
-                  <IconSettings /> Settings <span className="cd-coming" style={{ marginLeft: 'auto' }}>Soon</span>
+                {/* Settings */}
+                <button
+                  className="cd-menu__item"
+                  onClick={() => {
+                    setOpenMenu(null);
+                    navigate('/dashboard/provider/settings');
+                  }}
+                >
+                  <IconSettings /> Settings
                 </button>
 
                 <div className="cd-menu__divider" />

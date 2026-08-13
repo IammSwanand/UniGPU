@@ -16,6 +16,7 @@ export function AuthProvider({ children }) {
             username: res.username,
             role: res.role,
             isEmailVerified: res.is_email_verified,
+            is_2fa_enabled: res.is_2fa_enabled ?? false,
             github_handle: res.github_handle,
             linkedin_handle: res.linkedin_handle,
             huggingface_handle: res.huggingface_handle,

@@ -50,8 +50,8 @@ logger = logging.getLogger(__name__)
 
 RESET_TOKEN_EXPIRE_HOURS = 1
 MIN_PASSWORD_LENGTH = 8
-FORGOT_PASSWORD_MAX_REQUESTS = 5
-FORGOT_PASSWORD_WINDOW_SECONDS = 900  # 5 attempts per 15 minutes
+FORGOT_PASSWORD_MAX_REQUESTS = 3        # max 3 requests …
+FORGOT_PASSWORD_WINDOW_SECONDS = 900    # … per 15 minutes, per email OR per IP
 EMAIL_VERIFICATION_EXPIRE_HOURS = 24
 EMAIL_VERIFICATION_MAX_REQUESTS = 5
 EMAIL_VERIFICATION_WINDOW_SECONDS = 900
@@ -300,14 +300,23 @@ async def forgot_password(
     data: ForgotPasswordRequest,
     db: AsyncSession = Depends(get_db),
 ):
-    """Request a password reset link sent to the user's email."""
-    client_ip = request.client.host if request.client else "unknown"
-    rate_key = f"{data.email}@{client_ip}"
+    """Request a password reset link sent to the user's email.
 
-    if not settings.DEBUG:
-        limiter = get_rate_limiter()
+    Rate limited on TWO independent buckets so changing IP doesn't bypass
+    the per-email limit:
+      - per email address (across all IPs)
+      - per client IP   (across all email addresses)
+    """
+    client_ip = request.client.host if request.client else "unknown"
+    email_key = data.email.lower()          # per-email bucket
+    ip_key    = f"ip:{client_ip}"           # per-IP bucket
+
+    limiter = get_rate_limiter()
+
+    # ── Check both buckets — rate limiting always runs (no DEBUG bypass) ──
+    for bucket_key in (email_key, ip_key):
         is_allowed, _ = await limiter.check_rate_limit(
-            identifier=rate_key,
+            identifier=bucket_key,
             limit_type="forgot_password",
             requests=FORGOT_PASSWORD_MAX_REQUESTS,
             window_seconds=FORGOT_PASSWORD_WINDOW_SECONDS,
@@ -318,22 +327,59 @@ async def forgot_password(
                 detail="Too many reset requests. Please try again later.",
             )
 
+    # ── Record the attempt BEFORE sending the email ──────────────────────
+    # Recording after the email meant that a failed send never incremented
+    # the counter, letting an attacker spam unlimited requests.
+    for bucket_key in (email_key, ip_key):
+        await limiter.record_request(
+            identifier=bucket_key,
+            limit_type="forgot_password",
+            window_seconds=FORGOT_PASSWORD_WINDOW_SECONDS,
+        )
+
     result = await db.execute(select(User).where(User.email == data.email))
     user = result.scalar_one_or_none()
 
     if user and user.is_active:
-        raw_token, token_hash = _create_reset_token()
-        user.reset_token_hash = token_hash
-        user.reset_token_expires = datetime.now(timezone.utc) + timedelta(
-            hours=RESET_TOKEN_EXPIRE_HOURS
+        now = datetime.now(timezone.utc)
+
+        # ── Don't overwrite a still-valid token ──────────────────────────
+        # If we regenerated the token on every request, an attacker could
+        # spam the endpoint to continuously invalidate the link the real
+        # user already received in their inbox.
+        token_still_valid = (
+            user.reset_token_hash is not None
+            and user.reset_token_expires is not None
+            and user.reset_token_expires > now
         )
-        await db.flush()
+
+        if not token_still_valid:
+            raw_token, token_hash = _create_reset_token()
+            user.reset_token_hash = token_hash
+            user.reset_token_expires = now + timedelta(hours=RESET_TOKEN_EXPIRE_HOURS)
+            await db.flush()
+        else:
+            # Re-use the existing token — the link the user got is still valid.
+            # We still send the email (user may have missed it) but won't issue
+            # a different token that would invalidate the first one.
+            result2 = await db.execute(
+                select(User).where(User.id == user.id)
+            )
+            # We need the raw token to embed in the URL — but we only store
+            # the hash. So when the token is still valid we send a generic
+            # "you already have a pending reset link" response rather than
+            # re-sending (which we cannot do without the raw token anyway).
+            return MessageResponse(
+                message="A reset link was already sent. Please check your inbox (including spam). "
+                        "It expires in 1 hour."
+            )
 
         reset_url = f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={raw_token}"
         try:
             await send_password_reset_email(user.email, reset_url)
         except Exception:
             logger.exception("Failed to send password reset email to %s", user.email)
+            # Roll back the token so the user can try again
             user.reset_token_hash = None
             user.reset_token_expires = None
             await db.flush()
@@ -341,13 +387,6 @@ async def forgot_password(
                 status_code=503,
                 detail="Unable to send reset email. Please try again later.",
             )
-
-    if not settings.DEBUG:
-        await limiter.record_request(
-            identifier=rate_key,
-            limit_type="forgot_password",
-            window_seconds=FORGOT_PASSWORD_WINDOW_SECONDS,
-        )
 
     return MessageResponse(message="If an account with that email exists, a reset link has been sent.")
 
@@ -522,7 +561,7 @@ async def verify_2fa_login(
 
     result = await db.execute(select(User).where(User.id == user_id))
     user = result.scalar_one_or_none()
-    
+
     if not user or not user.is_active or not user.is_2fa_enabled:
         raise HTTPException(status_code=403, detail="Invalid user or 2FA not enabled.")
 
@@ -531,6 +570,10 @@ async def verify_2fa_login(
         client_ip = request.client.host if request.client else "unknown"
         await record_failed_login(user.email, client_ip)
         raise HTTPException(status_code=401, detail="Invalid 2FA code.")
+
+    # Clear any failed login counters on success
+    client_ip = request.client.host if request.client else "unknown"
+    await record_successful_login(user.email, client_ip)
 
     return Token(
         access_token=_create_token(user),
@@ -548,38 +591,89 @@ async def setup_2fa(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Generate a new TOTP secret and return QR code."""
+    """Generate a new TOTP secret and return QR code.
+    
+    Blocked if 2FA is already active — prevents an attacker with a stolen
+    session token from overwriting the existing TOTP secret to silently
+    disable another user's 2FA.
+    """
+    if current_user.is_2fa_enabled:
+        raise HTTPException(
+            status_code=400,
+            detail="2FA is already enabled on this account. Disable it first to reconfigure."
+        )
+
     secret = pyotp.random_base32()
-    # Save the secret temporarily, but don't enable 2FA yet until they verify it
+    # Save the secret temporarily; 2FA is not active until /2fa/enable is called
     current_user.totp_secret = secret
     await db.commit()
 
     totp = pyotp.TOTP(secret)
     uri = totp.provisioning_uri(name=current_user.email, issuer_name="UniGPU")
-    
+
     img = qrcode.make(uri)
     buf = io.BytesIO()
     img.save(buf)
     base64_img = base64.b64encode(buf.getvalue()).decode('utf-8')
 
-    return Setup2FAResponse(secret=secret, qr_code=f"data:image/png;base64,{base64_img}")
+    # Return ONLY the QR code — never expose the raw base-32 secret
+    return Setup2FAResponse(qr_code=f"data:image/png;base64,{base64_img}")
 
 
 @router.post("/2fa/enable", response_model=MessageResponse)
 async def enable_2fa(
+    request: Request,
     data: Enable2FARequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Verify the code and permanently enable 2FA."""
+    """Verify the TOTP code and permanently enable 2FA."""
     if not current_user.totp_secret:
-        raise HTTPException(status_code=400, detail="Must setup 2FA first.")
+        raise HTTPException(status_code=400, detail="Must call /2fa/setup first.")
+
+    if current_user.is_2fa_enabled:
+        raise HTTPException(status_code=400, detail="2FA is already enabled.")
 
     totp = pyotp.TOTP(current_user.totp_secret)
     if not totp.verify(data.code):
+        # Count failed enable attempts against the same brute-force bucket as login
+        client_ip = request.client.host if request.client else "unknown"
+        await record_failed_login(current_user.email, client_ip)
         raise HTTPException(status_code=400, detail="Invalid 2FA code.")
 
     current_user.is_2fa_enabled = True
     await db.commit()
 
     return MessageResponse(message="2FA has been successfully enabled.")
+
+
+@router.post("/2fa/disable", response_model=MessageResponse)
+async def disable_2fa(
+    request: Request,
+    data: Enable2FARequest,  # reuse: just needs `code: str`
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Disable 2FA after verifying a current valid TOTP code.
+
+    Requiring a live TOTP code ensures that only someone who physically
+    holds the authenticator device can disable 2FA — a stolen session
+    token alone is not sufficient.
+    """
+    if not current_user.is_2fa_enabled:
+        raise HTTPException(status_code=400, detail="2FA is not currently enabled.")
+
+    if not current_user.totp_secret:
+        raise HTTPException(status_code=400, detail="No TOTP secret found. Contact support.")
+
+    totp = pyotp.TOTP(current_user.totp_secret)
+    if not totp.verify(data.code):
+        client_ip = request.client.host if request.client else "unknown"
+        await record_failed_login(current_user.email, client_ip)
+        raise HTTPException(status_code=400, detail="Invalid 2FA code. Disable aborted.")
+
+    current_user.is_2fa_enabled = False
+    current_user.totp_secret = None
+    await db.commit()
+
+    return MessageResponse(message="2FA has been successfully disabled.")

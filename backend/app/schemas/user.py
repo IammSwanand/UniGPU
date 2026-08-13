@@ -121,4 +121,5 @@ class Enable2FARequest(BaseModel):
 
 class Setup2FAResponse(BaseModel):
     qr_code: str
-    secret: str
+    # `secret` intentionally NOT included — it must never be sent to the browser.
+    # The QR code contains the provisioning URI which is enough for authenticator apps.

@@ -33,6 +33,7 @@ const Support = lazy(() => import('./pages/Support'));
 const LegalPolicy = lazy(() => import('./pages/LegalPolicy'));
 const LegalIndex = lazy(() => import('./pages/LegalIndex'));
 const Profile = lazy(() => import('./pages/Profile'));
+const Settings = lazy(() => import('./pages/Settings'));
 
 function AppShell() {
   return (
@@ -122,6 +123,9 @@ export default function App() {
               <Route path="/dashboard/client/profile" element={
                 <ProtectedRoute roles={['client']}><Profile /></ProtectedRoute>
               } />
+              <Route path="/dashboard/client/settings" element={
+                <ProtectedRoute roles={['client']}><Settings /></ProtectedRoute>
+              } />
               <Route path="/dashboard/provider" element={
                 <ProtectedRoute roles={['provider']}><ProviderDashboard /></ProtectedRoute>
               } />
@@ -130,6 +134,9 @@ export default function App() {
               } />
               <Route path="/dashboard/provider/profile" element={
                 <ProtectedRoute roles={['provider']}><Profile /></ProtectedRoute>
+              } />
+              <Route path="/dashboard/provider/settings" element={
+                <ProtectedRoute roles={['provider']}><Settings /></ProtectedRoute>
               } />
               <Route path="/dashboard/admin" element={
                 <ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>

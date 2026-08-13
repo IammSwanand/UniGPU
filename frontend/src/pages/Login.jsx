@@ -98,8 +98,10 @@ export default function Login() {
                             {requires2fa ? (
                                 <div className="lp-auth__form-group">
                                     <label className="lp-auth__label">Authenticator Code</label>
-                                    <input className="lp-input" type="text" placeholder="6-digit code"
-                                        value={twoFactorCode} onChange={e => setTwoFactorCode(e.target.value)} required />
+                                    <input className="lp-input" type="text"
+                                        inputMode="numeric" pattern="[0-9]*" maxLength={6}
+                                        placeholder="6-digit code"
+                                        value={twoFactorCode} onChange={e => setTwoFactorCode(e.target.value.replace(/\D/g, ''))} required />
                                 </div>
                             ) : (
                                 <>
