@@ -38,7 +38,7 @@ async def send_password_reset_email(to_email: str, reset_url: str) -> None:
     message["Subject"] = subject
     message.set_content(body)
     
-    html_content = get_password_reset_html(reset_url)
+    html_content = get_password_reset_html(reset_url, to_email)
     message.add_alternative(html_content, subtype='html')
 
     await aiosmtplib.send(
@@ -78,7 +78,7 @@ async def send_email_verification_email(to_email: str, verify_url: str) -> None:
     message["Subject"] = subject
     message.set_content(body)
     
-    html_content = get_email_verification_html(verify_url)
+    html_content = get_email_verification_html(verify_url, to_email)
     message.add_alternative(html_content, subtype='html')
 
     await aiosmtplib.send(

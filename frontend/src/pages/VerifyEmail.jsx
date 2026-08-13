@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Navbar from '../components/landing/Navbar';
-import CodeWindow from '../components/landing/CodeWindow';
+
 
 export default function VerifyEmail() {
     const location = useLocation();
@@ -71,32 +71,7 @@ export default function VerifyEmail() {
         <div className="landing-page auth-page--lp">
             <Navbar />
             <main id="main-content">
-                <div className="lp-auth">
-                    <aside className="lp-auth__aside">
-                        <span className="lp-auth__aside-eyebrow">Verify Email</span>
-                        <h1 className="lp-auth__aside-headline">One click to unlock the account.</h1>
-                        <p className="lp-auth__aside-sub">
-                            We sent a secure verification link to your inbox. Click it to activate your UniGPU account and reach your dashboard.
-                        </p>
-                        <div className="lp-auth__aside-code">
-                            <CodeWindow filename="terminal" animate={false}>
-                                <span className="lp-tok-prompt">$ </span>
-                                <span className="lp-tok-keyword">unigpu</span>
-                                <span className="lp-tok-string"> verify-email</span>
-                                {'\n\n'}
-                                <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Link sent to inbox</span>
-                                {'\n'}
-                                <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Token expires in 24 hours</span>
-                                {'\n'}
-                                <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Dashboard unlocks after verification</span>
-                                {'\n\n'}
-                                <span className="lp-tok-comment">No OTP needed.</span>
-                            </CodeWindow>
-                        </div>
-                    </aside>
+                <div className="lp-auth" style={{ display: 'flex', justifyContent: 'center', width: '100%' }}>
 
                     <section className="lp-auth__main">
                         {status === 'verifying' && (
