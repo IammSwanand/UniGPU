@@ -2,25 +2,17 @@ const FOOTER_COLS = [
   {
     title: 'Product',
     links: [
-      { label: 'Features', href: '#features' },
-      { label: 'Pricing', href: '#pricing' },
+      { label: 'How to Use', href: '/how-to-use' },
+      { label: 'Download Agent', href: '/download' },
       { label: 'Dashboard', href: '/dashboard' },
     ],
   },
   {
     title: 'Resources',
     links: [
-      { label: 'API Reference', href: '#' },
-      { label: 'GitHub', href: '#' },
+      { label: 'About Us', href: '/about' },
+      { label: 'Support', href: '/support' },
       { label: 'FAQ', href: '#faq' },
-    ],
-  },
-  {
-    title: 'Community',
-    links: [
-      { label: 'Discord', href: '#' },
-      { label: 'LinkedIn', href: '#' },
-      { label: 'Contributors', href: '#' },
     ],
   },
   {
@@ -28,7 +20,7 @@ const FOOTER_COLS = [
     links: [
       { label: 'Privacy Policy', href: '/legal/privacy_policy' },
       { label: 'Terms of Service', href: '/legal/terms_of_service' },
-      { label: 'Others', href: '/legal' },
+      { label: 'All Policies', href: '/legal' },
     ],
   },
 ];
@@ -82,16 +74,31 @@ export default function FooterSection() {
             <div key={title}>
               <p className="lp-footer__col-title">{title}</p>
               <ul className="lp-footer__links" role="list">
-                {links.map(({ label, href }) => (
-                  <li key={label}>
-                    <a
-                      href={href}
-                      onClick={(e) => handleAnchorClick(e, href)}
-                    >
-                      {label}
-                    </a>
-                  </li>
-                ))}
+                {links.map(({ label, href }) => {
+                  const isExternal = href.startsWith('http');
+                  const isAnchor = href.startsWith('#');
+                  
+                  if (isExternal || isAnchor) {
+                    return (
+                      <li key={label}>
+                        <a
+                          href={href}
+                          onClick={(e) => handleAnchorClick(e, href)}
+                          target={isExternal ? "_blank" : undefined}
+                          rel={isExternal ? "noopener noreferrer" : undefined}
+                        >
+                          {label}
+                        </a>
+                      </li>
+                    );
+                  }
+                  
+                  return (
+                    <li key={label}>
+                      <Link to={href}>{label}</Link>
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ))}
