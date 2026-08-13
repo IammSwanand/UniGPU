@@ -6,6 +6,7 @@ from email.message import EmailMessage
 import aiosmtplib
 
 from app.config import get_settings
+from app.services.email_templates import get_password_reset_html, get_email_verification_html
 
 logger = logging.getLogger(__name__)
 settings = get_settings()
@@ -36,6 +37,9 @@ async def send_password_reset_email(to_email: str, reset_url: str) -> None:
     message["To"] = to_email
     message["Subject"] = subject
     message.set_content(body)
+    
+    html_content = get_password_reset_html(reset_url)
+    message.add_alternative(html_content, subtype='html')
 
     await aiosmtplib.send(
         message,
@@ -73,6 +77,9 @@ async def send_email_verification_email(to_email: str, verify_url: str) -> None:
     message["To"] = to_email
     message["Subject"] = subject
     message.set_content(body)
+    
+    html_content = get_email_verification_html(verify_url)
+    message.add_alternative(html_content, subtype='html')
 
     await aiosmtplib.send(
         message,
