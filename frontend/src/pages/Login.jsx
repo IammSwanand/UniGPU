@@ -16,13 +16,16 @@ export default function Login() {
     const [twoFactorCode, setTwoFactorCode] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
-    const { login, verify2faLogin } = useAuth();
+    const [resendLoading, setResendLoading] = useState(false);
+    const [resendMessage, setResendMessage] = useState('');
+    const { login, verify2faLogin, resendVerification } = useAuth();
     const navigate = useNavigate();
     const successMessage = location.state?.message || '';
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
+        setResendMessage('');
         setLoading(true);
         try {
             if (requires2fa) {
@@ -43,6 +46,28 @@ export default function Login() {
             setError(err.detail || 'Invalid credentials');
         } finally {
             setLoading(false);
+        }
+    };
+
+    const isUnverifiedError = error && (
+        error.toLowerCase().includes('verify your email') ||
+        error.toLowerCase().includes('verify the account')
+    );
+
+    const handleResendVerification = async () => {
+        if (!email) {
+            setResendMessage('Please enter your email address above first.');
+            return;
+        }
+        setResendLoading(true);
+        setResendMessage('');
+        try {
+            await resendVerification(email);
+            setResendMessage('Verification email sent! Check your inbox (and spam folder).');
+        } catch (err) {
+            setResendMessage(err.detail || 'Failed to resend. Please try again.');
+        } finally {
+            setResendLoading(false);
         }
     };
 
@@ -85,9 +110,34 @@ export default function Login() {
 
                         {successMessage && <motion.div className="lp-auth__error" variants={childVariants}>{successMessage}</motion.div>}
                         {error && (
-                            <motion.div className="lp-auth__error" variants={childVariants}>
+                            <motion.div
+                                className={`lp-auth__error${isUnverifiedError ? ' lp-auth__error--verify' : ''}`}
+                                variants={childVariants}
+                            >
                                 {error === 'Account disabled' ? (
                                     <span>Account disabled. <Link to="/support" style={{ textDecoration: 'underline' }}>Contact support</Link></span>
+                                ) : isUnverifiedError ? (
+                                    <span>
+                                        <span style={{ display: 'block', marginBottom: '0.5rem' }}>
+                                            Please verify your email before signing in.
+                                        </span>
+                                        <span style={{ display: 'block', fontSize: '0.82rem', opacity: 0.85, marginBottom: '0.65rem' }}>
+                                            Verification links expire after <strong>24 hours</strong>. If your link is old, request a new one.
+                                        </span>
+                                        <button
+                                            type="button"
+                                            className="lp-auth__resend-btn"
+                                            onClick={handleResendVerification}
+                                            disabled={resendLoading}
+                                        >
+                                            {resendLoading ? 'Sending…' : 'Resend verification email'}
+                                        </button>
+                                        {resendMessage && (
+                                            <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.82rem', opacity: 0.9 }}>
+                                                {resendMessage}
+                                            </span>
+                                        )}
+                                    </span>
                                 ) : (
                                     error
                                 )}
