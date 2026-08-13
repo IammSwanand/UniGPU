@@ -117,27 +117,29 @@ export default function Login() {
                                 {error === 'Account disabled' ? (
                                     <span>Account disabled. <Link to="/support" style={{ textDecoration: 'underline' }}>Contact support</Link></span>
                                 ) : isUnverifiedError ? (
-                                    <span>
-                                        <span style={{ display: 'block', marginBottom: '0.5rem' }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                                        <span>
                                             Please verify your email before signing in.
                                         </span>
-                                        <span style={{ display: 'block', fontSize: '0.82rem', opacity: 0.85, marginBottom: '0.65rem' }}>
+                                        <span style={{ fontSize: '0.85rem', opacity: 0.9 }}>
                                             Verification links expire after <strong>24 hours</strong>. If your link is old, request a new one.
                                         </span>
-                                        <button
-                                            type="button"
-                                            className="lp-auth__resend-btn"
-                                            onClick={handleResendVerification}
-                                            disabled={resendLoading}
-                                        >
-                                            {resendLoading ? 'Sending…' : 'Resend verification email'}
-                                        </button>
+                                        <div style={{ alignSelf: 'flex-start', marginTop: '0.25rem' }}>
+                                            <button
+                                                type="button"
+                                                className="lp-auth__resend-btn"
+                                                onClick={handleResendVerification}
+                                                disabled={resendLoading}
+                                            >
+                                                {resendLoading ? 'Sending…' : 'Resend verification email'}
+                                            </button>
+                                        </div>
                                         {resendMessage && (
-                                            <span style={{ display: 'block', marginTop: '0.5rem', fontSize: '0.82rem', opacity: 0.9 }}>
+                                            <span style={{ fontSize: '0.82rem', opacity: 0.9, marginTop: '0.25rem' }}>
                                                 {resendMessage}
                                             </span>
                                         )}
-                                    </span>
+                                    </div>
                                 ) : (
                                     error
                                 )}
