@@ -10,7 +10,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faGithub, faLinkedin } from '@fortawesome/free-brands-svg-icons';
 import { faUser, faEnvelope, faCheckCircle, faTimesCircle, faLink, faMapMarkerAlt } from '@fortawesome/free-solid-svg-icons';
 import { IconKaggle, IconHuggingFace } from '../components/client-dashboard/icons';
-import { Country, City } from 'country-state-city';
+import { useLocationData } from '../hooks/useLocationData';
 import blueTick from '../components/blue_tick.png';
 
 export default function Profile() {
@@ -53,6 +53,8 @@ export default function Profile() {
     cityName: '',
   });
 
+  const { countries, cities, loadingCountries, loadingCities, getCountryByCode } = useLocationData(mainInfo.countryIso);
+
   const [socialHandles, setSocialHandles] = useState({
     github: user?.github_handle || '',
     linkedin: user?.linkedin_handle || '',
@@ -69,7 +71,7 @@ export default function Profile() {
         if (parts.length === 2) {
           initialCityName = parts[0];
           const countryName = parts[1];
-          const country = Country.getAllCountries().find(c => c.name === countryName);
+          const country = countries.find(c => c.name === countryName);
           if (country) initialCountryIso = country.isoCode;
         }
       }
@@ -86,7 +88,7 @@ export default function Profile() {
         kaggle: user.kaggle_handle || '',
       });
     }
-  }, [user]);
+  }, [user, countries]);
 
   const handleSaveHandles = async () => {
     setIsSavingHandles(true);
@@ -116,7 +118,7 @@ export default function Profile() {
     try {
       let locationStr = undefined;
       if (mainInfo.countryIso && mainInfo.cityName) {
-        const countryName = Country.getCountryByCode(mainInfo.countryIso)?.name || '';
+        const countryName = getCountryByCode(mainInfo.countryIso)?.name || '';
         locationStr = `${mainInfo.cityName}, ${countryName}`;
       } else if (!isClient) {
         notify("Location is required for providers", "error");
@@ -192,17 +194,17 @@ export default function Profile() {
                       style={{ fontSize: '18px', fontWeight: '600', padding: '4px 8px', width: '100%', maxWidth: '250px' }}
                     />
                     <div style={{ marginTop: '12px' }}>
-                      <select className="cd-input" style={{ width: '100%', maxWidth: '250px', padding: '4px 8px' }} value={mainInfo.countryIso} onChange={e => setMainInfo({ ...mainInfo, countryIso: e.target.value, cityName: '' })}>
-                        <option value="">Select Country</option>
-                        {Country.getAllCountries().map(c => (
+                      <select className="cd-input" style={{ width: '100%', maxWidth: '250px', padding: '4px 8px' }} value={mainInfo.countryIso} onChange={e => setMainInfo({ ...mainInfo, countryIso: e.target.value, cityName: '' })} disabled={loadingCountries}>
+                        <option value="">{loadingCountries ? 'Loading...' : 'Select Country'}</option>
+                        {countries.map(c => (
                           <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
                         ))}
                       </select>
                     </div>
                     <div style={{ marginTop: '8px' }}>
-                      <select className="cd-input" style={{ width: '100%', maxWidth: '250px', padding: '4px 8px' }} value={mainInfo.cityName} onChange={e => setMainInfo({ ...mainInfo, cityName: e.target.value })} disabled={!mainInfo.countryIso}>
-                        <option value="">Select City</option>
-                        {mainInfo.countryIso && City.getCitiesOfCountry(mainInfo.countryIso).map(c => (
+                      <select className="cd-input" style={{ width: '100%', maxWidth: '250px', padding: '4px 8px' }} value={mainInfo.cityName} onChange={e => setMainInfo({ ...mainInfo, cityName: e.target.value })} disabled={!mainInfo.countryIso || loadingCities}>
+                        <option value="">{loadingCities ? 'Loading...' : 'Select City'}</option>
+                        {cities.map(c => (
                           <option key={c.name} value={c.name}>{c.name}</option>
                         ))}
                       </select>
@@ -259,7 +261,7 @@ export default function Profile() {
                       const parts = user.location.split(', ');
                       if (parts.length === 2) {
                         initialCityName = parts[0];
-                        const country = Country.getAllCountries().find(c => c.name === parts[1]);
+                        const country = countries.find(c => c.name === parts[1]);
                         if (country) initialCountryIso = country.isoCode;
                       }
                     }

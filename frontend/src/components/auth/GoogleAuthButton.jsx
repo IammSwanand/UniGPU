@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { GoogleLogin } from '@react-oauth/google';
 import { useAuth } from '../../context/AuthContext';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Country, City } from 'country-state-city';
+import { useLocationData } from '../../hooks/useLocationData';
 
 export default function GoogleAuthButton({ role = 'client' }) {
     const { loginWithGoogle } = useAuth();
@@ -16,8 +16,8 @@ export default function GoogleAuthButton({ role = 'client' }) {
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
 
-    const countries = useMemo(() => Country.getAllCountries(), []);
-    const cities = useMemo(() => countryIso ? City.getCitiesOfCountry(countryIso) : [], [countryIso]);
+    // Only fetch countries if they are signing up as a provider and the modal is open
+    const { countries, cities, loadingCountries, loadingCities, getCountryByCode } = useLocationData(countryIso, role === 'provider' && showPasswordModal);
 
     const handleSuccess = async (credentialResponse) => {
         setError('');
@@ -48,7 +48,7 @@ export default function GoogleAuthButton({ role = 'client' }) {
             return;
         }
         
-        const countryName = countryIso ? Country.getCountryByCode(countryIso)?.name : '';
+        const countryName = countryIso ? getCountryByCode(countryIso)?.name : '';
         const locationStr = role === 'provider' ? `${cityName}, ${countryName}` : null;
         
         setError('');
@@ -132,8 +132,8 @@ export default function GoogleAuthButton({ role = 'client' }) {
                                     <>
                                         <div className="lp-auth__form-group" style={{ textAlign: 'left', marginTop: '16px' }}>
                                             <label className="lp-auth__label">Country</label>
-                                            <select className="lp-input" value={countryIso} onChange={e => { setCountryIso(e.target.value); setCityName(''); }} required>
-                                                <option value="">Select Country</option>
+                                            <select className="lp-input" value={countryIso} onChange={e => { setCountryIso(e.target.value); setCityName(''); }} required disabled={loadingCountries}>
+                                                <option value="">{loadingCountries ? 'Loading...' : 'Select Country'}</option>
                                                 {countries.map(c => (
                                                     <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
                                                 ))}
@@ -141,8 +141,8 @@ export default function GoogleAuthButton({ role = 'client' }) {
                                         </div>
                                         <div className="lp-auth__form-group" style={{ textAlign: 'left', marginTop: '16px' }}>
                                             <label className="lp-auth__label">City</label>
-                                            <select className="lp-input" value={cityName} onChange={e => setCityName(e.target.value)} disabled={!countryIso} required>
-                                                <option value="">Select City</option>
+                                            <select className="lp-input" value={cityName} onChange={e => setCityName(e.target.value)} disabled={!countryIso || loadingCities} required>
+                                                <option value="">{loadingCities ? 'Loading...' : 'Select City'}</option>
                                                 {cities.map(c => (
                                                     <option key={c.name} value={c.name}>{c.name}</option>
                                                 ))}

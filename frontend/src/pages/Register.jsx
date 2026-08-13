@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faRocket, faBolt } from '@fortawesome/free-solid-svg-icons';
 import Navbar from '../components/landing/Navbar';
-import { Country, City } from 'country-state-city';
+import { useLocationData } from '../hooks/useLocationData';
 
 import GoogleAuthButton from '../components/auth/GoogleAuthButton';
 import { containerVariants, childVariants, asideVariants } from '../lib/authMotion';
@@ -28,8 +28,7 @@ export default function Register() {
     const [resendLoading, setResendLoading] = useState(false);
     const { register, resendVerification } = useAuth();
 
-    const countries = useMemo(() => Country.getAllCountries(), []);
-    const cities = useMemo(() => countryIso ? City.getCitiesOfCountry(countryIso) : [], [countryIso]);
+    const { countries, cities, loadingCountries, loadingCities, getCountryByCode } = useLocationData(countryIso);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -37,7 +36,7 @@ export default function Register() {
             setError('Location is required for providers.');
             return;
         }
-        const countryName = countryIso ? Country.getCountryByCode(countryIso)?.name : '';
+        const countryName = countryIso ? getCountryByCode(countryIso)?.name : '';
         const locationStr = role === 'provider' ? `${cityName}, ${countryName}` : null;
 
         setError('');
@@ -180,8 +179,8 @@ export default function Register() {
                                         <>
                                             <div className="lp-auth__form-group">
                                                 <label className="lp-auth__label">Country</label>
-                                                <select className="lp-input" value={countryIso} onChange={e => { setCountryIso(e.target.value); setCityName(''); }} required>
-                                                    <option value="">Select Country</option>
+                                                <select className="lp-input" value={countryIso} onChange={e => { setCountryIso(e.target.value); setCityName(''); }} required disabled={loadingCountries}>
+                                                    <option value="">{loadingCountries ? 'Loading...' : 'Select Country'}</option>
                                                     {countries.map(c => (
                                                         <option key={c.isoCode} value={c.isoCode}>{c.name}</option>
                                                     ))}
@@ -189,8 +188,8 @@ export default function Register() {
                                             </div>
                                             <div className="lp-auth__form-group">
                                                 <label className="lp-auth__label">City</label>
-                                                <select className="lp-input" value={cityName} onChange={e => setCityName(e.target.value)} disabled={!countryIso} required>
-                                                    <option value="">Select City</option>
+                                                <select className="lp-input" value={cityName} onChange={e => setCityName(e.target.value)} disabled={!countryIso || loadingCities} required>
+                                                    <option value="">{loadingCities ? 'Loading...' : 'Select City'}</option>
                                                     {cities.map(c => (
                                                         <option key={c.name} value={c.name}>{c.name}</option>
                                                     ))}
