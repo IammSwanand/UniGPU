@@ -48,6 +48,7 @@ const api = {
     
     createCluster: (d) => request('POST', '/enterprise/clusters', { body: d }),
     listClusters: () => request('GET', '/enterprise/clusters'),
+    deleteCluster: (id) => request('DELETE', `/enterprise/clusters/${id}`),
 };
 
 export default api;

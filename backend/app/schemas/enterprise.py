@@ -18,22 +18,6 @@ class OrganizationOut(BaseModel):
 class APIKeyResponse(BaseModel):
     api_key: str
 
-# ── Cluster Schemas ──
-
-class EnterpriseClusterCreate(BaseModel):
-    name: str
-    organization_id: str
-
-class EnterpriseClusterOut(BaseModel):
-    id: str
-    name: str
-    organization_id: str
-    head_node_ip: str | None
-    created_at: datetime
-    
-    class Config:
-        from_attributes = True
-
 # ── Node Schemas ──
 
 class EnterpriseNodeOut(BaseModel):
@@ -46,5 +30,22 @@ class EnterpriseNodeOut(BaseModel):
     last_heartbeat: datetime | None
     created_at: datetime
 
+    class Config:
+        from_attributes = True
+
+# ── Cluster Schemas ──
+
+class EnterpriseClusterCreate(BaseModel):
+    name: str
+    organization_id: str
+
+class EnterpriseClusterOut(BaseModel):
+    id: str
+    name: str
+    organization_id: str
+    head_node_ip: str | None
+    created_at: datetime
+    nodes: list[EnterpriseNodeOut] = []
+    
     class Config:
         from_attributes = True

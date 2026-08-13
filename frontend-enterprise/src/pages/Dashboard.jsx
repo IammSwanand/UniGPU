@@ -27,6 +27,49 @@ export default function Dashboard() {
         }
     };
 
+    useEffect(() => {
+        if (!org) return;
+
+        const token = localStorage.getItem('token');
+        // Determine WS URL based on current host (assume localhost:8000 for local dev)
+        const wsUrl = `ws://localhost:8000/enterprise/ws/dashboard/${org.id}?token=${token}`;
+        const ws = new WebSocket(wsUrl);
+
+        ws.onmessage = (event) => {
+            const data = JSON.parse(event.data);
+            
+            if (data.type === 'NODE_CONNECTED') {
+                setClusters(prev => prev.map(c => {
+                    if (c.id === data.cluster_id) {
+                        const newNodes = c.nodes ? [...c.nodes] : [];
+                        // Avoid duplicates if reconnecting
+                        if (!newNodes.find(n => n.id === data.node_id)) {
+                            newNodes.push({ id: data.node_id, vram_mb: data.vram_mb, status: 'online' });
+                        }
+                        return { ...c, nodes: newNodes };
+                    }
+                    return c;
+                }));
+            } else if (data.type === 'NODE_DISCONNECTED') {
+                setClusters(prev => prev.map(c => {
+                    if (c.id === data.cluster_id && c.nodes) {
+                        return { ...c, nodes: c.nodes.map(n => n.id === data.node_id ? { ...n, status: 'offline' } : n) };
+                    }
+                    return c;
+                }));
+            } else if (data.type === 'NODE_TELEMETRY') {
+                setClusters(prev => prev.map(c => {
+                    if (c.id === data.cluster_id && c.nodes) {
+                        return { ...c, nodes: c.nodes.map(n => n.id === data.node_id ? { ...n, vram_mb: data.vram_mb, status: 'online' } : n) };
+                    }
+                    return c;
+                }));
+            }
+        };
+
+        return () => ws.close();
+    }, [org]);
+
     const handleCreateOrg = async (e) => {
         e.preventDefault();
         const orgName = prompt("Enter your Organization name:");
@@ -63,6 +106,18 @@ export default function Dashboard() {
             alert(err.detail || "Failed to create cluster");
         }
     };
+
+    const handleDeleteCluster = async (clusterId) => {
+        if (!window.confirm("Are you sure you want to delete this cluster? This action cannot be undone.")) return;
+        try {
+            await api.deleteCluster(clusterId);
+            setClusters(clusters.filter(c => c.id !== clusterId));
+        } catch (err) {
+            alert(err.detail || "Failed to delete cluster");
+        }
+    };
+
+    const totalActiveNodes = clusters.reduce((sum, c) => sum + (c.nodes || []).filter(n => n.status === 'online').length, 0);
 
     if (loading) return <div>Loading dashboard...</div>;
 
@@ -115,8 +170,8 @@ export default function Dashboard() {
                     <div className="card-header">
                         <span className="card-title">Active Nodes</span>
                     </div>
-                    <div style={{ fontSize: '2.5rem', fontWeight: '700', color: 'var(--text-muted)' }}>
-                        0 <span style={{ fontSize: '1rem', fontWeight: 'normal' }}>(V2 Feature)</span>
+                    <div style={{ fontSize: '2.5rem', fontWeight: '700' }}>
+                        {totalActiveNodes}
                     </div>
                 </div>
             </div>
@@ -143,26 +198,43 @@ export default function Dashboard() {
                     </div>
                 ) : (
                     <div className="grid">
-                        {clusters.map(cluster => (
-                            <div key={cluster.id} className="card">
-                                <div className="card-header">
-                                    <span className="card-title">{cluster.name}</span>
-                                    <span className="badge" style={{ backgroundColor: 'var(--bg-dark)', color: 'var(--text-muted)' }}>
-                                        0 Nodes
-                                    </span>
+                        {clusters.map(cluster => {
+                            const onlineNodes = cluster.nodes ? cluster.nodes.filter(n => n.status === 'online') : [];
+                            const totalVramGB = onlineNodes.reduce((acc, n) => acc + n.vram_mb, 0) / 1024;
+                            
+                            return (
+                                <div key={cluster.id} className="card">
+                                    <div className="card-header" style={{ position: 'relative' }}>
+                                        <span className="card-title">{cluster.name}</span>
+                                        <button 
+                                            className="btn" 
+                                            style={{ position: 'absolute', right: 0, top: 0, padding: '0.2rem 0.5rem', fontSize: '0.75rem', backgroundColor: 'transparent', color: '#ef4444', border: '1px solid #ef4444' }} 
+                                            onClick={() => handleDeleteCluster(cluster.id)}
+                                        >
+                                            Delete
+                                        </button>
+                                    </div>
+                                    <div style={{ marginTop: '0.5rem', marginBottom: '1rem' }}>
+                                        <span className="badge" style={{ backgroundColor: 'var(--bg-dark)', color: 'var(--text-muted)' }}>
+                                            {onlineNodes.length} Nodes
+                                        </span>
+                                    </div>
+                                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                        <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-all', paddingRight: '1rem' }}>ID: {cluster.id}</span>
+                                        <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', backgroundColor: 'var(--bg-dark)', color: 'white', border: '1px solid var(--border)' }} onClick={(e) => { navigator.clipboard.writeText(cluster.id); e.target.innerText = 'Copied!'; setTimeout(() => e.target.innerText = 'Copy', 2000); }}>Copy</button>
+                                    </div>
+                                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '0.5rem' }}>
+                                        Head Node IP: {cluster.head_node_ip || 'Waiting for CLI Agent...'}
+                                    </div>
+                                    <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
+                                        Pooled VRAM: {totalVramGB > 0 ? totalVramGB.toFixed(1) + ' GB' : '0 GB'}
+                                    </div>
+                                    <button className="btn btn-block" style={{ backgroundColor: 'var(--bg-dark)', color: 'white', border: '1px solid var(--border)' }}>
+                                        View Node Topology
+                                    </button>
                                 </div>
-                                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <span style={{ fontFamily: 'monospace', fontSize: '0.8rem', wordBreak: 'break-all', paddingRight: '1rem' }}>ID: {cluster.id}</span>
-                                    <button className="btn" style={{ padding: '0.2rem 0.5rem', fontSize: '0.75rem', backgroundColor: 'var(--bg-dark)', color: 'white', border: '1px solid var(--border)' }} onClick={(e) => { navigator.clipboard.writeText(cluster.id); e.target.innerText = 'Copied!'; setTimeout(() => e.target.innerText = 'Copy', 2000); }}>Copy</button>
-                                </div>
-                                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>
-                                    Head Node IP: {cluster.head_node_ip || 'Waiting for CLI Agent...'}
-                                </div>
-                                <button className="btn btn-block" style={{ backgroundColor: 'var(--bg-dark)', color: 'white', border: '1px solid var(--border)' }}>
-                                    View Node Topology
-                                </button>
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

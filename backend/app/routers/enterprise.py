@@ -110,14 +110,23 @@ async def create_cluster(
             detail="You do not own this organization or it does not exist."
         )
 
+    from sqlalchemy.orm import selectinload
     cluster = EnterpriseCluster(
         name=data.name,
         organization_id=data.organization_id
     )
     db.add(cluster)
     await db.commit()
-    await db.refresh(cluster)
-    return cluster
+    
+    # Reload with selectinload to populate nodes for serialization
+    cluster_result = await db.execute(
+        select(EnterpriseCluster)
+        .where(EnterpriseCluster.id == cluster.id)
+        .options(selectinload(EnterpriseCluster.nodes))
+    )
+    return cluster_result.scalar_one()
+
+
 
 
 @router.get("/clusters", response_model=List[EnterpriseClusterOut])
@@ -134,16 +143,48 @@ async def list_clusters(
         return []
 
     result = await db.execute(
-        select(EnterpriseCluster).where(EnterpriseCluster.organization_id == org.id)
+        select(EnterpriseCluster)
+        .where(EnterpriseCluster.organization_id == org.id)
+        .options(selectinload(EnterpriseCluster.nodes))
     )
     return result.scalars().all()
 
+
+@router.delete("/clusters/{cluster_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_cluster(
+    cluster_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("enterprise", "admin")),
+):
+    """Delete a Ray cluster"""
+    # Verify organization and ownership
+    org_result = await db.execute(
+        select(Organization).where(Organization.owner_id == current_user.id)
+    )
+    org = org_result.scalar_one_or_none()
+    if not org:
+        raise HTTPException(status_code=403, detail="No organization found")
+
+    cluster_result = await db.execute(
+        select(EnterpriseCluster).where(
+            EnterpriseCluster.id == cluster_id,
+            EnterpriseCluster.organization_id == org.id
+        )
+    )
+    cluster = cluster_result.scalar_one_or_none()
+    if not cluster:
+        raise HTTPException(status_code=404, detail="Cluster not found or permission denied")
+
+    await db.delete(cluster)
+    await db.commit()
+    return None
 
 from fastapi import WebSocket, WebSocketDisconnect, Query
 import json
 
 # Connection Management for Enterprise
 enterprise_connections = {}
+dashboard_connections: dict[str, list[WebSocket]] = {}
 
 @router.websocket("/ws/{cluster_id}")
 async def enterprise_websocket(
@@ -157,7 +198,6 @@ async def enterprise_websocket(
     # 1. Authenticate via API Key
     key_hash = hashlib.sha256(api_key.encode("utf-8")).hexdigest()
     
-    # We must use a new session here because websockets are long-lived
     from app.database import async_session
     async with async_session() as db:
         org_result = await db.execute(
@@ -168,6 +208,8 @@ async def enterprise_websocket(
             await websocket.send_json({"type": "error", "message": "Invalid API Key"})
             await websocket.close(code=1008)
             return
+            
+        org_id = org.id
 
         cluster_result = await db.execute(
             select(EnterpriseCluster).where(
@@ -190,6 +232,18 @@ async def enterprise_websocket(
         db.add(node)
         await db.commit()
         await db.refresh(node)
+
+        # Notify dashboard
+        for dash_ws in dashboard_connections.get(org_id, []):
+            try:
+                await dash_ws.send_json({
+                    "type": "NODE_CONNECTED",
+                    "cluster_id": cluster_id,
+                    "node_id": node.id,
+                    "vram_mb": node.vram_mb
+                })
+            except:
+                pass
 
         # Head Node Election
         is_head = False
@@ -226,18 +280,43 @@ async def enterprise_websocket(
                         await db.commit()
             
             elif msg_type == "TELEMETRY":
+                vram_mb = msg.get("vram_mb", 0)
                 async with async_session() as db:
                     n_result = await db.execute(select(EnterpriseNode).where(EnterpriseNode.id == node.id))
                     n = n_result.scalar_one_or_none()
                     if n:
-                        n.vram_mb = msg.get("vram_mb", n.vram_mb)
+                        n.vram_mb = vram_mb
                         import datetime
                         n.last_heartbeat = datetime.datetime.now(datetime.timezone.utc)
                         await db.commit()
+                
+                # Relay to dashboard
+                for dash_ws in dashboard_connections.get(org_id, []):
+                    try:
+                        await dash_ws.send_json({
+                            "type": "NODE_TELEMETRY",
+                            "cluster_id": cluster_id,
+                            "node_id": node.id,
+                            "vram_mb": vram_mb
+                        })
+                    except:
+                        pass
             
     except WebSocketDisconnect:
         if websocket in enterprise_connections.get(cluster_id, []):
             enterprise_connections[cluster_id].remove(websocket)
+            
+        # Notify dashboard
+        for dash_ws in dashboard_connections.get(org_id, []):
+            try:
+                await dash_ws.send_json({
+                    "type": "NODE_DISCONNECTED",
+                    "cluster_id": cluster_id,
+                    "node_id": node.id
+                })
+            except:
+                pass
+
         async with async_session() as db:
             n_result = await db.execute(select(EnterpriseNode).where(EnterpriseNode.id == node.id))
             n = n_result.scalar_one_or_none()
@@ -251,3 +330,32 @@ async def enterprise_websocket(
                 if c:
                     c.head_node_ip = None
                     await db.commit()
+
+from app.routers.ws import _authenticate_websocket_user
+
+@router.websocket("/ws/dashboard/{org_id}")
+async def dashboard_websocket(websocket: WebSocket, org_id: str, token: str | None = Query(default=None)):
+    user = await _authenticate_websocket_user(websocket, token)
+    if not user:
+        return
+    
+    from app.database import async_session
+    async with async_session() as db:
+        org_result = await db.execute(
+            select(Organization).where(Organization.id == org_id, Organization.owner_id == user.id)
+        )
+        if not org_result.scalar_one_or_none():
+            await websocket.close(code=1008)
+            return
+
+    await websocket.accept()
+    if org_id not in dashboard_connections:
+        dashboard_connections[org_id] = []
+    dashboard_connections[org_id].append(websocket)
+    
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        if websocket in dashboard_connections.get(org_id, []):
+            dashboard_connections[org_id].remove(websocket)
