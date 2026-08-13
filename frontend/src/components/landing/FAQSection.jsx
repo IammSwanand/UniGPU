@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import EyebrowLabel from './EyebrowLabel';
 
@@ -91,10 +92,15 @@ function FAQItem({ faq }) {
   );
 }
 
-export default function FAQSection() {
+export default function FAQSection({ showBackButton = false }) {
   return (
     <section id="faq" className="lp-section" aria-labelledby="faq-heading">
       <div className="lp-container">
+        {showBackButton && (
+            <div style={{ width: '100%', textAlign: 'left', marginBottom: '20px' }}>
+                <Link to="/" className="lp-auth__back" style={{ display: 'inline-flex', textDecoration: 'none' }}>← Back to Home</Link>
+            </div>
+        )}
         <div className="lp-section__header">
           <EyebrowLabel>FAQ</EyebrowLabel>
           <h2 id="faq-heading" className="lp-section__heading">

@@ -54,7 +54,7 @@ export default function CommunitySection() {
                 aria-label="Platform statistics preview"
               >
                 {[
-                  { label: 'Active GPUs', value: 'Coming Soon', unit: '' },
+                  { label: 'Registered GPUs', value: 'Coming Soon', unit: '' },
                   { label: 'Jobs Completed', value: 'Coming Soon', unit: '' },
                   { label: 'Compute Hours', value: 'Coming Soon', unit: '' },
                   { label: 'Credits Earned', value: 'Coming Soon', unit: '' },

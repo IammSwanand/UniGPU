@@ -10,8 +10,10 @@ export default function Download() {
             <Navbar />
 
             <div style={{ maxWidth: '900px', margin: '0 auto', padding: '120px 30px 60px', flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-
-                <div style={{ backgroundColor: '#ffffff', padding: '60px 40px', borderRadius: '16px', textAlign: 'center', width: '100%', maxWidth: '700px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.04)' }}>
+                <div style={{ backgroundColor: '#ffffff', padding: '40px 40px 60px', borderRadius: '16px', textAlign: 'center', width: '100%', maxWidth: '700px', boxShadow: '0 4px 24px rgba(0, 0, 0, 0.04)' }}>
+                    <div style={{ width: '100%', textAlign: 'left', marginBottom: '20px' }}>
+                        <Link to="/" className="lp-auth__back" style={{ display: 'inline-flex', textDecoration: 'none' }}>← Back to Home</Link>
+                    </div>
                     <div style={{ fontSize: '3rem', color: '#145aff', marginBottom: '24px', display: 'inline-block' }}>
                         <FontAwesomeIcon icon={faDownload} />
                     </div>

@@ -7,7 +7,7 @@ const NAV_LINKS = [
   { label: 'About Us', href: '/about', isRoute: true },
   { label: 'Features', href: '#features' },
   { label: 'How It Works', href: '#how-it-works' },
-  { label: 'FAQ', href: '#faq' },
+  { label: 'FAQ', href: '/faq', isRoute: true },
   { label: 'Download Agent', href: '/download', isRoute: true },
 ];
 

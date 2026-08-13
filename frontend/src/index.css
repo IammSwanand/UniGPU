@@ -2780,6 +2780,9 @@ a.lp-btn-primary, button.lp-btn-primary, .lp-btn-primary {
   justify-content: center;
   gap: 4px;
   box-shadow: var(--lp-shadow-feature);
+  max-width: 496px;
+  width: 100%;
+  margin: 0 auto;
 }
 
 .lp-auth__back {
@@ -2796,6 +2799,7 @@ a.lp-btn-primary, button.lp-btn-primary, .lp-btn-primary {
   border-radius: var(--lp-radius-btn);
   background: transparent;
   margin-bottom: 24px;
+  text-decoration: none;
   transition: color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
 }
 

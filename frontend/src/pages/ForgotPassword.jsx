@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import api from '../api/client';
 import Navbar from '../components/landing/Navbar';
-import CodeWindow from '../components/landing/CodeWindow';
 import { containerVariants, childVariants, asideVariants } from '../lib/authMotion';
 
 export default function ForgotPassword() {
@@ -45,21 +44,6 @@ export default function ForgotPassword() {
                             Enter the email tied to your UniGPU account and we&apos;ll send a secure
                             reset link. It expires shortly, so check your inbox.
                         </p>
-                        <div className="lp-auth__aside-code">
-                            <CodeWindow filename="terminal" animate={false}>
-                                <span className="lp-tok-prompt">$ </span>
-                                <span className="lp-tok-keyword">unigpu</span>
-                                <span className="lp-tok-string"> password reset</span>
-                                {'\n\n'}
-                                <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Reset link generated</span>
-                                {'\n'}
-                                <span className="lp-tok-success">✓ </span>
-                                <span className="lp-tok-output">Email dispatched</span>
-                                {'\n\n'}
-                                <span className="lp-tok-comment">Awaiting confirmation…</span>
-                            </CodeWindow>
-                        </div>
                     </motion.aside>
 
                     {/* ── Main — form panel ── */}

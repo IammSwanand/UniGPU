@@ -79,7 +79,7 @@ export default function GoogleAuthButton({ role = 'client' }) {
                     text="continue_with"
                     theme="outline"
                     shape="pill"
-                    width="100%"
+                    width="400"
                 />
             </div>
 

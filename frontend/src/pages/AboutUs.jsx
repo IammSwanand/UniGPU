@@ -1,8 +1,9 @@
+import { Link } from 'react-router-dom';
 import Navbar from '../components/landing/Navbar';
 import FooterSection from '../components/landing/FooterSection';
 import EyebrowLabel from '../components/landing/EyebrowLabel';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import { faLightbulb, faWrench, faUsers, faGraduationCap, faBriefcase } from '@fortawesome/free-solid-svg-icons';
+import { faLightbulb, faWrench, faUsers, faGraduationCap, faBriefcase, faEnvelope } from '@fortawesome/free-solid-svg-icons';
 import { faGithub, faLinkedin, faInstagram } from '@fortawesome/free-brands-svg-icons';
 import { Cloudinary } from '@cloudinary/url-gen';
 import { AdvancedImage } from '@cloudinary/react';
@@ -38,6 +39,9 @@ export default function AboutUs() {
             <main id="main-content">
                 <section className="lp-section" style={{ paddingTop: '120px' }}>
                     <div className="lp-container">
+                        <div style={{ width: '100%', textAlign: 'left', marginBottom: '20px' }}>
+                            <Link to="/" className="lp-auth__back" style={{ display: 'inline-flex', textDecoration: 'none' }}>← Back to Home</Link>
+                        </div>
                         <div className="lp-section__header" style={{ marginBottom: '80px' }}>
                             <EyebrowLabel>About Us</EyebrowLabel>
                             <h1 className="lp-section__heading" style={{ fontSize: '3.5rem', marginBottom: '24px' }}>
@@ -173,6 +177,26 @@ export default function AboutUs() {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Contact Information */}
+                        <div style={{ marginBottom: '40px', textAlign: 'center', marginTop: '80px' }}>
+                            <div className="lp-section__header" style={{ marginBottom: '40px' }}>
+                                <EyebrowLabel>Get in Touch</EyebrowLabel>
+                                <h2 className="lp-section__heading">Contact Us</h2>
+                            </div>
+                            <div className="lp-feature-mini" style={{ padding: '40px 30px', borderRadius: 'var(--lp-radius-feature)', display: 'inline-block', minWidth: '350px' }}>
+                                <div style={{ fontSize: '2rem', color: 'var(--lp-royal-signal)', marginBottom: '16px' }}>
+                                    <FontAwesomeIcon icon={faEnvelope} />
+                                </div>
+                                <h3 style={{ fontSize: '1.5rem', marginBottom: '8px', color: 'var(--lp-surface-ink)', fontWeight: 700 }}>Have questions?</h3>
+                                <p style={{ color: 'var(--lp-slate-caption)', fontSize: '1.05rem', marginBottom: '32px' }}>
+                                    We'd love to hear from you. Reach out to us for any queries or support.
+                                </p>
+                                <a href="mailto:swanand@unigpu.in" className="lp-btn-inverse" style={{ fontSize: '1.05rem', padding: '12px 32px' }}>
+                                    swanand@unigpu.in
+                                </a>
                             </div>
                         </div>
                     </div>

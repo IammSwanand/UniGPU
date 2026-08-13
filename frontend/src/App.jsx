@@ -1,5 +1,15 @@
 import { lazy, Suspense, useState, useEffect } from 'react';
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+
+function ScrollToTop() {
+  const location = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location]);
+
+  return null;
+}
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
@@ -12,6 +22,7 @@ const VerifyEmail = lazy(() => import('./pages/VerifyEmail'));
 const HowToUse = lazy(() => import('./pages/HowToUse'));
 const AboutUs = lazy(() => import('./pages/AboutUs'));
 const Download = lazy(() => import('./pages/Download'));
+const FAQ = lazy(() => import('./pages/FAQ'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
 const ClientWallet = lazy(() => import('./pages/ClientWallet'));
 const ProviderDashboard = lazy(() => import('./pages/ProviderDashboard'));
@@ -82,12 +93,14 @@ export default function App() {
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID"}>
       <AuthProvider>
         <BrowserRouter>
+          <ScrollToTop />
           <Suspense fallback={<AppShell />}>
             <Routes>
               <Route path="/" element={<Landing />} />
               <Route path="/how-to-use" element={<HowToUse />} />
               <Route path="/about" element={<AboutUs />} />
               <Route path="/download" element={<Download />} />
+              <Route path="/faq" element={<FAQ />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
