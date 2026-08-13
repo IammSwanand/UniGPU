@@ -2960,6 +2960,7 @@ a.lp-btn-primary, button.lp-btn-primary, .lp-btn-primary {
   font-size: 13px;
   color: var(--lp-royal-signal);
   font-weight: 500;
+  margin-bottom: 28px;
 }
 
 /* Unverified-email variant — amber/orange warning tone */
