@@ -11,6 +11,7 @@ import ExecutionWorkspace from '../components/client-dashboard/ExecutionWorkspac
 import RecentWorkloads from '../components/client-dashboard/RecentWorkloads';
 import WorkloadDrawer from '../components/client-dashboard/WorkloadDrawer';
 import LogsViewer from '../components/client-dashboard/LogsViewer';
+import RerunDialog from '../components/client-dashboard/RerunDialog';
 
 import ConfirmDialog from '../components/client-dashboard/ConfirmDialog';
 
@@ -61,6 +62,7 @@ export default function ClientDashboard() {
   const [logsLoading, setLogsLoading] = useState(false);
   const [drawerJob, setDrawerJob] = useState(null);      // JobOut for WorkloadDrawer
   const [confirm, setConfirm] = useState(null);          // { title, msg, confirmLabel, onOk, danger }
+  const [rerunJobGpuSelect, setRerunJobGpuSelect] = useState(null); // job to rerun
 
 
 
@@ -221,6 +223,28 @@ export default function ClientDashboard() {
     });
   }, [notify, load]);
 
+  // ══════════════ Rerun action ══════════════
+  const handleRerunClick = useCallback((job) => {
+    setRerunJobGpuSelect(job);
+  }, []);
+
+  const handleRerunConfirm = useCallback(async (gpuId) => {
+    if (!rerunJobGpuSelect) return;
+    const job = rerunJobGpuSelect;
+    setRerunJobGpuSelect(null);
+    notify('Duplicating and dispatching workload...', 'info');
+    try {
+      await api.rerunJob(job.id, gpuId);
+      notify('Workload duplicated and submitted.', 'success');
+      await load();
+      setTimeout(() => {
+        document.getElementById('workloads-section')?.scrollIntoView({ behavior: 'smooth' });
+      }, 100);
+    } catch (e) {
+      notify(e.detail || 'Failed to run workload again.', 'error');
+    }
+  }, [rerunJobGpuSelect, notify, load]);
+
   // ══════════════ Helpers ══════════════
   const gpuNameFor = useCallback((gpuId) => {
     if (!gpuId) return 'Auto';
@@ -281,6 +305,7 @@ export default function ClientDashboard() {
           onViewLogs={fetchLogs}
           onStop={handleStop}
           onSelectJob={setDrawerJob}
+          onRerunJob={handleRerunClick}
         />
 
 
@@ -301,6 +326,15 @@ export default function ClientDashboard() {
           job={drawerJob}
           onClose={() => setDrawerJob(null)}
           availableGPUs={availableGPUs}
+        />
+      )}
+
+      {rerunJobGpuSelect && (
+        <RerunDialog
+          job={rerunJobGpuSelect}
+          availableGPUs={availableGPUs}
+          onConfirm={handleRerunConfirm}
+          onCancel={() => setRerunJobGpuSelect(null)}
         />
       )}
 

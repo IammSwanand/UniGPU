@@ -99,6 +99,20 @@ const api = {
     getJob: (id) => request('GET', `/jobs/${id}`),
     getJobLogs: (id) => request('GET', `/jobs/${id}/logs`),
     cancelJob: (id) => request('POST', `/jobs/${id}/cancel`),
+    rerunJob: (id, gpuId) => {
+        return (async () => {
+            const fd = new FormData();
+            fd.append('gpu_id', gpuId || '');
+            const res = await fetch(`${BASE}/jobs/${id}/rerun`, {
+                method: 'POST',
+                headers: { ...authHeaders() },
+                body: fd,
+            });
+            const data = await res.json();
+            if (!res.ok) throw { status: res.status, detail: data?.detail || data };
+            return data;
+        })();
+    },
 
     // Artifacts (produced by the agent when the script writes to /workspace/output/)
     getArtifactsList: (jobId) => request('GET', `/jobs/${jobId}/artifacts/list`),

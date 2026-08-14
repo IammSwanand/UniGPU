@@ -4,6 +4,7 @@ import uuid
 import mimetypes
 import asyncio
 import zipfile
+import logging
 from pathlib import Path
 from typing import List
 from datetime import datetime, timedelta, timezone
@@ -61,6 +62,75 @@ async def _save_file(file: UploadFile, job_id: str, filename: str) -> tuple[str,
     with open(path, "wb") as f:
         f.write(content)
     return path, size
+
+
+logger = logging.getLogger("unigpu.jobs")
+
+
+async def _copy_file(old_path_or_key: str, new_job_id: str, filename: str) -> tuple[str, int]:
+    """
+    Copy an existing file (from OCI or local filesystem) to a new job ID.
+    All blocking I/O is offloaded to a thread via asyncio.to_thread so the
+    async event loop is never blocked.
+    Returns:
+        (path_or_key, size_in_bytes)
+    """
+    if settings.oci_storage_enabled:
+        from app.services.storage import get_storage
+        storage = get_storage()
+        new_key = f"jobs/{new_job_id}/{filename}"
+
+        def _oci_copy():
+            storage._s3.copy_object(
+                Bucket=storage.bucket,
+                CopySource={"Bucket": storage.bucket, "Key": old_path_or_key},
+                Key=new_key,
+            )
+            resp = storage._s3.head_object(Bucket=storage.bucket, Key=new_key)
+            return resp["ContentLength"]
+
+        size = await asyncio.to_thread(_oci_copy)
+        return new_key, size
+
+    # Local filesystem fallback — run blocking calls off the event loop.
+    def _local_copy():
+        import shutil
+        new_job_dir = os.path.join(settings.UPLOAD_DIR, new_job_id)
+        os.makedirs(new_job_dir, exist_ok=True)
+        new_path = os.path.join(new_job_dir, filename)
+        shutil.copy2(old_path_or_key, new_path)
+        return new_path, os.path.getsize(new_path)
+
+    return await asyncio.to_thread(_local_copy)
+
+
+async def _delete_copied_files(
+    new_job_id: str,
+    script_path: str | None,
+    req_path: str | None,
+    dataset_path: str | None,
+) -> None:
+    """Best-effort cleanup of files already copied for a failed rerun."""
+    paths = [p for p in (script_path, req_path, dataset_path) if p]
+    if not paths:
+        return
+
+    if settings.oci_storage_enabled:
+        from app.services.storage import get_storage
+        storage = get_storage()
+        for key in paths:
+            try:
+                await asyncio.to_thread(storage.delete, key)
+            except Exception as exc:  # pragma: no cover
+                logger.warning("Rerun cleanup: failed to delete OCI key %s: %s", key, exc)
+    else:
+        def _local_cleanup():
+            import shutil
+            job_dir = os.path.join(settings.UPLOAD_DIR, new_job_id)
+            if os.path.isdir(job_dir):
+                shutil.rmtree(job_dir, ignore_errors=True)
+
+        await asyncio.to_thread(_local_cleanup)
 
 
 @router.post("/submit", response_model=JobOut, status_code=status.HTTP_201_CREATED)
@@ -222,6 +292,202 @@ async def submit_job(
         })
     else:
         print(f" Cannot dispatch — GPU found: {gpu is not None}, Connected: {manager.is_connected(gpu.id) if gpu else 'N/A'}")
+        await db.commit()
+
+    return job
+
+
+@router.post("/{job_id}/rerun", response_model=JobOut, status_code=status.HTTP_201_CREATED)
+async def rerun_job(
+    job_id: str,
+    gpu_id: str | None = Form(None),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_role("client", "admin")),
+):
+    """Duplicate an existing job and run it again."""
+    # ── Validate gpu_id format to avoid passing garbage to the DB ──
+    if gpu_id:
+        try:
+            uuid.UUID(gpu_id)
+        except ValueError:
+            raise HTTPException(status_code=422, detail="Invalid gpu_id format.")
+    else:
+        gpu_id = None
+
+    result = await db.execute(select(Job).where(Job.id == job_id))
+    original_job = result.scalar_one_or_none()
+    if not original_job:
+        raise HTTPException(status_code=404, detail="Original job not found")
+
+    is_owner = original_job.client_id == current_user.id
+    is_admin = current_user.role.value == "admin"
+    if not (is_owner or is_admin):
+        raise HTTPException(status_code=403, detail="Access denied")
+
+    # ── Guard: original job must have a script to copy ──
+    if not original_job.script_path:
+        raise HTTPException(status_code=422, detail="Original job has no script to rerun.")
+
+    # ── Rate Limiting: Check job submission quota ──
+    is_allowed, reason = await check_job_submission_limit(current_user.id)
+    if not is_allowed:
+        raise HTTPException(status_code=429, detail=reason)
+
+    # ── Billing: Check Wallet Balance ──
+    from app.models.wallet import Wallet
+    wallet_result = await db.execute(select(Wallet).where(Wallet.user_id == current_user.id))
+    wallet = wallet_result.scalar_one_or_none()
+    if not wallet or wallet.balance <= 0:
+        raise HTTPException(
+            status_code=402,
+            detail="Insufficient Credits. Your balance is zero or negative. Please purchase credits to launch new jobs."
+        )
+
+    # ── FIX #1: Estimate size from original paths BEFORE copying ──
+    # This prevents bypassing the upload quota by checking limits on an already-copied file.
+    def _get_local_size(path: str | None) -> int:
+        if not path:
+            return 0
+        try:
+            return os.path.getsize(path)
+        except OSError:
+            return 0
+
+    if settings.oci_storage_enabled:
+        from app.services.storage import get_storage
+        storage = get_storage()
+
+        def _oci_size(key: str | None) -> int:
+            if not key:
+                return 0
+            try:
+                resp = storage._s3.head_object(Bucket=storage.bucket, Key=key)
+                return resp["ContentLength"]
+            except Exception:
+                return 0
+
+        estimated_size = await asyncio.to_thread(
+            lambda: (
+                _oci_size(original_job.script_path)
+                + _oci_size(original_job.requirements_path)
+                + _oci_size(original_job.dataset_path)
+            )
+        )
+    else:
+        estimated_size = await asyncio.to_thread(
+            lambda: (
+                _get_local_size(original_job.script_path)
+                + _get_local_size(original_job.requirements_path)
+                + _get_local_size(original_job.dataset_path)
+            )
+        )
+
+    # ── Check daily upload limit BEFORE copying any files ──
+    is_allowed, reason = await check_upload_limit(current_user.id, estimated_size)
+    if not is_allowed:
+        raise HTTPException(status_code=429, detail=reason)
+
+    new_job_id = str(uuid.uuid4())
+    script_path: str | None = None
+    req_path: str | None = None
+    dataset_path: str | None = None
+
+    try:
+        script_path, script_size = await _copy_file(
+            original_job.script_path, new_job_id, Path(original_job.script_path).name
+        )
+
+        req_size = 0
+        if original_job.requirements_path:
+            req_path, req_size = await _copy_file(
+                original_job.requirements_path, new_job_id, Path(original_job.requirements_path).name
+            )
+
+        dataset_size = 0
+        if original_job.dataset_path:
+            dataset_path, dataset_size = await _copy_file(
+                original_job.dataset_path, new_job_id, Path(original_job.dataset_path).name
+            )
+
+        total_size = script_size + req_size + dataset_size
+
+    except Exception as exc:
+        # ── FIX #3 & #6: Log internal error, return generic message, clean up orphans ──
+        logger.error("rerun_job: file copy failed for original job %s: %s", job_id, exc)
+        await _delete_copied_files(new_job_id, script_path, req_path, dataset_path)
+        raise HTTPException(status_code=500, detail="Failed to duplicate job files. Please try again.")
+
+    job = Job(
+        id=new_job_id,
+        client_id=current_user.id,
+        script_path=script_path,
+        requirements_path=req_path,
+        dataset_path=dataset_path,
+        status=JobStatus.pending,
+    )
+    db.add(job)
+    await db.flush()
+
+    # Record successful submission
+    await record_job_submission(current_user.id, total_size)
+
+    # ── Match with a GPU ──
+    from app.services.matching import find_available_gpu_and_lock
+    from app.services.connection_manager import manager
+
+    gpu = None
+    if gpu_id:
+        logger.info("rerun_job: client requested GPU %s for job %s", gpu_id, new_job_id)
+        gpu_result = await db.execute(
+            select(GPU)
+            .where(GPU.id == gpu_id)
+            .with_for_update()
+        )
+        gpu = gpu_result.scalar_one_or_none()
+
+        if gpu and gpu.status == GPUStatus.online:
+            now = datetime.now(timezone.utc)
+            if gpu.locked_until is None or gpu.locked_until <= now:
+                gpu.locked_by_job_id = new_job_id
+                gpu.locked_until = now + timedelta(seconds=30)
+                logger.info("rerun_job: locked GPU %s for job %s", gpu_id, new_job_id)
+            else:
+                logger.info("rerun_job: GPU %s already locked, falling back", gpu_id)
+                gpu = None
+        else:
+            logger.info("rerun_job: GPU %s not available (offline or not found)", gpu_id)
+            gpu = None
+
+        if not gpu:
+            gpu = await find_available_gpu_and_lock(db, new_job_id, min_vram=0)
+    else:
+        gpu = await find_available_gpu_and_lock(db, new_job_id, min_vram=0)
+
+    logger.info("rerun_job: matched GPU %s for job %s", gpu.id if gpu else "NONE", new_job_id)
+
+    if gpu and manager.is_connected(gpu.id):
+        job.gpu_id = gpu.id
+        job.status = JobStatus.queued
+        gpu.status = GPUStatus.busy
+
+        script_url = f"/jobs/{new_job_id}/download/{Path(script_path).name}"
+        req_url = f"/jobs/{new_job_id}/download/{Path(req_path).name}" if req_path else None
+        dataset_url = f"/jobs/{new_job_id}/download/{Path(dataset_path).name}" if dataset_path else None
+
+        await db.commit()
+
+        await manager.send_to_gpu(gpu.id, {
+            "type": "assign_job",
+            "job_id": new_job_id,
+            "script_url": script_url,
+            "requirements_url": req_url,
+            "dataset_url": dataset_url,
+        })
+    else:
+        logger.warning(
+            "rerun_job: cannot dispatch job %s — GPU found: %s, connected: %s",
+            new_job_id, gpu is not None, manager.is_connected(gpu.id) if gpu else False
+        )
         await db.commit()
 
     return job
