@@ -4569,10 +4569,8 @@ a.lp-btn-primary, button.lp-btn-primary, .lp-btn-primary {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  border-radius: 9999px;
   white-space: nowrap;
 }
 
@@ -4586,12 +4584,10 @@ a.lp-btn-primary, button.lp-btn-primary, .lp-btn-primary {
 
 .cd-status--queued {
   color: var(--lp-royal-signal);
-  background: rgba(20, 90, 255, 0.1);
 }
 
 .cd-status--running {
   color: var(--lp-royal-signal);
-  background: rgba(20, 90, 255, 0.14);
 }
 
 .cd-status--running::before {
@@ -4600,23 +4596,19 @@ a.lp-btn-primary, button.lp-btn-primary, .lp-btn-primary {
 
 .cd-status--completed {
   color: #15803d;
-  background: rgba(34, 197, 94, 0.12);
 }
 
 .cd-status--failed,
 .cd-status--error {
   color: #b91c1c;
-  background: rgba(239, 68, 68, 0.12);
 }
 
 .cd-status--success {
   color: #15803d;
-  background: rgba(34, 197, 94, 0.12);
 }
 
 .cd-status--warning {
   color: #d97706; /* Amber color */
-  background: rgba(245, 158, 11, 0.12);
 }
 
 .cd-status--cancelled {

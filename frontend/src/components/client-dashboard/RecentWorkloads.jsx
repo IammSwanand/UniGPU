@@ -202,28 +202,24 @@ export default function RecentWorkloads({
                         {job.cost != null ? <><CreditIcon size={14} style={{ marginRight: '4px' }} />{job.cost.toFixed(4)}</> : '—'}
                       </td>
                       <td data-label="" className="cd-row-actions" onClick={(e) => e.stopPropagation()}>
-                        <button
-                          className="cd-row-trigger"
-                          aria-label={`Actions for ${job.id.slice(0, 8)}`}
-                          aria-haspopup="menu"
-                          aria-expanded={openRow === job.id}
-                          onClick={() => setOpenRow(openRow === job.id ? null : job.id)}
-                        >
-                          <IconMore />
-                        </button>
-                        {openRow === job.id && (
-                          <div className="cd-row-menu" role="menu">
-
-                            {stoppable && (
-                              <button className="cd-menu__item" role="menuitem" onClick={() => { setOpenRow(null); onStop(job); }}>
-                                <IconStop /> Stop
-                              </button>
-                            )}
-                            <button className="cd-menu__item" role="menuitem" onClick={() => { setOpenRow(null); onRerunJob(job); }}>
-                              <IconPlay /> Run Again
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          {stoppable && (
+                            <button
+                              className="cd-btn cd-btn--secondary"
+                              style={{ padding: '4px 8px', fontSize: '12px', color: '#ef4444', borderColor: '#ef4444' }}
+                              onClick={(e) => { e.stopPropagation(); onStop(job); }}
+                            >
+                              <IconStop style={{ width: '14px', height: '14px', marginRight: '4px' }} /> Stop
                             </button>
-                          </div>
-                        )}
+                          )}
+                          <button
+                            className="cd-btn cd-btn--secondary"
+                            style={{ padding: '4px 8px', fontSize: '12px' }}
+                            onClick={(e) => { e.stopPropagation(); onRerunJob(job); }}
+                          >
+                            <IconPlay style={{ width: '14px', height: '14px', marginRight: '4px' }} /> Run Again
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );

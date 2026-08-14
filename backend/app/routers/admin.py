@@ -53,31 +53,6 @@ async def update_system_settings(
     await db.refresh(settings)
     return {"overdraft_limit": settings.overdraft_limit}
 
-@router.post("/users/{user_id}/unblock-wallet")
-async def admin_unblock_wallet(
-    user_id: str,
-    db: AsyncSession = Depends(get_db),
-    _admin: User = Depends(require_role("admin")),
-):
-    from fastapi import HTTPException, status
-    result = await db.execute(select(Wallet).where(Wallet.user_id == user_id))
-    wallet = result.scalar_one_or_none()
-    if not wallet:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Wallet not found")
-
-    if wallet.balance < 0:
-        amount_to_add = abs(wallet.balance)
-        wallet.balance = 0.0
-        tx = Transaction(
-            wallet_id=wallet.id,
-            amount=amount_to_add,
-            type=TransactionType.credit,
-            description="Admin Manual Unblock (Debt Forgiven)"
-        )
-        db.add(tx)
-        await db.commit()
-    return {"status": "success", "message": "Wallet unblocked and balance reset to 0."}
-
 
 @router.get("/gpus", response_model=List[GPUOut])
 async def admin_list_gpus(
@@ -131,6 +106,32 @@ async def admin_toggle_user_active(
     await db.refresh(user)
     return user
 
+
+@router.get("/users/{user_id}/wallet")
+async def admin_get_user_wallet(
+    user_id: str,
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_role("admin")),
+):
+    result = await db.execute(select(Wallet).where(Wallet.user_id == user_id))
+    wallet = result.scalar_one_or_none()
+    if not wallet:
+        return {"balance": 0.0, "transactions": []}
+    
+    transactions = sorted(wallet.transactions, key=lambda t: t.created_at, reverse=True)
+    
+    return {
+        "balance": wallet.balance,
+        "transactions": [
+            {
+                "id": t.id,
+                "amount": t.amount,
+                "type": t.type,
+                "description": t.description,
+                "created_at": t.created_at.isoformat()
+            } for t in transactions
+        ]
+    }
 
 
 @router.get("/stats")

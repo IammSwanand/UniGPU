@@ -21,7 +21,7 @@ function LogoMark() {
   );
 }
 
-export default function AdminNavbar() {
+export default function AdminNavbar({ tabs = [], activeTab, onTabChange }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const [scrolled, setScrolled] = useState(false);
@@ -79,9 +79,35 @@ export default function AdminNavbar() {
         {/* Logo → landing page */}
         <a href="/" className="cd-nav__logo" onClick={handleLogo} aria-label="Landing Page">
           <LogoMark />
-          <span className="cd-nav__wordmark">UniGPU</span>
-          <span style={{ marginLeft: '12px', fontSize: '13px', color: 'var(--lp-blue-text)', backgroundColor: 'var(--lp-blue-bg)', padding: '2px 8px', borderRadius: '4px', fontWeight: 600 }}>Admin</span>
+          <span className="cd-nav__wordmark">UniGPU Admin</span>
         </a>
+
+        {/* Center Tabs */}
+        {tabs.length > 0 && (
+          <div className="cd-nav__tabs" style={{ display: 'flex', gap: '24px', position: 'absolute', left: '50%', transform: 'translateX(-50%)' }}>
+            {tabs.map(t => (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={activeTab === t.key}
+                onClick={() => onTabChange?.(t.key)}
+                style={{
+                  background: 'none',
+                  border: 'none',
+                  padding: '8px 4px',
+                  fontSize: '14px',
+                  fontWeight: activeTab === t.key ? 600 : 500,
+                  color: activeTab === t.key ? 'var(--lp-text)' : 'var(--lp-ash-helper)',
+                  borderBottom: activeTab === t.key ? '2px solid var(--lp-blue-text)' : '2px solid transparent',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Right actions */}
         <div className="cd-nav__actions">

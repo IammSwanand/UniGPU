@@ -9,8 +9,8 @@ import api from '../api/client';
 
 export default function Download() {
     const [release, setRelease] = useState({
-        version: "v1.0.0",
-        patch_notes: "Initial release of the UniGPU Agent.",
+        version: "v0.1.3",
+        patch_notes: "- improved websocket performance",
         download_url: "https://vgwrjfdssmiqetbjekeo.supabase.co/storage/v1/object/public/UniGPU_Agent.exe/UniGPU%20Agent.exe"
     });
     const [loading, setLoading] = useState(true);
