@@ -134,9 +134,26 @@ const api = {
     getSystemSettings: () => request('GET', '/admin/settings'),
     updateSystemSettings: (d) => request('PATCH', '/admin/settings', { body: d }),
     unblockWallet: (id) => request('POST', `/admin/users/${id}/unblock-wallet`),
+    uploadAgentRelease: (file, version, patchNotes) => {
+        return (async () => {
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('version', version);
+            fd.append('patch_notes', patchNotes);
+            const res = await fetch(`${BASE}/admin/agent-release`, {
+                method: 'POST',
+                headers: { ...authHeaders() },
+                body: fd,
+            });
+            const data = await res.json();
+            if (!res.ok) throw { status: res.status, detail: data?.detail || data };
+            return data;
+        })();
+    },
 
     // Public
     getPlatformStats: () => request('GET', '/public/stats', { fetchOptions: { cache: 'no-store' } }),
+    getLatestAgentRelease: () => request('GET', '/public/agent-release'),
 };
 
 export default api;

@@ -2,9 +2,31 @@ import { Link } from 'react-router-dom';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faDownload, faTerminal } from '@fortawesome/free-solid-svg-icons';
 import { faWindows, faLinux, faApple } from '@fortawesome/free-brands-svg-icons';
+import { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
 import Navbar from '../components/landing/Navbar';
+import api from '../api/client';
 
 export default function Download() {
+    const [release, setRelease] = useState({
+        version: "v1.0.0",
+        patch_notes: "Initial release of the UniGPU Agent.",
+        download_url: "https://vgwrjfdssmiqetbjekeo.supabase.co/storage/v1/object/public/UniGPU_Agent.exe/UniGPU%20Agent.exe"
+    });
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        api.getLatestAgentRelease()
+            .then(data => {
+                setRelease(data);
+                setLoading(false);
+            })
+            .catch(err => {
+                console.error("Failed to load agent release:", err);
+                setLoading(false);
+            });
+    }, []);
+
     return (
         <div style={{ minHeight: '100vh', display: 'flex', flexDirection: 'column', backgroundColor: '#f0f4fe' }}>
             <Navbar />
@@ -29,7 +51,7 @@ export default function Download() {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
                         {/* Windows Download Button */}
                         <a
-                            href="https://vgwrjfdssmiqetbjekeo.supabase.co/storage/v1/object/public/UniGPU_Agent.exe/UniGPU%20Agent.exe"
+                            href={release.download_url}
                             target="_blank"
                             rel="noopener noreferrer"
                             style={{ backgroundColor: '#145aff', color: '#ffffff', padding: '16px 32px', fontSize: '1.1rem', borderRadius: '8px', width: '100%', maxWidth: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', textDecoration: 'none', fontWeight: 600, transition: 'background-color 0.2s' }}
@@ -37,8 +59,19 @@ export default function Download() {
                             onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#145aff'}
                         >
                             <FontAwesomeIcon icon={faWindows} style={{ fontSize: '1.3rem' }} />
-                            Download for Windows (.exe)
+                            Download for Windows ({release.version})
                         </a>
+
+                        <div style={{ width: '100%', maxWidth: '400px', textAlign: 'left', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem', color: '#475569' }}>
+                            <div style={{ fontWeight: 600, marginBottom: '8px', color: '#1e293b' }}>Patch Notes - {release.version}</div>
+                            {loading ? (
+                                <div>Loading patch notes...</div>
+                            ) : (
+                                <div style={{ whiteSpace: 'pre-line' }}>
+                                    <ReactMarkdown>{release.patch_notes || 'No patch notes available.'}</ReactMarkdown>
+                                </div>
+                            )}
+                        </div>
 
                         {/* Other Platforms Mention */}
                         <div style={{ display: 'flex', gap: '16px', color: '#6b7280', fontSize: '0.95rem' }}>

@@ -8,3 +8,7 @@ class SystemSettings(Base):
 
     id: Mapped[str] = mapped_column(String, primary_key=True, default="default")
     overdraft_limit: Mapped[float] = mapped_column(Float, default=-50.0)
+    
+    agent_version: Mapped[str] = mapped_column(String, nullable=True)
+    agent_patch_notes: Mapped[str] = mapped_column(String, nullable=True)
+    agent_download_url: Mapped[str] = mapped_column(String, nullable=True)

@@ -72,6 +72,10 @@ class Settings(BaseSettings):
         """True when all OCI credentials are configured."""
         return bool(self.OCI_NAMESPACE and self.OCI_REGION and self.OCI_ACCESS_KEY and self.OCI_SECRET_KEY)
 
+    # ── Supabase (Agent Release Storage) ──
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "")
+
     # ── CORS ──
     # In production, set to your frontend domain via .env
     # Multiple origins: "https://domain1.com,https://domain2.com"

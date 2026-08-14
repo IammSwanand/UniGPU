@@ -11,6 +11,7 @@ from app.models.job import Job, JobStatus
 from app.config import get_settings
 from slowapi import Limiter
 from slowapi.util import get_remote_address
+from app.models.settings import SystemSettings
 
 router = APIRouter(prefix="/public", tags=["Public"])
 
@@ -91,3 +92,22 @@ async def get_platform_stats(request: Request, db: AsyncSession = Depends(get_db
         print(f"Redis cache error (write): {e}")
 
     return stats
+
+@router.get("/agent-release")
+async def get_agent_release(db: AsyncSession = Depends(get_db)):
+    result = await db.execute(select(SystemSettings).where(SystemSettings.id == "default"))
+    settings_row = result.scalar_one_or_none()
+    
+    if not settings_row or not settings_row.agent_version:
+        # Fallback if no release has been published yet
+        return {
+            "version": "v1.0.0",
+            "patch_notes": "Initial release of the UniGPU Agent.",
+            "download_url": "https://vgwrjfdssmiqetbjekeo.supabase.co/storage/v1/object/public/UniGPU_Agent.exe/UniGPU%20Agent.exe"
+        }
+        
+    return {
+        "version": settings_row.agent_version,
+        "patch_notes": settings_row.agent_patch_notes,
+        "download_url": settings_row.agent_download_url
+    }

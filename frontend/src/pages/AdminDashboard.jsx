@@ -23,6 +23,12 @@ export default function AdminDashboard() {
   const [disableCode, setDisableCode] = useState('');
   const [disabling2FA, setDisabling2FA] = useState(false);
 
+  // ── Agent Release Management ──
+  const [agentFile, setAgentFile] = useState(null);
+  const [agentVersion, setAgentVersion] = useState('');
+  const [agentPatchNotes, setAgentPatchNotes] = useState('');
+  const [uploadingAgent, setUploadingAgent] = useState(false);
+
   const load = async () => {
     try {
       const results = await Promise.allSettled([
@@ -109,6 +115,29 @@ export default function AdminDashboard() {
       setDisableCode('');
     } finally {
       setDisabling2FA(false);
+    }
+  };
+
+  const handleAgentUpload = async () => {
+    if (!agentFile || !agentVersion || !agentPatchNotes) {
+      alert("Please fill in all fields (File, Version, Patch Notes).");
+      return;
+    }
+    try {
+      setUploadingAgent(true);
+      const data = await api.uploadAgentRelease(agentFile, agentVersion, agentPatchNotes);
+      alert(`Agent released successfully! URL: ${data.download_url}`);
+      setAgentFile(null);
+      setAgentVersion('');
+      setAgentPatchNotes('');
+      // clear file input
+      const fileInput = document.getElementById('agentFileInput');
+      if (fileInput) fileInput.value = null;
+    } catch (e) {
+      console.error(e);
+      alert(e.detail || "Failed to upload agent release");
+    } finally {
+      setUploadingAgent(false);
     }
   };
 
@@ -466,6 +495,57 @@ export default function AdminDashboard() {
                   )}
                 </>
               )}
+            </div>
+
+            <div style={{ fontWeight: 600, marginBottom: '16px', marginTop: '32px' }}>Agent Release Management</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingBottom: '24px' }}>
+              <p style={{ color: 'var(--lp-ash-helper)', fontSize: '13px', margin: 0 }}>
+                Upload a new version of the UniGPU Agent executable. This will update the public Download page instantly.
+              </p>
+              
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--lp-ash-helper)', marginBottom: '4px' }}>Agent Executable (.exe)</label>
+                <input 
+                  id="agentFileInput"
+                  type="file" 
+                  accept=".exe"
+                  onChange={e => setAgentFile(e.target.files[0])}
+                  className="cd-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--lp-ash-helper)', marginBottom: '4px' }}>Version (e.g. v2.1.0)</label>
+                <input 
+                  type="text" 
+                  value={agentVersion}
+                  onChange={e => setAgentVersion(e.target.value)}
+                  placeholder="v2.1.0"
+                  className="cd-input"
+                  style={{ width: '100%' }}
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '13px', color: 'var(--lp-ash-helper)', marginBottom: '4px' }}>Patch Notes (Markdown supported)</label>
+                <textarea 
+                  value={agentPatchNotes}
+                  onChange={e => setAgentPatchNotes(e.target.value)}
+                  placeholder="- Added new feature&#10;- Fixed a bug"
+                  className="cd-input"
+                  style={{ width: '100%', minHeight: '100px', resize: 'vertical' }}
+                />
+              </div>
+
+              <button 
+                className="cd-btn cd-btn--primary" 
+                onClick={handleAgentUpload} 
+                disabled={uploadingAgent}
+                style={{ alignSelf: 'flex-start' }}
+              >
+                {uploadingAgent ? 'Uploading to Supabase...' : 'Publish Release'}
+              </button>
             </div>
           </div>
         )}

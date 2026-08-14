@@ -14,6 +14,9 @@ from app.schemas.gpu import GPUOut
 from app.schemas.job import JobOut
 from app.models.settings import SystemSettings
 from app.models.wallet import Wallet, Transaction, TransactionType
+from app.config import get_settings
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException, status
+import httpx
 
 router = APIRouter()
 
@@ -157,4 +160,65 @@ async def admin_stats(
         "total_jobs": total_jobs,
         "active_jobs": active_jobs,
         "total_users": total_users,
+    }
+
+@router.post("/agent-release")
+async def upload_agent_release(
+    file: UploadFile = File(...),
+    version: str = Form(...),
+    patch_notes: str = Form(...),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_role("admin")),
+):
+    settings_cfg = get_settings()
+    
+    if not settings_cfg.SUPABASE_URL or not settings_cfg.SUPABASE_SERVICE_ROLE_KEY:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Supabase credentials not configured in backend."
+        )
+
+    # Clean the filename and construct bucket path
+    file_bytes = await file.read()
+    bucket_name = "UniGPU_Agent.exe"  # Current public bucket
+    object_name = f"UniGPU_Agent_{version.replace(' ', '_')}.exe"
+
+    upload_url = f"{settings_cfg.SUPABASE_URL}/storage/v1/object/{bucket_name}/{object_name}"
+    
+    headers = {
+        "Authorization": f"Bearer {settings_cfg.SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": file.content_type or "application/octet-stream"
+    }
+
+    async with httpx.AsyncClient() as client:
+        resp = await client.post(upload_url, content=file_bytes, headers=headers)
+        if resp.status_code not in (200, 201):
+            # Try PUT if object already exists
+            resp = await client.put(upload_url, content=file_bytes, headers=headers)
+            if resp.status_code not in (200, 201):
+                raise HTTPException(
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                    detail=f"Failed to upload to Supabase: {resp.text}"
+                )
+    
+    public_url = f"{settings_cfg.SUPABASE_URL}/storage/v1/object/public/{bucket_name}/{object_name}"
+
+    # Update DB
+    result = await db.execute(select(SystemSettings).where(SystemSettings.id == "default"))
+    settings_row = result.scalar_one_or_none()
+    if not settings_row:
+        settings_row = SystemSettings(id="default")
+        db.add(settings_row)
+    
+    settings_row.agent_version = version
+    settings_row.agent_patch_notes = patch_notes
+    settings_row.agent_download_url = public_url
+
+    await db.commit()
+    await db.refresh(settings_row)
+
+    return {
+        "message": "Release uploaded successfully",
+        "version": settings_row.agent_version,
+        "download_url": settings_row.agent_download_url
     }
