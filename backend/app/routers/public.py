@@ -99,12 +99,8 @@ async def get_agent_release(db: AsyncSession = Depends(get_db)):
     settings_row = result.scalar_one_or_none()
     
     if not settings_row or not settings_row.agent_version:
-        # Fallback if no release has been published yet
-        return {
-            "version": "v1.0.0",
-            "patch_notes": "Initial release of the UniGPU Agent.",
-            "download_url": "https://vgwrjfdssmiqetbjekeo.supabase.co/storage/v1/object/public/UniGPU_Agent.exe/UniGPU%20Agent.exe"
-        }
+        from fastapi import HTTPException, status
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No agent release found")
         
     return {
         "version": settings_row.agent_version,

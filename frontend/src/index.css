@@ -1306,6 +1306,10 @@ tbody tr:last-child td {
   flex: 1;
 }
 
+.lp-nav__logo:hover {
+  text-decoration: none;
+}
+
 .lp-nav__logo-mark {
   width: 34px;
   height: 34px;

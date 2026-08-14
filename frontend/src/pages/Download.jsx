@@ -8,11 +8,7 @@ import Navbar from '../components/landing/Navbar';
 import api from '../api/client';
 
 export default function Download() {
-    const [release, setRelease] = useState({
-        version: "v0.1.3",
-        patch_notes: "- improved websocket performance",
-        download_url: "https://vgwrjfdssmiqetbjekeo.supabase.co/storage/v1/object/public/UniGPU_Agent.exe/UniGPU%20Agent.exe"
-    });
+    const [release, setRelease] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -49,27 +45,62 @@ export default function Download() {
                     </p>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', alignItems: 'center' }}>
-                        {/* Windows Download Button */}
-                        <a
-                            href={release.download_url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ backgroundColor: '#145aff', color: '#ffffff', padding: '16px 32px', fontSize: '1.1rem', borderRadius: '8px', width: '100%', maxWidth: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', textDecoration: 'none', fontWeight: 600, transition: 'background-color 0.2s' }}
-                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0f44cc'}
-                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#145aff'}
-                        >
-                            <FontAwesomeIcon icon={faWindows} style={{ fontSize: '1.3rem' }} />
-                            Download for Windows ({release.version})
-                        </a>
+                        {loading ? (
+                            <div style={{ backgroundColor: '#e2e8f0', color: 'transparent', padding: '16px 32px', borderRadius: '8px', width: '100%', maxWidth: '400px', height: '56px', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
+                        ) : release ? (
+                            <a
+                                href={release.download_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ backgroundColor: '#020520', color: '#ffffff', padding: '16px 32px', fontSize: '1.1rem', borderRadius: '8px', width: '100%', maxWidth: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', textDecoration: 'none', fontWeight: 600, transition: 'background-color 0.2s' }}
+                                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#0f172a'}
+                                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#020520'}
+                            >
+                                <FontAwesomeIcon icon={faWindows} style={{ fontSize: '1.3rem' }} />
+                                Download for Windows ({release.version})
+                            </a>
+                        ) : (
+                            <button
+                                disabled
+                                style={{ backgroundColor: '#94a3b8', color: '#ffffff', padding: '16px 32px', fontSize: '1.1rem', borderRadius: '8px', width: '100%', maxWidth: '400px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '12px', border: 'none', fontWeight: 600, cursor: 'not-allowed' }}
+                            >
+                                <FontAwesomeIcon icon={faWindows} style={{ fontSize: '1.3rem' }} />
+                                Release Coming Soon
+                            </button>
+                        )}
 
-                        <div style={{ width: '100%', maxWidth: '400px', textAlign: 'left', backgroundColor: '#f8fafc', padding: '16px', borderRadius: '8px', border: '1px solid #e2e8f0', fontSize: '0.9rem', color: '#475569' }}>
-                            <div style={{ fontWeight: 600, marginBottom: '8px', color: '#1e293b' }}>Patch Notes - {release.version}</div>
-                            {loading ? (
-                                <div>Loading patch notes...</div>
-                            ) : (
-                                <div style={{ whiteSpace: 'pre-line' }}>
-                                    <ReactMarkdown>{release.patch_notes || 'No patch notes available.'}</ReactMarkdown>
+                        <div style={{ width: '100%', maxWidth: '400px', textAlign: 'left', backgroundColor: '#ffffff', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 2px 8px rgba(0,0,0,0.02)' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px', borderBottom: '1px solid #f1f5f9', paddingBottom: '12px' }}>
+                                <div style={{ fontWeight: 600, color: '#0f172a', fontSize: '0.95rem' }}>
+                                    Release Notes
                                 </div>
+                                {release && (
+                                    <div style={{ backgroundColor: '#f1f5f9', color: '#020520', padding: '4px 10px', borderRadius: '20px', fontSize: '0.8rem', fontWeight: 600 }}>
+                                        {release.version}
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {loading ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    <div style={{ height: '12px', backgroundColor: '#e2e8f0', borderRadius: '4px', width: '90%', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
+                                    <div style={{ height: '12px', backgroundColor: '#e2e8f0', borderRadius: '4px', width: '70%', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
+                                    <div style={{ height: '12px', backgroundColor: '#e2e8f0', borderRadius: '4px', width: '80%', animation: 'pulse 1.5s infinite ease-in-out' }}></div>
+                                </div>
+                            ) : release ? (
+                                <div style={{ fontSize: '0.9rem', color: '#475569' }}>
+                                    <ReactMarkdown
+                                        components={{
+                                            ul: ({node, ...props}) => <ul style={{ margin: '0', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '6px' }} {...props} />,
+                                            li: ({node, ...props}) => <li style={{ lineHeight: '1.5' }} {...props} />,
+                                            p: ({node, ...props}) => <p style={{ margin: '0 0 8px 0', lineHeight: '1.5' }} {...props} />
+                                        }}
+                                    >
+                                        {release.patch_notes || 'No patch notes available.'}
+                                    </ReactMarkdown>
+                                </div>
+                            ) : (
+                                <div style={{ fontSize: '0.9rem', color: '#64748b' }}>No agent release available yet. Check back later!</div>
                             )}
                         </div>
 

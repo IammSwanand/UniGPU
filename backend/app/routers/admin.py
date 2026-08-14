@@ -191,7 +191,7 @@ async def upload_agent_release(
         "Content-Type": file.content_type or "application/octet-stream"
     }
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=300.0) as client:
         resp = await client.post(upload_url, content=file_bytes, headers=headers)
         if resp.status_code not in (200, 201):
             # Try PUT if object already exists
