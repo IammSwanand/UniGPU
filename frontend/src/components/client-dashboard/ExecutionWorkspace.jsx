@@ -18,6 +18,39 @@ import DatasetUpload from './DatasetUpload';
  * All upload logic lives in the orchestrator and is passed down as props,
  * so this component stays purely presentational.
  */
+
+const TEMPLATES = [
+  {
+    label: 'Linear Regression',
+    desc: 'Train a simple regression model using scikit-learn on a built-in dataset.',
+    filename: 'linear_regression.py',
+    scriptUrl: '/templates/linear_regression.py',
+    reqsUrl: '/templates/linear_regression_reqs.txt',
+  },
+  {
+    label: 'Random Forest',
+    desc: 'A robust classification example analyzing the breast cancer dataset.',
+    filename: 'random_forest.py',
+    scriptUrl: '/templates/random_forest.py',
+    reqsUrl: '/templates/random_forest_reqs.txt',
+  },
+  {
+    label: 'House Price',
+    desc: 'Predict California housing prices using Random Forest and complex data pipelines.',
+    filename: 'house_price.py',
+    scriptUrl: '/templates/house_price.py',
+    reqsUrl: '/templates/house_price_reqs.txt',
+  },
+  {
+    label: 'Dataset & Artifacts',
+    desc: 'Demonstrates how to read your uploaded datasets and properly save output artifacts.',
+    filename: 'artifacts_demo.py',
+    scriptUrl: '/templates/artifacts_demo.py',
+    reqsUrl: '/templates/artifacts_demo_reqs.txt',
+    datasetUrl: '/templates/dataset.csv',
+  }
+];
+
 export default function ExecutionWorkspace({
   availableGPUs,
   // script
@@ -33,6 +66,35 @@ export default function ExecutionWorkspace({
 }) {
   const canSubmit = !!script && !submitting;
 
+  const loadTemplate = async (t) => {
+    try {
+      const sRes = await fetch(t.scriptUrl);
+      const sText = await sRes.text();
+      const sFile = new File([sText], t.filename, { type: 'text/plain' });
+      onScript(sFile);
+
+      if (t.reqsUrl) {
+        const rRes = await fetch(t.reqsUrl);
+        const rText = await rRes.text();
+        const rFile = new File([rText], 'requirements.txt', { type: 'text/plain' });
+        onReqs(rFile);
+      } else {
+        clearReqs();
+      }
+
+      if (t.datasetUrl) {
+        const dRes = await fetch(t.datasetUrl);
+        const dText = await dRes.text();
+        const dFile = new File([dText], 'dataset.csv', { type: 'text/csv' });
+        if (onDataset) onDataset(dFile);
+      } else {
+        if (onClearDataset) onClearDataset();
+      }
+    } catch (err) {
+      console.error("Failed to load template:", err);
+    }
+  };
+
   return (
     <section className="cd-workspace" aria-label="Execution workspace">
       <div className="cd-workspace__head">
@@ -40,6 +102,20 @@ export default function ExecutionWorkspace({
         <p className="cd-workspace__desc">
           Upload a Python workload and UniGPU will securely schedule execution on an available provider GPU.
         </p>
+
+        {!script && !reqs && (
+          <div className="cd-template-cards">
+            <span className="cd-template-cards__label">Quick Start Examples:</span>
+            <div className="cd-template-cards__grid">
+              {TEMPLATES.map(t => (
+                <button key={t.label} className="cd-template-card" onClick={() => loadTemplate(t)}>
+                  <div className="cd-template-card__title">{t.label}</div>
+                  <div className="cd-template-card__desc">{t.desc}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="cd-workspace__grid">
