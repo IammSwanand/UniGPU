@@ -34,6 +34,8 @@ export function AuthProvider({ children }) {
         localStorage.removeItem('user');
         setToken(null);
         setUser(null);
+        // Force a hard refresh to wipe all React global state from RAM for security
+        window.location.href = '/login';
     };
 
     useEffect(() => {

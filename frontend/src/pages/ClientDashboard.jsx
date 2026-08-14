@@ -16,6 +16,7 @@ import RerunDialog from '../components/client-dashboard/RerunDialog';
 import ConfirmDialog from '../components/client-dashboard/ConfirmDialog';
 
 import { useLocation } from 'react-router-dom';
+import { useWorkload } from '../context/WorkloadContext';
 
 /**
  * ClientDashboard — orchestrator for the light-themed compute workspace.
@@ -44,16 +45,25 @@ export default function ClientDashboard() {
   const queryParams = new URLSearchParams(location.search);
   const initialGpu = queryParams.get('selectedGpu') || '';
 
-  // ── Upload state ──
-  const [selectedGPU, setSelectedGPU] = useState(initialGpu);
-  const [script, setScript] = useState(null);
-  const [scriptText, setScriptText] = useState('');
-  const [scriptPreview, setScriptPreview] = useState(false);
-  const [reqs, setReqs] = useState(null);
-  const [reqText, setReqText] = useState('');
-  const [reqPreview, setReqPreview] = useState(false);
-  // Dataset
-  const [dataset, setDataset] = useState(null);
+  const {
+    selectedGPU, setSelectedGPU,
+    script, setScript,
+    scriptText, setScriptText,
+    scriptPreview, setScriptPreview,
+    reqs, setReqs,
+    reqText, setReqText,
+    reqPreview, setReqPreview,
+    dataset, setDataset,
+    resetWorkload
+  } = useWorkload();
+
+  // If a GPU was passed in the URL (e.g. from marketplace), use it.
+  useEffect(() => {
+    if (initialGpu && !selectedGPU) {
+      setSelectedGPU(initialGpu);
+    }
+  }, [initialGpu, selectedGPU, setSelectedGPU]);
+
   const [submitting, setSubmitting] = useState(false);
 
   // ── Modal / drawer state ──
@@ -136,14 +146,7 @@ export default function ClientDashboard() {
       }
       await api.submitJob(finalScript, finalReqs, selectedGPU || undefined, dataset);
       // Reset workspace
-      setScript(null);
-      setScriptText('');
-      setScriptPreview(false);
-      setReqs(null);
-      setReqText('');
-      setReqPreview(false);
-      setDataset(null);
-      setSelectedGPU('');
+      resetWorkload();
       notify('Workload submitted successfully.', 'success');
       await load();
       setTimeout(() => {

@@ -72,7 +72,8 @@ export default function GpuPreference({ availableGPUs, selectedGPU, onSelect }) 
               position: 'relative',
               cursor: 'pointer',
               transition: 'background-color 0.2s',
-              padding: 0
+              padding: 0,
+              flexShrink: 0
             }}
           >
             <span

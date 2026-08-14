@@ -11,6 +11,7 @@ function ScrollToTop() {
   return null;
 }
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { WorkloadProvider } from './context/WorkloadContext';
 import { GoogleOAuthProvider } from '@react-oauth/google';
 
 const Landing = lazy(() => import('./pages/Landing'));
@@ -93,58 +94,60 @@ export default function App() {
   return (
     <GoogleOAuthProvider clientId={import.meta.env.VITE_GOOGLE_CLIENT_ID || "YOUR_GOOGLE_CLIENT_ID"}>
       <AuthProvider>
-        <BrowserRouter>
-          <ScrollToTop />
-          <Suspense fallback={<AppShell />}>
-            <Routes>
-              <Route path="/" element={<Landing />} />
-              <Route path="/how-to-use" element={<HowToUse />} />
-              <Route path="/about" element={<AboutUs />} />
-              <Route path="/download" element={<Download />} />
-              <Route path="/faq" element={<FAQ />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route path="/verify-email" element={<VerifyEmail />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/support" element={<Support />} />
-              <Route path="/legal" element={<LegalIndex />} />
-              <Route path="/legal/:policyId" element={<LegalPolicy />} />
-              <Route path="/dashboard" element={<DashboardRedirect />} />
-              <Route path="/dashboard/client" element={
-                <ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>
-              } />
-              <Route path="/dashboard/client/wallet" element={
-                <ProtectedRoute roles={['client']}><ClientWallet /></ProtectedRoute>
-              } />
-              <Route path="/dashboard/client/gpus" element={
-                <ProtectedRoute roles={['client']}><GpuMarketplace /></ProtectedRoute>
-              } />
-              <Route path="/dashboard/client/profile" element={
-                <ProtectedRoute roles={['client']}><Profile /></ProtectedRoute>
-              } />
-              <Route path="/dashboard/client/settings" element={
-                <ProtectedRoute roles={['client']}><Settings /></ProtectedRoute>
-              } />
-              <Route path="/dashboard/provider" element={
-                <ProtectedRoute roles={['provider']}><ProviderDashboard /></ProtectedRoute>
-              } />
-              <Route path="/dashboard/provider/wallet" element={
-                <ProtectedRoute roles={['provider']}><ProviderWallet /></ProtectedRoute>
-              } />
-              <Route path="/dashboard/provider/profile" element={
-                <ProtectedRoute roles={['provider']}><Profile /></ProtectedRoute>
-              } />
-              <Route path="/dashboard/provider/settings" element={
-                <ProtectedRoute roles={['provider']}><Settings /></ProtectedRoute>
-              } />
-              <Route path="/dashboard/admin" element={
-                <ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>
-              } />
-            </Routes>
-            <GlobalDisabledModal />
-          </Suspense>
-        </BrowserRouter>
+        <WorkloadProvider>
+          <BrowserRouter>
+            <ScrollToTop />
+            <Suspense fallback={<AppShell />}>
+              <Routes>
+                <Route path="/" element={<Landing />} />
+                <Route path="/how-to-use" element={<HowToUse />} />
+                <Route path="/about" element={<AboutUs />} />
+                <Route path="/download" element={<Download />} />
+                <Route path="/faq" element={<FAQ />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/support" element={<Support />} />
+                <Route path="/legal" element={<LegalIndex />} />
+                <Route path="/legal/:policyId" element={<LegalPolicy />} />
+                <Route path="/dashboard" element={<DashboardRedirect />} />
+                <Route path="/dashboard/client" element={
+                  <ProtectedRoute roles={['client']}><ClientDashboard /></ProtectedRoute>
+                } />
+                <Route path="/dashboard/client/wallet" element={
+                  <ProtectedRoute roles={['client']}><ClientWallet /></ProtectedRoute>
+                } />
+                <Route path="/dashboard/client/gpus" element={
+                  <ProtectedRoute roles={['client']}><GpuMarketplace /></ProtectedRoute>
+                } />
+                <Route path="/dashboard/client/profile" element={
+                  <ProtectedRoute roles={['client']}><Profile /></ProtectedRoute>
+                } />
+                <Route path="/dashboard/client/settings" element={
+                  <ProtectedRoute roles={['client']}><Settings /></ProtectedRoute>
+                } />
+                <Route path="/dashboard/provider" element={
+                  <ProtectedRoute roles={['provider']}><ProviderDashboard /></ProtectedRoute>
+                } />
+                <Route path="/dashboard/provider/wallet" element={
+                  <ProtectedRoute roles={['provider']}><ProviderWallet /></ProtectedRoute>
+                } />
+                <Route path="/dashboard/provider/profile" element={
+                  <ProtectedRoute roles={['provider']}><Profile /></ProtectedRoute>
+                } />
+                <Route path="/dashboard/provider/settings" element={
+                  <ProtectedRoute roles={['provider']}><Settings /></ProtectedRoute>
+                } />
+                <Route path="/dashboard/admin" element={
+                  <ProtectedRoute roles={['admin']}><AdminDashboard /></ProtectedRoute>
+                } />
+              </Routes>
+              <GlobalDisabledModal />
+            </Suspense>
+          </BrowserRouter>
+        </WorkloadProvider>
       </AuthProvider>
     </GoogleOAuthProvider>
   );
