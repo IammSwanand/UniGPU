@@ -11,8 +11,8 @@ A tkinter wizard that guides the student through initial agent setup:
 import json
 import logging
 import tkinter as tk
-from tkinter import ttk, messagebox
-from typing import Optional, Dict, Any
+from tkinter import messagebox
+from typing import Optional
 
 import httpx
 
@@ -50,6 +50,7 @@ class SetupWizard:
     def __init__(self):
         self.result: Optional[AgentConfig] = None
         self._token: str = ""
+        self._temp_token: str = ""
         self._gpu_info: list = []
 
         self.root = tk.Tk()
@@ -84,16 +85,18 @@ class SetupWizard:
         self._backend_url = tk.StringVar(value=default_url)
         self._username = tk.StringVar()
         self._password = tk.StringVar()
+        self._2fa_code = tk.StringVar()
         self._gpu_label = tk.StringVar(value="Not detected yet")
         self._status = tk.StringVar(value="")
 
         # Build pages
         self._pages: list[tk.Frame] = []
         self._current_page = 0
-        self._build_welcome_page()
-        self._build_login_page()
-        self._build_gpu_page()
-        self._build_done_page()
+        self._build_welcome_page()   # 0
+        self._build_login_page()     # 1
+        self._build_2fa_page()       # 2
+        self._build_gpu_page()       # 3
+        self._build_done_page()      # 4
 
         self._show_page(0)
 
@@ -186,8 +189,36 @@ class SetupWizard:
 
         btn_frame = tk.Frame(page, bg=BG)
         btn_frame.pack(side="bottom", pady=20, fill="x")
-        self._make_nav_btn(btn_frame, "← Back", lambda: self._show_page(0)).pack(side="left")
+        self._make_nav_btn(btn_frame, "← Back", self._on_login_back).pack(side="left")
         self._make_nav_btn(btn_frame, "Sign In & Continue →", self._on_login).pack(side="right")
+
+    def _build_2fa_page(self):
+        page = self._make_page()
+
+        tk.Label(page, text="Two-Factor Authentication", font=("Segoe UI", 20, "bold"),
+                 bg=BG, fg=FG).pack(pady=(30, 5))
+        tk.Label(page, text="Enter the 6-digit code from your authenticator app",
+                 font=("Segoe UI", 10), bg=BG, fg=FG_DIM).pack(pady=(0, 20))
+
+        # Code
+        tk.Label(page, text="Authentication Code", font=("Segoe UI", 10, "bold"),
+                 bg=BG, fg=FG, anchor="w").pack(fill="x", pady=(10, 3))
+        code_entry = tk.Entry(page, textvariable=self._2fa_code, font=("Segoe UI", 14),
+                              bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
+                              justify="center",
+                              highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT)
+        code_entry.pack(fill="x", ipady=6)
+        code_entry.bind("<Return>", lambda e: self._on_verify_2fa())
+
+        # Status
+        self._2fa_status = tk.Label(page, textvariable=self._status,
+                                       font=("Segoe UI", 10), bg=BG, fg=ERROR)
+        self._2fa_status.pack(pady=(10, 0))
+
+        btn_frame = tk.Frame(page, bg=BG)
+        btn_frame.pack(side="bottom", pady=20, fill="x")
+        self._make_nav_btn(btn_frame, "← Back", self._on_2fa_back).pack(side="left")
+        self._make_nav_btn(btn_frame, "Verify & Continue →", self._on_verify_2fa).pack(side="right")
 
     def _build_gpu_page(self):
         page = self._make_page()
@@ -215,7 +246,9 @@ class SetupWizard:
 
         btn_frame = tk.Frame(page, bg=BG)
         btn_frame.pack(side="bottom", pady=20, fill="x")
-        self._make_nav_btn(btn_frame, "← Back", lambda: self._show_page(1)).pack(side="left")
+        # Back goes to login (page 1) so user re-authenticates; the 2FA temp token would be
+        # expired (5 min TTL) by the time they reached this page anyway.
+        self._make_nav_btn(btn_frame, "← Back", self._on_login_back).pack(side="left")
         self._make_nav_btn(btn_frame, "Register GPU & Finish →", self._on_register_gpu).pack(side="right")
 
     def _build_done_page(self):
@@ -246,6 +279,22 @@ class SetupWizard:
         if not url:
             messagebox.showwarning("Missing URL", "Please enter the backend server URL.")
             return
+        self._status.set("")
+        self._show_page(1)
+
+    def _on_login_back(self):
+        """Reset auth state and go back to the login page."""
+        self._token = ""
+        self._temp_token = ""
+        self._2fa_code.set("")
+        self._status.set("")
+        self._show_page(1)
+
+    def _on_2fa_back(self):
+        """Go back to login, clearing the temporary token."""
+        self._temp_token = ""
+        self._2fa_code.set("")
+        self._status.set("")
         self._show_page(1)
 
     def _on_login(self):
@@ -269,22 +318,17 @@ class SetupWizard:
 
             if resp.status_code == 200:
                 data = resp.json()
+                
+                if data.get("requires_2fa"):
+                    self._temp_token = data.get("temp_token")
+                    self._status.set("")
+                    self._show_page(2) # Go to 2FA page
+                    return
+
                 self._token = data.get("access_token", data.get("token", ""))
                 self._status.set("")
 
-                # Save credentials to OS credential store for token auto-refresh
-                if save_credentials(username, password):
-                    logger.info("✅ Credentials saved to OS credential store")
-                    self._status.set("✅ Signed in and credentials saved")
-                else:
-                    logger.warning("⚠️  Signed in but credentials not saved (keyring unavailable)")
-                    self._status.set("⚠️ Signed in (credentials not saved)")
-                
-                self.root.update()
-                
-                # Detect GPUs and show on the next page
-                self._detect_gpu()
-                self._show_page(2)
+                self._on_login_success(username, password)
             else:
                 detail = ""
                 try:
@@ -297,6 +341,66 @@ class SetupWizard:
             self._status.set(f"Cannot connect to {base_url}")
         except Exception as e:
             self._status.set(f"Error: {e}")
+
+    def _on_verify_2fa(self):
+        code = self._2fa_code.get().strip()
+        if not code:
+            self._status.set("Please enter the 6-digit code")
+            return
+        # Basic format guard — TOTP codes are always exactly 6 digits.
+        if not code.isdigit() or len(code) != 6:
+            self._status.set("Code must be exactly 6 digits")
+            return
+        if not self._temp_token:
+            self._status.set("Session expired — please sign in again")
+            self._show_page(1)
+            return
+
+        self._status.set("Verifying code…")
+        self.root.update()
+
+        base_url = self._backend_url.get().strip().rstrip("/")
+        try:
+            resp = httpx.post(
+                f"{base_url}/auth/verify-2fa-login",
+                json={"temp_token": self._temp_token, "code": code},
+                timeout=15,
+                verify=False,
+            )
+
+            if resp.status_code == 200:
+                data = resp.json()
+                self._token = data.get("access_token", data.get("token", ""))
+                self._status.set("")
+                self._on_login_success(self._username.get().strip(), self._password.get().strip())
+            else:
+                detail = ""
+                try:
+                    detail = resp.json().get("detail", resp.text[:100])
+                except Exception:
+                    detail = resp.text[:100]
+                self._status.set(f"Verification failed: {detail}")
+
+        except httpx.ConnectError:
+            self._status.set(f"Cannot connect to {base_url}")
+        except Exception as e:
+            logger.error("2FA verify error: %s", e)
+            self._status.set(f"Error: {e}")
+
+    def _on_login_success(self, username, password):
+        # Save credentials to OS credential store for token auto-refresh
+        if save_credentials(username, password):
+            logger.info("✅ Credentials saved to OS credential store")
+            self._status.set("✅ Signed in and credentials saved")
+        else:
+            logger.warning("⚠️  Signed in but credentials not saved (keyring unavailable)")
+            self._status.set("⚠️ Signed in (credentials not saved)")
+        
+        self.root.update()
+        
+        # Detect GPUs and show on the next page
+        self._detect_gpu()
+        self._show_page(3)
 
     def _detect_gpu(self):
         try:
@@ -322,6 +426,13 @@ class SetupWizard:
 
         if not self._gpu_info:
             self._status.set("No GPU detected — cannot register")
+            return
+
+        # FIX: Guard against an empty token reaching this point.
+        # This should never happen in normal flow, but is a hard safety net.
+        if not self._token or not self._token.strip():
+            self._status.set("Not authenticated — please sign in again")
+            self._show_page(1)
             return
 
         gpu = self._gpu_info[0]
@@ -353,7 +464,7 @@ class SetupWizard:
                 self.result = config
 
                 self._status.set("")
-                self._show_page(3)
+                self._show_page(4)
             else:
                 detail = ""
                 try:
@@ -365,6 +476,7 @@ class SetupWizard:
         except httpx.ConnectError:
             self._status.set(f"Cannot connect to {base_url}")
         except Exception as e:
+            logger.error("GPU registration error: %s", e)
             self._status.set(f"Error: {e}")
 
     def _on_resize(self, event=None):

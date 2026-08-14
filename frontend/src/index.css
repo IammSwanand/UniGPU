@@ -4667,7 +4667,7 @@ a.lp-btn-primary, button.lp-btn-primary, .lp-btn-primary {
   position: absolute;
   top: calc(100% + 4px);
   right: 0;
-  min-width: 200px;
+  min-width: 150px;
   background: var(--lp-surface-card);
   border: 1px solid var(--lp-stone-divider);
   border-radius: 12px;

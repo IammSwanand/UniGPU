@@ -3,6 +3,7 @@ import {
   IconSearch, IconMore, IconEye, IconStop, IconTrash, IconPlay, IconUpload,
 } from './icons';
 import { statusInfo, timeAgo } from './utils';
+import CreditIcon from '../CreditIcon';
 
 const FILTERS = ['All', 'Queued', 'Running', 'Completed', 'Failed'];
 
@@ -38,7 +39,7 @@ function ScriptName({ job }) {
  *  - onSelectJob(job)    : open the details drawer
  */
 export default function RecentWorkloads({
-  jobs, gpuNameFor, onViewLogs, onStop, onSelectJob,
+  jobs, gpuNameFor, onViewLogs, onStop, onSelectJob, onRerunJob
 }) {
   const [filter, setFilter] = useState('All');
   const [query, setQuery] = useState('');
@@ -160,7 +161,7 @@ export default function RecentWorkloads({
         </div>
       ) : (
         <div className="cd-table">
-          <div className="cd-table__scroll" style={{ maxHeight: '400px', overflowY: 'auto' }}>
+          <div className="cd-table__scroll">
             <table>
               <thead>
                 <tr>
@@ -218,8 +219,8 @@ export default function RecentWorkloads({
                                 <IconStop /> Stop
                               </button>
                             )}
-                            <button className="cd-menu__item" role="menuitem" disabled title="Coming soon">
-                              <IconPlay /> Run Again <span className="cd-coming" style={{ marginLeft: 'auto' }}>Soon</span>
+                            <button className="cd-menu__item" role="menuitem" onClick={() => { setOpenRow(null); onRerunJob(job); }}>
+                              <IconPlay /> Run Again
                             </button>
                           </div>
                         )}
