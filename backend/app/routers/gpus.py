@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -13,6 +13,7 @@ from app.services.connection_manager import manager
 from app.security_utils import (
     check_gpu_registration_limit, record_gpu_registration
 )
+from app.services.activity_logger import log_activity
 
 router = APIRouter()
 
@@ -21,6 +22,7 @@ router = APIRouter()
 async def register_gpu(
     request: Request,
     data: GPUCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("provider", "admin")),
 ):
@@ -59,6 +61,7 @@ async def register_gpu(
     # Record successful registration
     await record_gpu_registration(current_user.id)
     
+    background_tasks.add_task(log_activity, "GPU_REGISTER", f"Registered GPU {data.name}", current_user, request, {"gpu_id": gpu.id, "name": data.name})
     return gpu
 
 
@@ -99,6 +102,8 @@ async def list_available_gpus(
 async def update_gpu_status(
     gpu_id: str,
     data: GPUStatusUpdate,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("provider", "admin")),
 ):
@@ -115,4 +120,5 @@ async def update_gpu_status(
     if data.status == "offline" and manager.is_connected(gpu_id):
         await manager.send_to_gpu(gpu_id, {"type": "control", "action": "stop"})
 
+    background_tasks.add_task(log_activity, "GPU_STATUS_UPDATE", f"GPU {gpu_id} status changed to {data.status}", current_user, request, {"gpu_id": gpu_id, "status": data.status})
     return gpu

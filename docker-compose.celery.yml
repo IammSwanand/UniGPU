@@ -18,6 +18,7 @@ services:
     env_file: ./backend/.env.prod
     volumes:
       - celery_beat_data:/var/celery
+      - ./backend/logs:/app/logs
 
 volumes:
   celery_beat_data:

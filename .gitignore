@@ -31,3 +31,6 @@ docker-compose.prodtest.yml
 PROJECT_CONTEXT.md
 
 docs\private
+
+# ── Activity log files (rotating, never commit) ──
+backend/logs/

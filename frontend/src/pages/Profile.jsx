@@ -16,19 +16,24 @@ import blueTick from '../components/blue_tick.png';
 export default function Profile() {
   const { user, updateUser } = useAuth();
   const [wallet, setWallet] = useState(null);
+  const [activities, setActivities] = useState([]);
   const { toasts, notify, dismiss } = useToasts();
 
   useEffect(() => {
-    const loadWallet = async () => {
+    const loadData = async () => {
       try {
-        const w = await api.getWallet();
+        const [w, acts] = await Promise.all([
+          api.getWallet(),
+          api.myActivities()
+        ]);
         setWallet(w);
+        setActivities(acts);
       } catch (e) {
-        console.error("Failed to load wallet", e);
+        console.error("Failed to load profile data", e);
       }
     };
     if (user) {
-      loadWallet();
+      loadData();
     }
   }, [user]);
 
@@ -398,6 +403,41 @@ export default function Profile() {
                   <FontAwesomeIcon icon={faLink} /> Edit Handles
                 </button>
               )}
+            </div>
+          </div>
+          
+          {/* Recent Activity Card */}
+          <div className="cd-panel" style={{ flex: '1 1 100%' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '600', color: '#0f172a', marginBottom: '8px' }}>Recent Activity</h3>
+            <p style={{ color: 'var(--lp-ash-helper)', fontSize: '14px', marginBottom: '24px' }}>
+              Your latest actions on the platform.
+            </p>
+            <div className="cd-table__scroll" style={{ maxHeight: '300px' }}>
+              <table style={{ width: '100%', fontSize: '13px', textAlign: 'left', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--lp-stone-divider)', color: 'var(--lp-ash-helper)', background: 'var(--lp-fog-surface)' }}>
+                    <th style={{ padding: '12px', fontWeight: 500 }}>Time</th>
+                    <th style={{ padding: '12px', fontWeight: 500 }}>Action</th>
+                    <th style={{ padding: '12px', fontWeight: 500 }}>Description</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activities.map((act) => (
+                    <tr key={act.id} style={{ borderBottom: '1px solid var(--lp-stone-divider)' }}>
+                      <td style={{ padding: '12px', color: 'var(--lp-ash-helper)' }}>{new Date(act.timestamp).toLocaleString()}</td>
+                      <td style={{ padding: '12px', fontWeight: 500 }}>{act.action}</td>
+                      <td style={{ padding: '12px' }}>{act.description}</td>
+                    </tr>
+                  ))}
+                  {activities.length === 0 && (
+                    <tr>
+                      <td colSpan="3" style={{ padding: '24px', textAlign: 'center', color: 'var(--lp-ash-helper)' }}>
+                        No recent activity found.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>

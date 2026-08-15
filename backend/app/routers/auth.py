@@ -3,7 +3,7 @@ import hashlib
 import logging
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, Depends, HTTPException, status, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from jose import jwt
@@ -43,6 +43,7 @@ from app.security_utils import (
 )
 from app.services.email import send_password_reset_email, send_email_verification_email
 from app.redis_rate_limiter import get_rate_limiter
+from app.services.activity_logger import log_activity
 
 router = APIRouter()
 settings = get_settings()
@@ -109,6 +110,7 @@ def _build_token_response(user: User) -> Token:
 async def register(
     request: Request,
     data: UserCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     # NOTE: registration rate limiting removed for demo/deployment troubleshooting.
@@ -149,6 +151,7 @@ async def register(
             detail="Unable to send verification email. Please try again later.",
         )
 
+    background_tasks.add_task(log_activity, "AUTH_REGISTER", "New user registered", user, request)
     return MessageResponse(message="Account created. Check your email to verify your account.")
 
 
@@ -156,6 +159,7 @@ async def register(
 async def login(
     request: Request,
     data: UserLogin,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     """
@@ -182,6 +186,9 @@ async def login(
 
     if not user or not _verify_password(data.password, user.hashed_password):
         await record_failed_login(login_key, client_ip)
+        import hashlib
+        _email_hash = hashlib.sha256(data.email.lower().encode()).hexdigest()[:16]
+        background_tasks.add_task(log_activity, "AUTH_LOGIN_FAILED", "Failed login attempt", None, request, {"email_hash": _email_hash})
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
     if not user.is_email_verified:
@@ -199,6 +206,7 @@ async def login(
     await record_successful_login(login_key, client_ip)
 
     token = _create_token(user)
+    background_tasks.add_task(log_activity, "AUTH_LOGIN", "User logged in", user, request)
     return Token(
         access_token=token,
         role=user.role,
@@ -393,7 +401,9 @@ async def forgot_password(
 
 @router.post("/reset-password", response_model=MessageResponse)
 async def reset_password(
+    request: Request,
     data: ResetPasswordRequest,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
 ):
     """Set a new password using a valid reset token."""
@@ -428,6 +438,7 @@ async def reset_password(
     user.reset_token_expires = None
     await db.flush()
 
+    background_tasks.add_task(log_activity, "AUTH_PASSWORD_RESET", "User reset password", user, request)
     return MessageResponse(message="Password updated successfully. You can now sign in.")
 
 

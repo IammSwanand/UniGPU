@@ -75,5 +75,15 @@ celery_app.conf.update(
             "task": "app.worker.tasks.cleanup_stale_job_files",
             "schedule": 86400.0,
         },
+        # Runs every 24 hours — deletes activity logs older than 90 days
+        "cleanup-old-activities-daily": {
+            "task": "app.worker.tasks.cleanup_old_activities",
+            "schedule": 86400.0,
+        },
+        # Runs every 24 hours — backs up rotated log files to Supabase Storage
+        "backup-logs-to-supabase-daily": {
+            "task": "app.worker.tasks.backup_logs_to_supabase",
+            "schedule": 86400.0,
+        },
     },
 )

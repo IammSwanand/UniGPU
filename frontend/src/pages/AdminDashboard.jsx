@@ -9,6 +9,7 @@ export default function AdminDashboard() {
   const [gpus, setGPUs] = useState([]);
   const [jobs, setJobs] = useState([]);
   const [users, setUsers] = useState([]);
+  const [activities, setActivities] = useState([]);
   const [tab, setTab] = useState('overview');
   const [settingsTab, setSettingsTab] = useState('global');
   const [selectedGPU, setSelectedGPU] = useState(null);
@@ -44,14 +45,15 @@ export default function AdminDashboard() {
   const load = async () => {
     try {
       const results = await Promise.allSettled([
-        api.adminStats(), api.adminGPUs(), api.adminJobs(), api.adminUsers(), api.getSystemSettings()
+        api.adminStats(), api.adminGPUs(), api.adminJobs(), api.adminUsers(), api.getSystemSettings(), api.adminActivities()
       ]);
-      const [s, g, j, u, st] = results.map(r => r.status === 'fulfilled' ? r.value : null);
+      const [s, g, j, u, st, a] = results.map(r => r.status === 'fulfilled' ? r.value : null);
       if (s) setStats(s);
       if (g) setGPUs(g);
       if (j) setJobs(j);
       if (u) setUsers(u);
       if (st) setOverdraftLimit(st.overdraft_limit?.toString() || '-50');
+      if (a) setActivities(a);
     } catch (e) { console.error(e); }
   };
 
@@ -164,6 +166,7 @@ export default function AdminDashboard() {
     { key: 'gpus', label: 'GPU Fleet' },
     { key: 'jobs', label: 'Jobs' },
     { key: 'users', label: 'Users' },
+    { key: 'audit_logs', label: 'Audit Logs' },
     { key: 'settings', label: 'System Settings' },
   ];
 
@@ -175,6 +178,7 @@ export default function AdminDashboard() {
     case 'gpus': tabDesc = 'Manage the fleet of compute nodes.'; break;
     case 'jobs': tabDesc = 'Monitor all platform workloads.'; break;
     case 'users': tabDesc = 'Manage platform users and roles.'; break;
+    case 'audit_logs': tabDesc = 'System activity and audit trail.'; break;
     case 'settings': tabDesc = 'Configure global system parameters.'; break;
   }
 
@@ -394,6 +398,43 @@ export default function AdminDashboard() {
                       </td>
                     </tr>
                   ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {tab === 'audit_logs' && (
+          <div className="cd-card">
+            <h2 style={{ fontSize: '16px', fontWeight: 600, color: 'var(--lp-midnight-ink)', margin: '0 0 16px' }}>System Activity</h2>
+            <div className="cd-table__scroll" style={{ maxHeight: '600px' }}>
+              <table style={{ width: '100%', fontSize: '13px', textAlign: 'left', borderCollapse: 'collapse' }}>
+                <thead>
+                  <tr style={{ borderBottom: '1px solid var(--lp-stone-divider)', color: 'var(--lp-ash-helper)', background: 'var(--lp-fog-surface)' }}>
+                    <th style={{ padding: '12px', fontWeight: 500 }}>Time</th>
+                    <th style={{ padding: '12px', fontWeight: 500 }}>User ID</th>
+                    <th style={{ padding: '12px', fontWeight: 500 }}>Action</th>
+                    <th style={{ padding: '12px', fontWeight: 500 }}>Description</th>
+                    <th style={{ padding: '12px', fontWeight: 500 }}>IP Address</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {activities.map((act) => (
+                    <tr key={act.id} style={{ borderBottom: '1px solid var(--lp-stone-divider)' }}>
+                      <td style={{ padding: '12px', color: 'var(--lp-ash-helper)' }}>{new Date(act.timestamp).toLocaleString()}</td>
+                      <td style={{ padding: '12px', fontFamily: 'var(--font-mono)' }}>{act.user_id ? act.user_id.slice(0, 8) : 'System'}</td>
+                      <td style={{ padding: '12px', fontWeight: 500 }}>{act.action}</td>
+                      <td style={{ padding: '12px' }}>{act.description}</td>
+                      <td style={{ padding: '12px', fontFamily: 'var(--font-mono)', color: 'var(--lp-ash-helper)' }}>{act.ip_address || '-'}</td>
+                    </tr>
+                  ))}
+                  {activities.length === 0 && (
+                    <tr>
+                      <td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: 'var(--lp-ash-helper)' }}>
+                        No activities found.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>

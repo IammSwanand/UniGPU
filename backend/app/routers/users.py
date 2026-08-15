@@ -1,11 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.database import get_db
 from app.models.user import User
+from app.models.user_activity import UserActivity
 from app.schemas.user import UserOut, UserProfileUpdate
+from app.schemas.user_activity import UserActivityRead
 from app.routers.auth import _build_user_out
+from typing import List
 
 router = APIRouter()
 
@@ -44,3 +47,21 @@ async def update_me(
         
     await db.flush()
     return _build_user_out(user)
+
+
+@router.get("/me/activities", response_model=List[UserActivityRead])
+async def get_my_activities(
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=50, ge=1, le=100),
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get the current authenticated user's recent activities."""
+    result = await db.execute(
+        select(UserActivity)
+        .where(UserActivity.user_id == user.id)
+        .order_by(UserActivity.timestamp.desc())
+        .offset(skip)
+        .limit(limit)
+    )
+    return result.scalars().all()

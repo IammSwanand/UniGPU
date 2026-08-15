@@ -13,6 +13,7 @@ from app.models.user import User  # noqa: F401
 from app.models.wallet import Wallet, Transaction  # noqa: F401
 from app.models.gpu import GPU, GPUStatus
 from app.models.job import Job, JobStatus
+from app.models.user_activity import UserActivity
 
 settings = get_settings()
 
@@ -228,4 +229,111 @@ async def _cleanup_stale_job_files_async():
             print(f"[cleanup] Cleaned up files for {deleted_count} stale jobs")
     finally:
         await engine.dispose()
+
+
+@celery_app.task(name="app.worker.tasks.cleanup_old_activities")
+def cleanup_old_activities():
+    """Delete activity logs older than 90 days to prevent database bloat."""
+    _run_async(_cleanup_old_activities_async())
+
+
+async def _cleanup_old_activities_async():
+    engine, session_factory = _get_async_session()
+    try:
+        cutoff = datetime.now(timezone.utc) - timedelta(days=90)
+        async with session_factory() as db:
+            from sqlalchemy import delete
+            result = await db.execute(
+                delete(UserActivity).where(UserActivity.timestamp < cutoff)
+            )
+            await db.commit()
+            print(f"[cleanup] Deleted {result.rowcount} old activity logs")
+    finally:
+        await engine.dispose()
+
+
+@celery_app.task(name="app.worker.tasks.backup_logs_to_supabase")
+def backup_logs_to_supabase():
+    """Upload rotated activity log files to Supabase Storage and delete them locally."""
+    _run_async(_backup_logs_to_supabase_async())
+
+
+async def _backup_logs_to_supabase_async():
+    import os
+    import httpx
+
+    # 1. Ensure Supabase credentials are provided
+    if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
+        print("[backup] Supabase credentials not configured, skipping log backup.")
+        return
+
+    log_dir = getattr(settings, "ACTIVITY_LOG_DIR", None) or os.path.join(
+        os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "logs"
+    )
+
+    if not os.path.exists(log_dir):
+        return
+
+    # 2. Find all rotated log files (e.g. activity.log.1, activity.log.2)
+    rotated_files = []
+    for filename in os.listdir(log_dir):
+        # Guard: only accept expected names — prevents path-traversal via odd filenames
+        parts = filename.split(".")
+        if (
+            filename.startswith("activity.log.")
+            and len(parts) == 3
+            and parts[-1].isdigit()
+            and "/" not in filename
+            and "\\" not in filename
+        ):
+            rotated_files.append(filename)
+
+    if not rotated_files:
+        print("[backup] No rotated log files found to backup.")
+        return
+
+    headers = {
+        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+        "apiKey": settings.SUPABASE_SERVICE_ROLE_KEY,
+        "Content-Type": "application/x-ndjson",
+    }
+
+    # Fix #3: strip trailing slash so the URL never gets a double-slash
+    supabase_base = settings.SUPABASE_URL.rstrip("/")
+    base_url = f"{supabase_base}/storage/v1/object/audit-logs"
+
+    uploaded_count = 0
+    today_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+    async with httpx.AsyncClient(timeout=120.0) as client:
+        for filename in rotated_files:
+            file_path = os.path.join(log_dir, filename)
+
+            # Fix #4: use the numeric suffix (1-5) as the unique key, not a timestamp.
+            # This is stable, collision-free, and matches the rotation index Supabase-side.
+            rotation_index = filename.split(".")[-1]   # e.g. "1", "2"
+            object_name = f"{today_str}/activity-{rotation_index}.jsonl"
+            upload_url = f"{base_url}/{object_name}"
+
+            try:
+                # Fix #2: stream the file instead of reading all 10 MB into RAM at once
+                with open(file_path, "rb") as f:
+                    response = await client.post(upload_url, headers=headers, content=f)
+
+                response.raise_for_status()
+
+                print(f"[backup] Successfully uploaded {filename} → {object_name}")
+
+                # Only delete the local file AFTER a confirmed successful upload
+                os.remove(file_path)
+                uploaded_count += 1
+
+            except FileNotFoundError:
+                # File vanished between listdir and open (TOCTOU) — harmless, skip it
+                print(f"[backup] {filename} disappeared before upload, skipping.")
+            except Exception as e:
+                # Never delete the file if the upload failed — keep it for next run
+                print(f"[backup] Failed to upload {filename}: {e}")
+
+    print(f"[backup] Finished backing up {uploaded_count} log files.")
 

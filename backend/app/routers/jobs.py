@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import List
 from datetime import datetime, timedelta, timezone
 
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form, status, BackgroundTasks, Request
 from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -24,6 +24,7 @@ from app.schemas.job import JobOut
 from app.security_utils import (
     check_job_submission_limit, check_upload_limit, record_job_submission
 )
+from app.services.activity_logger import log_activity
 
 router = APIRouter()
 settings = get_settings()
@@ -135,6 +136,8 @@ async def _delete_copied_files(
 
 @router.post("/submit", response_model=JobOut, status_code=status.HTTP_201_CREATED)
 async def submit_job(
+    request: Request,
+    background_tasks: BackgroundTasks,
     script: UploadFile = File(...),
     requirements: UploadFile | None = File(None),
     gpu_id: str | None = Form(None),
@@ -294,12 +297,15 @@ async def submit_job(
         print(f" Cannot dispatch — GPU found: {gpu is not None}, Connected: {manager.is_connected(gpu.id) if gpu else 'N/A'}")
         await db.commit()
 
+    background_tasks.add_task(log_activity, "JOB_SUBMIT", f"Submitted job {job_id}", current_user, request, {"job_id": job_id})
     return job
 
 
 @router.post("/{job_id}/rerun", response_model=JobOut, status_code=status.HTTP_201_CREATED)
 async def rerun_job(
     job_id: str,
+    request: Request,
+    background_tasks: BackgroundTasks,
     gpu_id: str | None = Form(None),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(require_role("client", "admin")),
@@ -490,6 +496,7 @@ async def rerun_job(
         )
         await db.commit()
 
+    background_tasks.add_task(log_activity, "JOB_RERUN", f"Reran job {job_id} as {new_job_id}", current_user, request, {"job_id": new_job_id, "original_job_id": job_id})
     return job
 
 

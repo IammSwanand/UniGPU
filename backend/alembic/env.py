@@ -14,6 +14,7 @@ from app.models import job as job_model  # noqa: F401
 from app.models import user as user_model  # noqa: F401
 from app.models import wallet as wallet_model  # noqa: F401
 from app.models import settings as settings_model  # noqa: F401
+from app.models import user_activity as user_activity_model  # noqa: F401
 
 config = context.config
 

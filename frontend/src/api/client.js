@@ -66,6 +66,7 @@ const api = {
     // Users
     getMe: () => request('GET', '/users/me'),
     updateProfile: (d) => request('PATCH', '/users/me', { body: d }),
+    myActivities: (skip=0, limit=50) => request('GET', `/users/me/activities?skip=${skip}&limit=${limit}`),
 
     // GPUs
     listGPUs: () => request('GET', '/gpus/'),
@@ -130,6 +131,7 @@ const api = {
     adminGPUs: () => request('GET', '/admin/gpus'),
     adminJobs: () => request('GET', '/admin/jobs'),
     adminUsers: () => request('GET', '/admin/users'),
+    adminActivities: (skip=0, limit=100) => request('GET', `/admin/activities?skip=${skip}&limit=${limit}`),
     adminGetUserWallet: (id) => request('GET', `/admin/users/${id}/wallet`),
     toggleUserStatus: (id) => request('PATCH', `/admin/users/${id}/toggle-active`),
     getSystemSettings: () => request('GET', '/admin/settings'),

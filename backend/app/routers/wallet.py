@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -12,6 +12,7 @@ from app.schemas.wallet import WalletOut, WalletTopUp, TransactionOut
 from app.security_utils import (
     check_wallet_topup_limit, record_wallet_topup, check_daily_wallet_total
 )
+from app.services.activity_logger import log_activity
 
 router = APIRouter()
 
@@ -32,6 +33,7 @@ async def get_wallet(
 async def topup_wallet(
     request: Request,
     data: WalletTopUp,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
@@ -84,6 +86,7 @@ async def topup_wallet(
     # Record successful top-up
     await record_wallet_topup(current_user.id, data.amount)
     
+    background_tasks.add_task(log_activity, "WALLET_TOPUP", f"Topped up {data.amount} Credits", current_user, request, {"amount": data.amount})
     return wallet
 
 

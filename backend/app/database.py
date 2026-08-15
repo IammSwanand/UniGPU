@@ -28,7 +28,7 @@ async def init_db():
 
     Database schema management is handled by Alembic migrations at startup.
     """
-    from app.models import user, gpu, job, wallet  # noqa: F401 — register models
+    from app.models import user, gpu, job, wallet, user_activity  # noqa: F401 — register models
 
 
 async def run_migrations() -> None:

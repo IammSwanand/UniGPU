@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
@@ -9,9 +9,11 @@ from app.deps import require_role
 from app.models.user import User
 from app.models.gpu import GPU, GPUStatus
 from app.models.job import Job, JobStatus
+from app.models.user_activity import UserActivity
 from app.schemas.user import UserOut
 from app.schemas.gpu import GPUOut
 from app.schemas.job import JobOut
+from app.schemas.user_activity import UserActivityRead
 from app.models.settings import SystemSettings
 from app.models.wallet import Wallet, Transaction, TransactionType
 from app.config import get_settings
@@ -223,3 +225,16 @@ async def upload_agent_release(
         "version": settings_row.agent_version,
         "download_url": settings_row.agent_download_url
     }
+
+
+@router.get("/activities", response_model=List[UserActivityRead])
+async def admin_list_activities(
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=500),
+    db: AsyncSession = Depends(get_db),
+    _admin: User = Depends(require_role("admin")),
+):
+    result = await db.execute(
+        select(UserActivity).order_by(UserActivity.timestamp.desc()).offset(skip).limit(limit)
+    )
+    return result.scalars().all()
