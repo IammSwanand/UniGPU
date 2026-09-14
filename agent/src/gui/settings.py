@@ -1,10 +1,10 @@
 """
 UniGPU Agent — Settings Window
-A tkinter window opened from the system tray to edit agent configuration.
+A CustomTkinter window opened from the system tray to edit agent configuration.
 """
 
-import tkinter as tk
-from tkinter import ttk, messagebox, filedialog
+import customtkinter as ctk
+from tkinter import filedialog
 from typing import Optional, Callable
 
 from src.core.config import AgentConfig
@@ -13,17 +13,6 @@ try:
     from src.build_env import IS_PROD
 except ImportError:
     IS_PROD = False
-
-# ─── Color palette (matches setup_wizard) ────────
-BG           = "#0f0f1a"
-BG_CARD      = "#1a1a2e"
-FG           = "#e0e0e0"
-FG_DIM       = "#888899"
-ACCENT       = "#7c3aed"
-ACCENT_HOVER = "#9b5de5"
-ENTRY_BG     = "#252540"
-BORDER       = "#333355"
-SUCCESS      = "#22c55e"
 
 
 class SettingsWindow:
@@ -36,12 +25,11 @@ class SettingsWindow:
         self.config = config
         self.on_save = on_save
 
-        self.win = tk.Toplevel()
+        self.win = ctk.CTkToplevel()
         self.win.title("UniGPU Agent — Settings")
-        self.win.geometry("500x560")
+        self.win.geometry("520x580")
         self.win.resizable(True, True)
-        self.win.minsize(400, 480)
-        self.win.configure(bg=BG)
+        self.win.minsize(420, 500)
         self.win.grab_set()
 
         # Try to set icon
@@ -53,68 +41,44 @@ class SettingsWindow:
         except Exception:
             pass
 
-        # Variables
+        # Variables (plain Python strings — no tk.StringVar needed)
         self._vars = {
-            "gpu_id": tk.StringVar(value=config.gpu_id),
-            "backend_http_url": tk.StringVar(value=config.backend_http_url),
-            "backend_ws_url": tk.StringVar(value=config.backend_ws_url),
-            "work_dir": tk.StringVar(value=config.work_dir),
-            "docker_base_image": tk.StringVar(value=config.docker_base_image),
-            "heartbeat_interval": tk.StringVar(value=str(config.heartbeat_interval)),
-            "max_job_timeout": tk.StringVar(value=str(config.max_job_timeout)),
-            "cpu_limit": tk.StringVar(value=str(config.cpu_limit)),
-            "memory_limit": tk.StringVar(value=config.memory_limit),
+            "gpu_id":             ctk.StringVar(value=config.gpu_id),
+            "backend_http_url":   ctk.StringVar(value=config.backend_http_url),
+            "backend_ws_url":     ctk.StringVar(value=config.backend_ws_url),
+            "work_dir":           ctk.StringVar(value=config.work_dir),
+            "docker_base_image":  ctk.StringVar(value=config.docker_base_image),
+            "heartbeat_interval": ctk.StringVar(value=str(config.heartbeat_interval)),
+            "max_job_timeout":    ctk.StringVar(value=str(config.max_job_timeout)),
+            "cpu_limit":          ctk.StringVar(value=str(config.cpu_limit)),
+            "memory_limit":       ctk.StringVar(value=config.memory_limit),
         }
 
         self._build_ui()
 
     def _build_ui(self):
-        # Title (fixed at top)
-        tk.Label(self.win, text="⚙️  Agent Settings", font=("Segoe UI", 16, "bold"),
-                 bg=BG, fg=FG).pack(pady=(15, 10))
+        # ── Title ────────────────────────────────────
+        ctk.CTkLabel(
+            self.win,
+            text="⚙️  Agent Settings",
+            font=ctk.CTkFont(size=20, weight="bold"),
+        ).pack(pady=(18, 10))
 
         # ── Scrollable content area ──────────────────
-        scroll_wrapper = tk.Frame(self.win, bg=BG)
-        scroll_wrapper.pack(fill="both", expand=True, padx=25, pady=(0, 5))
-
-        canvas = tk.Canvas(scroll_wrapper, bg=BG, highlightthickness=0)
-        scrollbar = tk.Scrollbar(scroll_wrapper, orient="vertical", command=canvas.yview)
-        container = tk.Frame(canvas, bg=BG)
-
-        container.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all")),
-        )
-
-        canvas_window = canvas.create_window((0, 0), window=container, anchor="nw")
-
-        # Make the inner frame stretch to canvas width
-        def _on_canvas_configure(event):
-            canvas.itemconfig(canvas_window, width=event.width)
-        canvas.bind("<Configure>", _on_canvas_configure)
-
-        canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-
-        # Mousewheel scrolling
-        def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-        canvas.bind_all("<MouseWheel>", _on_mousewheel)
-        self.win.protocol("WM_DELETE_WINDOW", lambda: (canvas.unbind_all("<MouseWheel>"), self.win.destroy()))
+        scroll_frame = ctk.CTkScrollableFrame(self.win, label_text="")
+        scroll_frame.pack(fill="both", expand=True, padx=24, pady=(0, 8))
 
         # ── Fields ───────────────────────────────────
         fields = [
             ("GPU ID", "gpu_id", True),
         ]
-        
+
         if not IS_PROD:
             fields.extend([
                 ("Backend HTTP URL", "backend_http_url", False),
                 ("Backend WebSocket URL", "backend_ws_url", False),
             ])
-            
+
         fields.extend([
             ("Work Directory", "work_dir", False),
             ("Docker Base Image", "docker_base_image", False),
@@ -125,55 +89,69 @@ class SettingsWindow:
         ])
 
         for label_text, key, read_only in fields:
-            tk.Label(container, text=label_text, font=("Segoe UI", 9, "bold"),
-                     bg=BG, fg=FG, anchor="w").pack(fill="x", pady=(8, 2))
-                     
+            ctk.CTkLabel(
+                scroll_frame,
+                text=label_text,
+                font=ctk.CTkFont(size=12, weight="bold"),
+                anchor="w",
+            ).pack(fill="x", pady=(10, 2))
+
             if key == "work_dir":
-                row_frame = tk.Frame(container, bg=BG)
-                row_frame.pack(fill="x")
-                
-                entry = tk.Entry(
-                    row_frame, textvariable=self._vars[key], font=("Consolas", 10),
-                    bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
-                    highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT,
-                    state="normal"
+                row = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+                row.pack(fill="x")
+
+                entry = ctk.CTkEntry(
+                    row,
+                    textvariable=self._vars[key],
+                    font=ctk.CTkFont(family="Consolas", size=11),
+                    state="normal",
                 )
-                entry.pack(side="left", fill="x", expand=True, ipady=4)
-                
+                entry.pack(side="left", fill="x", expand=True, ipady=2)
+
                 def _browse_dir():
-                    d = filedialog.askdirectory(initialdir=self._vars["work_dir"].get(), title="Select Work Directory")
+                    d = filedialog.askdirectory(
+                        initialdir=self._vars["work_dir"].get(),
+                        title="Select Work Directory",
+                    )
                     if d:
                         self._vars["work_dir"].set(d)
-                        
-                tk.Button(row_frame, text="Browse...", command=_browse_dir,
-                          font=("Segoe UI", 9), bg=BG_CARD, fg=FG,
-                          activebackground=BORDER, activeforeground=FG,
-                          relief="flat", cursor="hand2", padx=10).pack(side="right", padx=(5, 0), ipady=2)
+
+                ctk.CTkButton(
+                    row,
+                    text="Browse…",
+                    command=_browse_dir,
+                    width=90,
+                    fg_color="transparent",
+                    border_width=1,
+                ).pack(side="right", padx=(6, 0))
             else:
-                entry = tk.Entry(
-                    container, textvariable=self._vars[key], font=("Consolas", 10),
-                    bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
-                    highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT,
+                ctk.CTkEntry(
+                    scroll_frame,
+                    textvariable=self._vars[key],
+                    font=ctk.CTkFont(family="Consolas", size=11),
                     state="readonly" if read_only else "normal",
-                    readonlybackground="#1a1a28",
-                )
-                entry.pack(fill="x", ipady=4)
+                ).pack(fill="x", ipady=2)
 
-
-
-        # ── Buttons (fixed at bottom) ────────────────
-        btn_frame = tk.Frame(self.win, bg=BG)
+        # ── Buttons (fixed at bottom) ─────────────────
+        btn_frame = ctk.CTkFrame(self.win, fg_color="transparent")
         btn_frame.pack(pady=15)
 
-        tk.Button(btn_frame, text="Save", command=self._on_save,
-                  font=("Segoe UI", 11, "bold"), bg=ACCENT, fg="white",
-                  activebackground=ACCENT_HOVER, activeforeground="white",
-                  relief="flat", cursor="hand2", padx=25, pady=6).pack(side="left", padx=8)
+        ctk.CTkButton(
+            btn_frame,
+            text="Save",
+            command=self._on_save,
+            width=120,
+            font=ctk.CTkFont(size=13, weight="bold"),
+        ).pack(side="left", padx=8)
 
-        tk.Button(btn_frame, text="Cancel", command=self.win.destroy,
-                  font=("Segoe UI", 11), bg=BG_CARD, fg=FG,
-                  activebackground=BORDER, activeforeground=FG,
-                  relief="flat", cursor="hand2", padx=25, pady=6).pack(side="left", padx=8)
+        ctk.CTkButton(
+            btn_frame,
+            text="Cancel",
+            command=self.win.destroy,
+            width=120,
+            fg_color="transparent",
+            border_width=1,
+        ).pack(side="left", padx=8)
 
     def _on_save(self):
         try:
@@ -187,7 +165,7 @@ class SettingsWindow:
                 max_job_timeout=int(self._vars["max_job_timeout"].get()),
                 cpu_limit=float(self._vars["cpu_limit"].get()),
                 memory_limit=self._vars["memory_limit"].get().strip(),
-                agent_token=self.config.agent_token,  # preserve token
+                agent_token=self.config.agent_token,   # preserve token
                 log_batch_interval=self.config.log_batch_interval,
             )
             path = new_config.save()
@@ -195,14 +173,37 @@ class SettingsWindow:
             if self.on_save:
                 self.on_save(new_config)
 
-            messagebox.showinfo("Saved", f"Settings saved to:\n{path}\n\nRestart the agent for changes to take effect.",
-                                parent=self.win)
-            self.win.destroy()
+            # Show success dialog
+            dialog = ctk.CTkToplevel(self.win)
+            dialog.title("Saved")
+            dialog.geometry("360x140")
+            dialog.grab_set()
+            ctk.CTkLabel(
+                dialog,
+                text=f"Settings saved to:\n{path}\n\nRestart the agent for changes to take effect.",
+                font=ctk.CTkFont(size=12),
+                wraplength=320,
+                justify="center",
+            ).pack(pady=20, padx=20)
+            ctk.CTkButton(dialog, text="OK", command=lambda: (dialog.destroy(), self.win.destroy()), width=80).pack()
 
         except ValueError as e:
-            messagebox.showerror("Invalid Value", str(e), parent=self.win)
+            # Show error dialog
+            dialog = ctk.CTkToplevel(self.win)
+            dialog.title("Invalid Value")
+            dialog.geometry("340x130")
+            dialog.grab_set()
+            ctk.CTkLabel(
+                dialog,
+                text=str(e),
+                font=ctk.CTkFont(size=12),
+                text_color=("red", "#ef4444"),
+                wraplength=300,
+                justify="center",
+            ).pack(pady=20, padx=20)
+            ctk.CTkButton(dialog, text="OK", command=dialog.destroy, width=80).pack()
 
 
 def open_settings(config: AgentConfig, on_save: Optional[Callable] = None):
-    """Open the settings window (requires an existing Tk root or Toplevel context)."""
+    """Open the settings window (requires an existing CTk root or CTkToplevel context)."""
     SettingsWindow(config, on_save)

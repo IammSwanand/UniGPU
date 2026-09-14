@@ -1,5 +1,5 @@
 # UniGPU Agent — GUI Modules
-# Lazy imports only — tkinter/pystray not always available
+# Lazy imports only — customtkinter/pystray not always available
 
 def get_icon_path():
     import sys

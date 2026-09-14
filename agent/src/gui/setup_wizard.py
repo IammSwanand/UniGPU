@@ -1,6 +1,6 @@
 """
 UniGPU Agent — First-Run Setup Wizard
-A tkinter wizard that guides the student through initial agent setup:
+A CustomTkinter wizard that guides the student through initial agent setup:
   1. Welcome screen
   2. Backend URL configuration
   3. Login with existing UniGPU account
@@ -10,8 +10,7 @@ A tkinter wizard that guides the student through initial agent setup:
 
 import json
 import logging
-import tkinter as tk
-from tkinter import messagebox
+import customtkinter as ctk
 from typing import Optional
 
 import httpx
@@ -28,18 +27,6 @@ except ImportError:
 
 logger = logging.getLogger("unigpu.agent.setup")
 
-# ─── Color palette ──────────────────────────────
-BG           = "#0f0f1a"
-BG_CARD      = "#1a1a2e"
-FG           = "#e0e0e0"
-FG_DIM       = "#888899"
-ACCENT       = "#7c3aed"
-ACCENT_HOVER = "#9b5de5"
-SUCCESS      = "#22c55e"
-ERROR        = "#ef4444"
-ENTRY_BG     = "#252540"
-BORDER       = "#333355"
-
 
 class SetupWizard:
     """
@@ -53,12 +40,11 @@ class SetupWizard:
         self._temp_token: str = ""
         self._gpu_info: list = []
 
-        self.root = tk.Tk()
+        self.root = ctk.CTk()
         self.root.title("UniGPU Agent — Setup")
         self.root.geometry("520x620")
-        self.root.minsize(480, 520)     # minimum usable size
+        self.root.minsize(480, 520)
         self.root.resizable(True, True)
-        self.root.configure(bg=BG)
 
         # Center on screen
         self.root.update_idletasks()
@@ -67,9 +53,6 @@ class SetupWizard:
         x = (sw - 520) // 2
         y = (sh - 620) // 2
         self.root.geometry(f"520x620+{x}+{y}")
-
-        # Track labels that need dynamic wraplength on resize
-        self._dynamic_labels: list[tk.Label] = []
 
         # Try to set window icon
         try:
@@ -80,17 +63,17 @@ class SetupWizard:
         except Exception:
             pass
 
-        # State
+        # State vars
         default_url = BACKEND_URL if IS_PROD else "http://localhost:8000"
-        self._backend_url = tk.StringVar(value=default_url)
-        self._username = tk.StringVar()
-        self._password = tk.StringVar()
-        self._2fa_code = tk.StringVar()
-        self._gpu_label = tk.StringVar(value="Not detected yet")
-        self._status = tk.StringVar(value="")
+        self._backend_url = ctk.StringVar(value=default_url)
+        self._username = ctk.StringVar()
+        self._password = ctk.StringVar()
+        self._2fa_code = ctk.StringVar()
+        self._gpu_label = ctk.StringVar(value="Not detected yet")
+        self._status = ctk.StringVar(value="")
 
         # Build pages
-        self._pages: list[tk.Frame] = []
+        self._pages: list[ctk.CTkFrame] = []
         self._current_page = 0
         self._build_welcome_page()   # 0
         self._build_login_page()     # 1
@@ -99,9 +82,6 @@ class SetupWizard:
         self._build_done_page()      # 4
 
         self._show_page(0)
-
-        # Bind resize event so text labels reflow dynamically
-        self.root.bind("<Configure>", self._on_resize)
 
     def run(self) -> Optional[AgentConfig]:
         """Show the wizard. Returns AgentConfig or None."""
@@ -112,8 +92,8 @@ class SetupWizard:
     # Page builders
     # ──────────────────────────────────────────────
 
-    def _make_page(self) -> tk.Frame:
-        frame = tk.Frame(self.root, bg=BG)
+    def _make_page(self) -> ctk.CTkFrame:
+        frame = ctk.CTkFrame(self.root, fg_color="transparent")
         self._pages.append(frame)
         return frame
 
@@ -126,9 +106,11 @@ class SetupWizard:
     def _build_welcome_page(self):
         page = self._make_page()
 
-        tk.Label(page, text="🖥️", font=("Segoe UI Emoji", 48), bg=BG, fg=FG).pack(pady=(20, 5))
-        tk.Label(page, text="Welcome to UniGPU Agent", font=("Segoe UI", 20, "bold"),
-                 bg=BG, fg=FG).pack(pady=(0, 10))
+        ctk.CTkLabel(page, text="🖥️", font=ctk.CTkFont(size=52)).pack(pady=(20, 5))
+        ctk.CTkLabel(
+            page, text="Welcome to UniGPU Agent",
+            font=ctk.CTkFont(size=22, weight="bold"),
+        ).pack(pady=(0, 10))
 
         desc = (
             "This agent connects your GPU to the UniGPU network,\n"
@@ -136,58 +118,68 @@ class SetupWizard:
             "You'll earn credits for every job your GPU completes!\n\n"
             "Let's get set up in a few quick steps."
         )
-        desc_lbl = tk.Label(page, text=desc, font=("Segoe UI", 11), bg=BG, fg=FG_DIM,
-                 justify="center", wraplength=440)
-        desc_lbl.pack(pady=10)
-        self._dynamic_labels.append(desc_lbl)
+        ctk.CTkLabel(
+            page, text=desc,
+            font=ctk.CTkFont(size=13),
+            text_color="gray",
+            justify="center",
+            wraplength=440,
+        ).pack(pady=10)
 
-        # Backend URL (Only show in dev mode)
+        # Backend URL (dev mode only)
         if not IS_PROD:
-            tk.Label(page, text="Backend Server URL", font=("Segoe UI", 10, "bold"),
-                     bg=BG, fg=FG, anchor="w").pack(fill="x", pady=(20, 3))
-            entry = tk.Entry(page, textvariable=self._backend_url, font=("Consolas", 11),
-                             bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
-                             highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT)
-            entry.pack(fill="x", ipady=6)
+            ctk.CTkLabel(
+                page, text="Backend Server URL",
+                font=ctk.CTkFont(size=12, weight="bold"),
+                anchor="w",
+            ).pack(fill="x", pady=(20, 3))
+            entry = ctk.CTkEntry(
+                page, textvariable=self._backend_url,
+                font=ctk.CTkFont(family="Consolas", size=12),
+                height=38,
+            )
+            entry.pack(fill="x")
             entry.bind("<Return>", lambda e: self._on_welcome_next())
-
-            tk.Label(page, text="Ask your admin for the server URL if not localhost",
-                     font=("Segoe UI", 9), bg=BG, fg=FG_DIM).pack(anchor="w", pady=(3, 0))
+            ctk.CTkLabel(
+                page, text="Ask your admin for the server URL if not localhost",
+                font=ctk.CTkFont(size=11), text_color="gray", anchor="w",
+            ).pack(anchor="w", pady=(4, 0))
 
         self._make_nav_btn(page, "Next →", self._on_welcome_next).pack(side="bottom", pady=20)
 
     def _build_login_page(self):
         page = self._make_page()
 
-        tk.Label(page, text="Sign In", font=("Segoe UI", 20, "bold"),
-                 bg=BG, fg=FG).pack(pady=(30, 5))
-        tk.Label(page, text="Use your UniGPU account (register at the website first)",
-                 font=("Segoe UI", 10), bg=BG, fg=FG_DIM).pack(pady=(0, 20))
+        ctk.CTkLabel(
+            page, text="Sign In",
+            font=ctk.CTkFont(size=22, weight="bold"),
+        ).pack(pady=(30, 5))
+        ctk.CTkLabel(
+            page, text="Use your UniGPU account (register at the website first)",
+            font=ctk.CTkFont(size=12), text_color="gray",
+        ).pack(pady=(0, 20))
 
         # Email
-        tk.Label(page, text="Email", font=("Segoe UI", 10, "bold"),
-                 bg=BG, fg=FG, anchor="w").pack(fill="x", pady=(10, 3))
-        user_entry = tk.Entry(page, textvariable=self._username, font=("Segoe UI", 11),
-                              bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
-                              highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT)
-        user_entry.pack(fill="x", ipady=6)
+        ctk.CTkLabel(page, text="Email", font=ctk.CTkFont(size=12, weight="bold"), anchor="w").pack(fill="x", pady=(10, 3))
+        user_entry = ctk.CTkEntry(page, textvariable=self._username, font=ctk.CTkFont(size=13), height=38)
+        user_entry.pack(fill="x")
         user_entry.bind("<Return>", lambda e: self._on_login())
 
         # Password
-        tk.Label(page, text="Password", font=("Segoe UI", 10, "bold"),
-                 bg=BG, fg=FG, anchor="w").pack(fill="x", pady=(15, 3))
-        pass_entry = tk.Entry(page, textvariable=self._password, show="●", font=("Segoe UI", 11),
-                              bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
-                              highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT)
-        pass_entry.pack(fill="x", ipady=6)
+        ctk.CTkLabel(page, text="Password", font=ctk.CTkFont(size=12, weight="bold"), anchor="w").pack(fill="x", pady=(15, 3))
+        pass_entry = ctk.CTkEntry(page, textvariable=self._password, show="●", font=ctk.CTkFont(size=13), height=38)
+        pass_entry.pack(fill="x")
         pass_entry.bind("<Return>", lambda e: self._on_login())
 
         # Status
-        self._login_status = tk.Label(page, textvariable=self._status,
-                                       font=("Segoe UI", 10), bg=BG, fg=ERROR)
-        self._login_status.pack(pady=(10, 0))
+        self._login_status_label = ctk.CTkLabel(
+            page, textvariable=self._status,
+            font=ctk.CTkFont(size=12),
+            text_color=("red", "#ef4444"),
+        )
+        self._login_status_label.pack(pady=(10, 0))
 
-        btn_frame = tk.Frame(page, bg=BG)
+        btn_frame = ctk.CTkFrame(page, fg_color="transparent")
         btn_frame.pack(side="bottom", pady=20, fill="x")
         self._make_nav_btn(btn_frame, "← Back", self._on_login_back).pack(side="left")
         self._make_nav_btn(btn_frame, "Sign In & Continue →", self._on_login).pack(side="right")
@@ -195,27 +187,32 @@ class SetupWizard:
     def _build_2fa_page(self):
         page = self._make_page()
 
-        tk.Label(page, text="Two-Factor Authentication", font=("Segoe UI", 20, "bold"),
-                 bg=BG, fg=FG).pack(pady=(30, 5))
-        tk.Label(page, text="Enter the 6-digit code from your authenticator app",
-                 font=("Segoe UI", 10), bg=BG, fg=FG_DIM).pack(pady=(0, 20))
+        ctk.CTkLabel(
+            page, text="Two-Factor Authentication",
+            font=ctk.CTkFont(size=22, weight="bold"),
+        ).pack(pady=(30, 5))
+        ctk.CTkLabel(
+            page, text="Enter the 6-digit code from your authenticator app",
+            font=ctk.CTkFont(size=12), text_color="gray",
+        ).pack(pady=(0, 20))
 
-        # Code
-        tk.Label(page, text="Authentication Code", font=("Segoe UI", 10, "bold"),
-                 bg=BG, fg=FG, anchor="w").pack(fill="x", pady=(10, 3))
-        code_entry = tk.Entry(page, textvariable=self._2fa_code, font=("Segoe UI", 14),
-                              bg=ENTRY_BG, fg=FG, insertbackground=FG, relief="flat",
-                              justify="center",
-                              highlightthickness=1, highlightbackground=BORDER, highlightcolor=ACCENT)
-        code_entry.pack(fill="x", ipady=6)
+        ctk.CTkLabel(page, text="Authentication Code", font=ctk.CTkFont(size=12, weight="bold"), anchor="w").pack(fill="x", pady=(10, 3))
+        code_entry = ctk.CTkEntry(
+            page, textvariable=self._2fa_code,
+            font=ctk.CTkFont(size=18), height=44,
+            justify="center",
+        )
+        code_entry.pack(fill="x")
         code_entry.bind("<Return>", lambda e: self._on_verify_2fa())
 
-        # Status
-        self._2fa_status = tk.Label(page, textvariable=self._status,
-                                       font=("Segoe UI", 10), bg=BG, fg=ERROR)
-        self._2fa_status.pack(pady=(10, 0))
+        self._2fa_status_label = ctk.CTkLabel(
+            page, textvariable=self._status,
+            font=ctk.CTkFont(size=12),
+            text_color=("red", "#ef4444"),
+        )
+        self._2fa_status_label.pack(pady=(10, 0))
 
-        btn_frame = tk.Frame(page, bg=BG)
+        btn_frame = ctk.CTkFrame(page, fg_color="transparent")
         btn_frame.pack(side="bottom", pady=20, fill="x")
         self._make_nav_btn(btn_frame, "← Back", self._on_2fa_back).pack(side="left")
         self._make_nav_btn(btn_frame, "Verify & Continue →", self._on_verify_2fa).pack(side="right")
@@ -223,50 +220,64 @@ class SetupWizard:
     def _build_gpu_page(self):
         page = self._make_page()
 
-        tk.Label(page, text="GPU Detection", font=("Segoe UI", 20, "bold"),
-                 bg=BG, fg=FG).pack(pady=(30, 10))
+        ctk.CTkLabel(
+            page, text="GPU Detection",
+            font=ctk.CTkFont(size=22, weight="bold"),
+        ).pack(pady=(30, 10))
 
         # GPU info card
-        card = tk.Frame(page, bg=BG_CARD, highlightthickness=1,
-                        highlightbackground=BORDER)
-        card.pack(fill="x", pady=10, ipady=15, ipadx=15)
+        card = ctk.CTkFrame(page)
+        card.pack(fill="x", pady=10)
 
-        tk.Label(card, text="🎮  Detected GPU", font=("Segoe UI", 11, "bold"),
-                 bg=BG_CARD, fg=ACCENT).pack(anchor="w", padx=15, pady=(10, 5))
-        self._gpu_detail_label = tk.Label(card, textvariable=self._gpu_label,
-                                           font=("Consolas", 10), bg=BG_CARD, fg=FG,
-                                           justify="left", anchor="w", wraplength=420)
-        self._dynamic_labels.append(self._gpu_detail_label)
-        self._gpu_detail_label.pack(anchor="w", padx=15, pady=(0, 10))
+        ctk.CTkLabel(
+            card, text="🎮  Detected GPU",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            anchor="w",
+        ).pack(anchor="w", padx=18, pady=(14, 5))
 
-        # Status
-        self._gpu_status = tk.Label(page, textvariable=self._status,
-                                     font=("Segoe UI", 10), bg=BG, fg=FG_DIM)
-        self._gpu_status.pack(pady=10)
+        self._gpu_detail_label = ctk.CTkLabel(
+            card, textvariable=self._gpu_label,
+            font=ctk.CTkFont(family="Consolas", size=11),
+            justify="left",
+            anchor="w",
+            wraplength=420,
+        )
+        self._gpu_detail_label.pack(anchor="w", padx=18, pady=(0, 14))
 
-        btn_frame = tk.Frame(page, bg=BG)
+        self._gpu_status_label = ctk.CTkLabel(
+            page, textvariable=self._status,
+            font=ctk.CTkFont(size=12),
+            text_color="gray",
+        )
+        self._gpu_status_label.pack(pady=10)
+
+        btn_frame = ctk.CTkFrame(page, fg_color="transparent")
         btn_frame.pack(side="bottom", pady=20, fill="x")
-        # Back goes to login (page 1) so user re-authenticates; the 2FA temp token would be
-        # expired (5 min TTL) by the time they reached this page anyway.
         self._make_nav_btn(btn_frame, "← Back", self._on_login_back).pack(side="left")
         self._make_nav_btn(btn_frame, "Register GPU & Finish →", self._on_register_gpu).pack(side="right")
 
     def _build_done_page(self):
         page = self._make_page()
 
-        tk.Label(page, text="✅", font=("Segoe UI Emoji", 48), bg=BG, fg=SUCCESS).pack(pady=(40, 5))
-        tk.Label(page, text="You're All Set!", font=("Segoe UI", 22, "bold"),
-                 bg=BG, fg=FG).pack(pady=(0, 10))
+        ctk.CTkLabel(page, text="✅", font=ctk.CTkFont(size=52)).pack(pady=(40, 5))
+        ctk.CTkLabel(
+            page, text="You're All Set!",
+            font=ctk.CTkFont(size=24, weight="bold"),
+        ).pack(pady=(0, 10))
 
-        done_lbl = tk.Label(page, text=(
-            "Your GPU has been registered with UniGPU.\n\n"
-            "The agent will now start and appear in your\n"
-            "system tray. You can right-click the tray icon\n"
-            "to access settings, view logs, or stop the agent."
-        ), font=("Segoe UI", 11), bg=BG, fg=FG_DIM, justify="center",
-                 wraplength=420)
-        done_lbl.pack(pady=15)
-        self._dynamic_labels.append(done_lbl)
+        ctk.CTkLabel(
+            page,
+            text=(
+                "Your GPU has been registered with UniGPU.\n\n"
+                "The agent will now start and appear in your\n"
+                "system tray. You can right-click the tray icon\n"
+                "to access settings, view logs, or stop the agent."
+            ),
+            font=ctk.CTkFont(size=13),
+            text_color="gray",
+            justify="center",
+            wraplength=420,
+        ).pack(pady=15)
 
         self._make_nav_btn(page, "Start Agent 🚀", self._on_finish).pack(pady=30)
 
@@ -277,7 +288,7 @@ class SetupWizard:
     def _on_welcome_next(self):
         url = self._backend_url.get().strip()
         if not url:
-            messagebox.showwarning("Missing URL", "Please enter the backend server URL.")
+            self._show_mini_dialog("Missing URL", "Please enter the backend server URL.")
             return
         self._status.set("")
         self._show_page(1)
@@ -318,16 +329,15 @@ class SetupWizard:
 
             if resp.status_code == 200:
                 data = resp.json()
-                
+
                 if data.get("requires_2fa"):
                     self._temp_token = data.get("temp_token")
                     self._status.set("")
-                    self._show_page(2) # Go to 2FA page
+                    self._show_page(2)
                     return
 
                 self._token = data.get("access_token", data.get("token", ""))
                 self._status.set("")
-
                 self._on_login_success(username, password)
             else:
                 detail = ""
@@ -347,7 +357,6 @@ class SetupWizard:
         if not code:
             self._status.set("Please enter the 6-digit code")
             return
-        # Basic format guard — TOTP codes are always exactly 6 digits.
         if not code.isdigit() or len(code) != 6:
             self._status.set("Code must be exactly 6 digits")
             return
@@ -388,17 +397,14 @@ class SetupWizard:
             self._status.set(f"Error: {e}")
 
     def _on_login_success(self, username, password):
-        # Save credentials to OS credential store for token auto-refresh
         if save_credentials(username, password):
             logger.info("✅ Credentials saved to OS credential store")
             self._status.set("✅ Signed in and credentials saved")
         else:
             logger.warning("⚠️  Signed in but credentials not saved (keyring unavailable)")
             self._status.set("⚠️ Signed in (credentials not saved)")
-        
+
         self.root.update()
-        
-        # Detect GPUs and show on the next page
         self._detect_gpu()
         self._show_page(3)
 
@@ -428,8 +434,6 @@ class SetupWizard:
             self._status.set("No GPU detected — cannot register")
             return
 
-        # FIX: Guard against an empty token reaching this point.
-        # This should never happen in normal flow, but is a hard safety net.
         if not self._token or not self._token.strip():
             self._status.set("Not authenticated — please sign in again")
             self._show_page(1)
@@ -453,7 +457,6 @@ class SetupWizard:
                 data = resp.json()
                 gpu_id = data.get("id", data.get("gpu_id", ""))
 
-                # Build and save config
                 config = AgentConfig(
                     gpu_id=str(gpu_id),
                     backend_ws_url=self._backend_url.get().strip().rstrip("/").replace("http", "ws", 1) + "/ws/agent",
@@ -479,16 +482,6 @@ class SetupWizard:
             logger.error("GPU registration error: %s", e)
             self._status.set(f"Error: {e}")
 
-    def _on_resize(self, event=None):
-        """Recalculate wraplength for text labels when window is resized."""
-        if event and event.widget == self.root:
-            new_wrap = max(300, event.width - 100)  # 50px padding each side
-            for lbl in self._dynamic_labels:
-                try:
-                    lbl.configure(wraplength=new_wrap)
-                except Exception:
-                    pass
-
     def _on_finish(self):
         self.root.destroy()
 
@@ -496,15 +489,24 @@ class SetupWizard:
     # Helpers
     # ──────────────────────────────────────────────
 
-    def _make_nav_btn(self, parent: tk.Widget, text: str, command) -> tk.Button:
-        btn = tk.Button(
-            parent, text=text, command=command,
-            font=("Segoe UI", 11, "bold"),
-            bg=ACCENT, fg="white", activebackground=ACCENT_HOVER,
-            activeforeground="white", relief="flat", cursor="hand2",
-            padx=20, pady=8,
+    def _make_nav_btn(self, parent, text: str, command) -> ctk.CTkButton:
+        return ctk.CTkButton(
+            parent,
+            text=text,
+            command=command,
+            font=ctk.CTkFont(size=13, weight="bold"),
+            height=40,
+            corner_radius=8,
         )
-        return btn
+
+    def _show_mini_dialog(self, title: str, message: str):
+        """Lightweight replacement for messagebox.showwarning."""
+        dialog = ctk.CTkToplevel(self.root)
+        dialog.title(title)
+        dialog.geometry("320x130")
+        dialog.grab_set()
+        ctk.CTkLabel(dialog, text=message, wraplength=280, justify="center").pack(pady=24, padx=20)
+        ctk.CTkButton(dialog, text="OK", command=dialog.destroy, width=80).pack()
 
 
 def run_setup_wizard() -> Optional[AgentConfig]:

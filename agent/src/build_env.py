@@ -1,2 +1,2 @@
-IS_PROD = True
-BACKEND_URL = "https://api.unigpu.in"
+IS_PROD = False
+BACKEND_URL = ""

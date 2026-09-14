@@ -1,33 +1,23 @@
 """
 UniGPU Agent — Log Window
-A read-only tkinter window for viewing live agent logs inside the .exe.
+A read-only CustomTkinter window for viewing live agent logs inside the .exe.
 """
 
-import tkinter as tk
-from tkinter import scrolledtext
+import customtkinter as ctk
 from typing import Optional
 
 from src.core.log_buffer import BufferedLogHandler
 
 
-BG = "#0f0f1a"
-BG_CARD = "#1a1a2e"
-FG = "#e0e0e0"
-FG_DIM = "#888899"
-ACCENT = "#7c3aed"
-BORDER = "#333355"
-
-
 class LogWindow:
     """A simple read-only live log viewer."""
 
-    def __init__(self, master: tk.Misc, handler: BufferedLogHandler):
+    def __init__(self, master: ctk.CTk, handler: BufferedLogHandler):
         self.handler = handler
-        self.win = tk.Toplevel(master)
+        self.win = ctk.CTkToplevel(master)
         self.win.title("UniGPU Agent — Logs")
         self.win.geometry("860x520")
         self.win.minsize(640, 420)
-        self.win.configure(bg=BG)
 
         # Set icon if available
         try:
@@ -40,74 +30,55 @@ class LogWindow:
 
         self.win.protocol("WM_DELETE_WINDOW", self.close)
 
-        header = tk.Frame(self.win, bg=BG)
+        # ── Header ────────────────────────────────────
+        header = ctk.CTkFrame(self.win, fg_color="transparent")
         header.pack(fill="x", padx=16, pady=(14, 8))
 
-        tk.Label(
+        ctk.CTkLabel(
             header,
             text="Live Agent Logs",
-            font=("Segoe UI", 16, "bold"),
-            bg=BG,
-            fg=FG,
+            font=ctk.CTkFont(size=18, weight="bold"),
+            anchor="w",
         ).pack(anchor="w")
-        tk.Label(
+
+        ctk.CTkLabel(
             header,
             text="This window shows the same logs the agent writes internally.",
-            font=("Segoe UI", 9),
-            bg=BG,
-            fg=FG_DIM,
+            font=ctk.CTkFont(size=12),
+            text_color="gray",
+            anchor="w",
         ).pack(anchor="w", pady=(2, 0))
 
-        body = tk.Frame(self.win, bg=BG_CARD, highlightthickness=1, highlightbackground=BORDER)
-        body.pack(fill="both", expand=True, padx=16, pady=(0, 12))
-
-        self.text = scrolledtext.ScrolledText(
-            body,
+        # ── Log text area ─────────────────────────────
+        self.text = ctk.CTkTextbox(
+            self.win,
             wrap="word",
-            font=("Consolas", 10),
-            bg="#11111c",
-            fg=FG,
-            insertbackground=FG,
-            relief="flat",
-            padx=10,
-            pady=10,
+            font=ctk.CTkFont(family="Consolas", size=11),
             state="disabled",
         )
-        self.text.pack(fill="both", expand=True, padx=1, pady=1)
+        self.text.pack(fill="both", expand=True, padx=16, pady=(0, 8))
 
-        footer = tk.Frame(self.win, bg=BG)
+        # ── Footer buttons ────────────────────────────
+        footer = ctk.CTkFrame(self.win, fg_color="transparent")
         footer.pack(fill="x", padx=16, pady=(0, 14))
 
-        tk.Button(
+        ctk.CTkButton(
             footer,
             text="Clear",
             command=self.clear,
-            font=("Segoe UI", 10),
-            bg=BG_CARD,
-            fg=FG,
-            activebackground=BORDER,
-            activeforeground=FG,
-            relief="flat",
-            cursor="hand2",
-            padx=18,
-            pady=5,
+            width=90,
+            fg_color="transparent",
+            border_width=1,
         ).pack(side="left")
 
-        tk.Button(
+        ctk.CTkButton(
             footer,
             text="Close",
             command=self.close,
-            font=("Segoe UI", 10, "bold"),
-            bg=ACCENT,
-            fg="white",
-            activebackground="#9b5de5",
-            activeforeground="white",
-            relief="flat",
-            cursor="hand2",
-            padx=18,
-            pady=5,
+            width=90,
         ).pack(side="right")
 
+        # Load existing logs then start polling
         for line in self.handler.snapshot():
             self._append_line(line)
 
@@ -125,6 +96,7 @@ class LogWindow:
     def _append_line(self, line: str) -> None:
         self.text.configure(state="normal")
         self.text.insert("end", line + "\n")
+        self.text.see("end")
         self.text.configure(state="disabled")
 
     def clear(self) -> None:

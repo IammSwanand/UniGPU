@@ -6,11 +6,12 @@ and bridges to the agent's asyncio event loop running in a background thread.
 
 import asyncio
 import logging
+import queue
 import sys
 import threading
 import time
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Callable
 
 from PIL import Image, ImageDraw, ImageFont
 
@@ -109,8 +110,11 @@ class TrayApp:
         if self._log_handler not in self._root_logger.handlers:
             self._root_logger.addHandler(self._log_handler)
 
-        # Hidden root for tkinter dialogs (settings, etc.)
+        # Single persistent GUI thread — all CTk windows run here to avoid
+        # the Windows COM 'Calling Tcl from different apartment' error.
         self._tk_root = None
+        self._gui_queue: queue.Queue = queue.Queue()
+        self._gui_thread: Optional[threading.Thread] = None
         self._exiting = False  # True when manually stopped from tray (prevents auto-restart polling)
 
     @property
@@ -288,69 +292,115 @@ class TrayApp:
             self._agent_thread.join(timeout=5)
 
     # ──────────────────────────────────────────────
+    # GUI thread management
+    # ──────────────────────────────────────────────
+
+    def _start_gui_thread(self) -> None:
+        """
+        Start the single persistent GUI thread (if not already running).
+
+        On Windows, Tcl/Tk requires that it lives in a COM Single-Threaded
+        Apartment (STA).  Spawning a fresh thread per window causes the
+        'Calling Tcl from different apartment' RuntimeError because new
+        threads default to MTA.  The fix is one long-lived thread that
+        calls CoInitialize(None) once, owns the CTk root, and processes
+        all GUI work via a queue.
+        """
+        if self._gui_thread and self._gui_thread.is_alive():
+            return
+
+        def _gui_loop():
+            # Mark this thread as a COM STA thread before touching Tcl/Tk
+            try:
+                import ctypes
+                ctypes.windll.ole32.CoInitialize(None)
+            except Exception:
+                pass  # Non-Windows or pywin32 unavailable — best-effort
+
+            import customtkinter as ctk
+            self._tk_root = ctk.CTk()
+            self._tk_root.withdraw()  # Keep the root hidden
+
+            # Poll the queue every 100 ms and run any pending GUI callables
+            def _process_queue():
+                if self._exiting:
+                    return
+                try:
+                    while True:
+                        fn = self._gui_queue.get_nowait()
+                        try:
+                            fn()
+                        except Exception as exc:
+                            logger.error("GUI task error: %s", exc)
+                except queue.Empty:
+                    pass
+                self._tk_root.after(100, _process_queue)
+
+            self._tk_root.after(100, _process_queue)
+            self._tk_root.mainloop()
+
+            # Clean up COM on exit
+            try:
+                import ctypes
+                ctypes.windll.ole32.CoUninitialize()
+            except Exception:
+                pass
+
+        self._gui_thread = threading.Thread(target=_gui_loop, daemon=True, name="GUI-Thread")
+        self._gui_thread.start()
+
+    def _gui_dispatch(self, fn: Callable) -> None:
+        """Schedule a callable to run on the persistent GUI thread."""
+        self._start_gui_thread()
+        self._gui_queue.put(fn)
+
+    # ──────────────────────────────────────────────
     # Menu handlers
     # ──────────────────────────────────────────────
 
     def _on_reauthenticate(self, icon=None, item=None):
         """Re-run setup wizard to get a fresh token."""
         def _reauthenticate():
-            import tkinter as tk
-            
             # Stop the agent first
             logger.info("Stopping agent for re-authentication…")
             if self._running:
                 self._stop_agent()
-            
-            # Launch setup wizard
+
+            # Launch setup wizard on the GUI thread
             logger.info("Launching setup wizard for re-authentication…")
             from src.gui.setup_wizard import run_setup_wizard
             new_config = run_setup_wizard()
-            
+
             if new_config:
                 self.config = new_config
                 logger.info("Re-authentication successful — restarting agent")
                 self._start_agent()
             else:
                 logger.warning("Re-authentication cancelled")
-        
-        # Run in a new thread to avoid blocking the tray
+
+        # Stop/restart agent logic is non-GUI, so a plain thread is fine here
         threading.Thread(target=_reauthenticate, daemon=True).start()
 
     def _on_open_settings(self, icon=None, item=None):
-        """Open the settings window."""
+        """Open the settings window on the persistent GUI thread."""
         def _open():
-            import tkinter as tk
-            if self._tk_root is None:
-                self._tk_root = tk.Tk()
-                self._tk_root.withdraw()
-
             from src.gui.settings import SettingsWindow
             SettingsWindow(self.config, on_save=self._on_settings_saved)
-            self._tk_root.mainloop()
 
-        # Run in a new thread to avoid blocking the tray
-        threading.Thread(target=_open, daemon=True).start()
+        self._gui_dispatch(_open)
 
     def _on_open_log_window(self, icon=None, item=None):
-        """Open the in-app log window."""
+        """Open the in-app log window on the persistent GUI thread."""
         def _open():
-            import tkinter as tk
-
-            if self._tk_root is None:
-                self._tk_root = tk.Tk()
-                self._tk_root.withdraw()
-
             if self._log_window and self._log_window.win.winfo_exists():
                 self._log_window.win.lift()
                 self._log_window.win.focus_force()
                 return
 
             from src.gui.log_window import LogWindow
-
             self._log_window = LogWindow(self._tk_root, self._log_handler)
-            self._tk_root.mainloop()
 
-        threading.Thread(target=_open, daemon=True).start()
+        self._gui_dispatch(_open)
 
     def _on_docker_status_change(self, docker_running: bool):
         """Called from the agent thread whenever Docker's reachability changes."""
@@ -363,21 +413,24 @@ class TrayApp:
             return  # Only pop up a warning when Docker goes down, not on recovery
 
         def _show():
-            import tkinter as tk
-            from tkinter import messagebox
+            import customtkinter as ctk
+            dialog = ctk.CTkToplevel(self._tk_root)
+            dialog.title("UniGPU Agent — Docker Not Running")
+            dialog.geometry("400x160")
+            dialog.grab_set()
+            ctk.CTkLabel(
+                dialog,
+                text=(
+                    "Docker isn't running, so this node can't execute jobs.\n\n"
+                    "Start Docker Desktop (or the Docker service) — this will "
+                    "clear automatically within a few seconds once it's back up."
+                ),
+                wraplength=360,
+                justify="center",
+            ).pack(pady=18, padx=20)
+            ctk.CTkButton(dialog, text="OK", command=dialog.destroy, width=80).pack()
 
-            if self._tk_root is None:
-                self._tk_root = tk.Tk()
-                self._tk_root.withdraw()
-
-            messagebox.showwarning(
-                "UniGPU Agent — Docker Not Running",
-                "Docker isn't running, so this node can't execute jobs.\n\n"
-                "Start Docker Desktop (or the Docker service) — this will "
-                "clear automatically within a few seconds once it's back up.",
-            )
-
-        threading.Thread(target=_show, daemon=True).start()
+        self._gui_dispatch(_show)
 
     def _on_settings_saved(self, new_config: "AgentConfig"):
         """Callback when settings are saved — update internal config."""
@@ -427,8 +480,17 @@ class TrayApp:
         #    stays in the tray until the user hovers over it).
         time.sleep(0.5)
 
-        # 4. Clean up tk root
-        if self._tk_root:
+        # 4. Shut down the GUI thread cleanly
+        def _destroy_root():
+            if self._tk_root:
+                try:
+                    self._tk_root.destroy()
+                except Exception:
+                    pass
+        if self._gui_thread and self._gui_thread.is_alive():
+            self._gui_dispatch(_destroy_root)
+            self._gui_thread.join(timeout=3)
+        elif self._tk_root:
             try:
                 self._tk_root.destroy()
             except Exception:

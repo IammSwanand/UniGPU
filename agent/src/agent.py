@@ -436,6 +436,11 @@ def _run_headless():
 
 def _run_gui(log_handler: BufferedLogHandler | None = None):
     """GUI mode — system tray app with optional first-run wizard."""
+    # Set CustomTkinter global theme once, before any window is created
+    import customtkinter as ctk
+    ctk.set_appearance_mode("dark")
+    ctk.set_default_color_theme("blue")  # closest built-in to our purple accent
+
     config = AgentConfig.load()
 
     # First-run: launch setup wizard
@@ -451,6 +456,7 @@ def _run_gui(log_handler: BufferedLogHandler | None = None):
     from src.gui.tray import TrayApp
     tray = TrayApp(config, agent_factory=UniGPUAgent, log_handler=log_handler)
     tray.run()
+
 
 
 def main():
