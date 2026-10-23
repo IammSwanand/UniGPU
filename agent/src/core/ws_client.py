@@ -124,16 +124,17 @@ class AgentWebSocket:
             "data": data,
         })
 
-    async def send_job_status(self, job_id: str, status: str, retries: int = 3) -> None:
+    async def send_job_status(self, job_id: str, status: str, retries: int = 3, **kwargs) -> None:
         """
-        Report job status change with retry logic.
-        Backend expects: {"type": "job_status", "job_id": "...", "status": "running|completed|failed"}
+        Report job status change with retry logic and optional proof-of-work metadata.
+        Backend expects: {"type": "job_status", "job_id": "...", "status": "running|completed|failed", ...}
         Retries on disconnect so status is never lost.
         """
         msg = {
             "type": "job_status",
             "job_id": job_id,
             "status": status,
+            **kwargs,
         }
         for attempt in range(1, retries + 1):
             try:

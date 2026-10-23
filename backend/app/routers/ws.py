@@ -12,7 +12,7 @@ from app.models.user import User
 from app.models.gpu import GPU, GPUStatus
 from app.models.job import Job, JobStatus
 from app.services.connection_manager import manager
-from app.services.billing import charge_client
+from app.services.billing import charge_client, verify_and_charge_client
 
 router = APIRouter()
 settings = get_settings()
@@ -179,10 +179,13 @@ async def agent_websocket(websocket: WebSocket, gpu_id: str, token: str | None =
                             job.status = JobStatus.running
                             job.started_at = datetime.now(timezone.utc)
                         elif new_status == "completed":
-                            job.status = JobStatus.completed
                             job.completed_at = datetime.now(timezone.utc)
-                            # Bill the client
-                            await charge_client(db, job)
+                            # Tier 2: Verify proof-of-work before releasing escrow / billing
+                            billing_ok, reason = await verify_and_charge_client(db, job, msg)
+                            if not billing_ok:
+                                print(f"⚠️ Verification failed for job {job_id}: {reason}")
+                                new_status = "failed"
+
                             # Free the GPU
                             gpu_result = await db.execute(select(GPU).where(GPU.id == gpu_id))
                             gpu = gpu_result.scalar_one_or_none()

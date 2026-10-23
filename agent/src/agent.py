@@ -248,17 +248,14 @@ class UniGPUAgent:
             # Start execution with concurrent log streaming
             result = await self._execute_with_streaming(msg)
 
-            # Report final status to backend
+            # Determine final status
             final_status = result.status  # "completed" or "failed"
             if final_status not in ("completed", "failed"):
                 final_status = "failed"  # timeout, error → backend expects "failed"
 
-            await self.ws.send_job_status(job_id, final_status)
-
-            # Upload output artifacts (if any) — only if the script wrote files to /workspace/output/.
-            # The uploader silently skips if the output directory is empty, so no artifacts
-            # are produced unless the script explicitly writes there.
-            if result.output_dir:
+            has_artifacts = False
+            # Upload output artifacts BEFORE notifying backend of completion
+            if final_status == "completed" and result.output_dir:
                 try:
                     from src.core.uploader import ArtifactUploader
                     uploader = ArtifactUploader(
@@ -267,15 +264,25 @@ class UniGPUAgent:
                     )
                     uploaded = await uploader.upload(job_id, result.output_dir)
                     if uploaded:
-                        logger.info(" Artifacts uploaded for job %s", job_id)
+                        has_artifacts = True
+                        logger.info("✅ Artifacts uploaded for job %s", job_id)
                     else:
                         logger.debug("No artifacts to upload for job %s (output dir empty)", job_id)
                 except Exception as exc:
                     logger.warning("Artifact upload error for job %s: %s", job_id, exc)
 
+            # Report final status with proof-of-work metadata to backend
+            await self.ws.send_job_status(
+                job_id,
+                final_status,
+                exit_code=result.exit_code,
+                runtime_seconds=result.runtime_seconds,
+                has_artifacts=has_artifacts,
+            )
+
             logger.info(
-                "Job %s finished — status=%s, exit=%d, time=%.1fs",
-                job_id, result.status, result.exit_code, result.runtime_seconds,
+                "Job %s finished — status=%s, exit=%d, time=%.1fs, artifacts=%s",
+                job_id, final_status, result.exit_code, result.runtime_seconds, has_artifacts,
             )
 
         except Exception as exc:
