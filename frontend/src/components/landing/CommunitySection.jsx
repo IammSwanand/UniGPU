@@ -34,7 +34,12 @@ const audiences = [
 ];
 
 export default function CommunitySection() {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState({
+    registered_gpus: 36,
+    jobs_completed: 217,
+    compute_hours: 154,
+    credits_earned: 1111,
+  });
   const sectionRef = useRef(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-10%" });
 

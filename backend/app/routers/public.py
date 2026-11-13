@@ -33,16 +33,40 @@ async def get_platform_stats(request: Request, db: AsyncSession = Depends(get_db
     Otherwise returns hardcoded impressive seed stats.
     """
     if not settings.USE_LIVE_STATS:
-        # Use deterministic growth based on time elapsed since a fixed epoch (roughly today)
-        # so the numbers realistically creep up without bouncing down on refreshes.
-        epoch = 1786600000
-        elapsed_minutes = max(0, (time.time() - epoch) / 60)
-        
+        # Believable baseline & organic growth for an early-stage / non-marketed platform.
+        # Uses sublinear scaling and circadian diurnal rhythm so numbers feel authentic,
+        # never jump unrealistically, and remain strictly non-decreasing across refreshes.
+        epoch = 1794500000  # Nov 13, 2026 anchor
+        elapsed_seconds = max(0.0, time.time() - epoch)
+        days = elapsed_seconds / 86400.0
+
+        # Sublinear scaling (0.88 exponent) ensures steady near-term progress
+        # while preventing runaway numbers over months/years
+        effective_days = (days ** 0.88) if days > 0 else 0.0
+
+        # Circadian diurnal cycle (active daytime jobs, calm night periods)
+        diurnal = math.sin(2 * math.pi * days - (math.pi / 2))
+
+        # 1. Registered GPUs: ~1 new node every 3-4 days (believable early cluster)
+        gpus = 36 + int(effective_days * 0.25)
+
+        # 2. Jobs Completed: ~3-4 jobs/day with diurnal pacing
+        jobs_progress = (effective_days * 3.2) + (0.25 * diurnal)
+        jobs = 214 + int(max(0.0, jobs_progress))
+
+        # 3. Compute Hours: ~0.70 hrs (42 min) average per job
+        hours_progress = (effective_days * 2.25) + (0.18 * diurnal)
+        hours = 152 + int(max(0.0, hours_progress))
+
+        # 4. Credits Earned: calibrated to UniGPU's RATE_PER_SECOND ($0.002/s -> 7.2 credits/hr)
+        credits_progress = (effective_days * 16.2) + (1.3 * diurnal)
+        credits = 1095 + int(max(0.0, credits_progress))
+
         return {
-            "registered_gpus": 142 + int(elapsed_minutes * 0.05), # ~1 GPU every 20 mins
-            "jobs_completed": 1205 + int(elapsed_minutes * 0.8),  # ~1 job per min
-            "compute_hours": 850 + int(elapsed_minutes * 0.5),    # ~1 compute hr every 2 mins
-            "credits_earned": 3200 + int(elapsed_minutes * 3.5)   # ~3.5 credits per min
+            "registered_gpus": gpus,
+            "jobs_completed": jobs,
+            "compute_hours": hours,
+            "credits_earned": credits
         }
 
     # 1. Try to fetch from cache
